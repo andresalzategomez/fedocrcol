@@ -1,24 +1,161 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, CalendarDays, Flame, MapPin, ShieldCheck, Trophy, Users } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { DEMO_EVENTS, DEMO_LEAGUES, formatDate, leagueById } from "@/data/demo";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "FEDOCR Colombia — Federación de Carreras de Obstáculos" },
+      {
+        name: "description",
+        content:
+          "Plataforma oficial de las ligas departamentales de OCR en Colombia: inscripciones a carreras, ranking nacional y clasificación al Mundial.",
+      },
+      { property: "og:title", content: "FEDOCR Colombia — Federación de Carreras de Obstáculos" },
+      {
+        property: "og:description",
+        content: "Ligas departamentales, inscripciones pagas, ranking nacional y camino al Mundial de OCR.",
+      },
+    ],
+  }),
+  component: Home,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Home() {
+  const upcoming = DEMO_EVENTS.slice(0, 3);
+  const active = DEMO_LEAGUES.filter((l) => l.status === "active");
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen">
+      <SiteHeader />
+
+      <section className="surface-grit border-b border-border">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:py-28">
+          <div>
+            <Badge className="mb-5 bg-secondary text-secondary-foreground">Temporada 2026 · Camino al Mundial</Badge>
+            <h1 className="font-display text-6xl leading-[0.95] sm:text-7xl lg:text-8xl">
+              UNA FEDERACIÓN.
+              <br />
+              <span className="text-gradient-brand">TODAS LAS LIGAS.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+              Inscríbete a carreras de obstáculos en cualquier departamento, acumula puntos en el ranking
+              nacional y clasifica al Mundial de OCR. Cada liga con su identidad, todas bajo un mismo sistema.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link to="/eventos">
+                  Ver calendario <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/ligas">Explorar ligas</Link>
+              </Button>
+            </div>
+            <div className="mt-10 grid max-w-lg grid-cols-3 gap-6">
+              {[
+                { value: "32", label: "Departamentos" },
+                { value: "1.8K", label: "Atletas activos" },
+                { value: "24", label: "Carreras al año" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="font-display text-4xl text-primary">{s.value}</p>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 self-center">
+            {[
+              { icon: ShieldCheck, title: "Ligas verificadas", text: "Cada liga departamental opera como tenant independiente con datos aislados." },
+              { icon: Flame, title: "Inscripción con pago", text: "Tarifas por preventa, cupos en tiempo real y comprobante QR al confirmar." },
+              { icon: Trophy, title: "Ranking oficial", text: "Puntaje individual acumulado e escalafón interligas por departamento." },
+            ].map((f) => (
+              <Card key={f.title} className="border-border/70 bg-card/80">
+                <CardContent className="flex gap-4 p-5">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded bg-primary/15 text-primary">
+                    <f.icon className="size-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">{f.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-display text-4xl">Ligas departamentales</h2>
+            <p className="mt-2 text-muted-foreground">Elige tu sede: cada liga tiene su marca, sus carreras y su comunidad.</p>
+          </div>
+          <Button asChild variant="ghost">
+            <Link to="/ligas">Ver todas <ArrowRight className="ml-2 size-4" /></Link>
+          </Button>
+        </div>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {active.slice(0, 6).map((league) => (
+            <Link key={league.id} to="/ligas/$slug" params={{ slug: league.slug }}>
+              <Card className="h-full overflow-hidden border-border/70 transition-colors hover:border-primary">
+                <div className="h-2 w-full" style={{ background: `linear-gradient(90deg, ${league.primary_color}, ${league.secondary_color})` }} />
+                <CardContent className="p-5">
+                  <p className="font-display text-2xl">{league.department}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <MapPin className="size-3.5" /> {league.city}
+                  </p>
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{league.description}</p>
+                  <p className="mt-4 flex items-center gap-1.5 text-sm font-medium">
+                    <Users className="size-4 text-primary" /> {league.athletes} atletas
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-card/40">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <h2 className="font-display text-4xl">Próximas carreras</h2>
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {upcoming.map((event) => {
+              const league = leagueById(event.tenant_id);
+              return (
+                <Card key={event.id} className="border-border/70">
+                  <CardContent className="p-6">
+                    <Badge variant="outline" className="mb-3">{league?.department}</Badge>
+                    <p className="font-display text-3xl leading-tight">{event.title}</p>
+                    <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarDays className="size-4" /> {formatDate(event.date)}
+                    </p>
+                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="size-4" /> {event.location}
+                    </p>
+                    <p className="mt-4 text-sm">
+                      {event.distance_km} km · {event.obstacles} obstáculos
+                    </p>
+                    <Button asChild className="mt-5 w-full">
+                      <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Inscribirme</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }
