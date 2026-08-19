@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DEMO_LEAGUES } from "@/data/demo";
 
-export const Route = createFileRoute("/ligas")({
+export const Route = createFileRoute("/ligas/")({
   head: () => ({
     meta: [
       { title: "Ligas departamentales de OCR — FEDOCR Colombia" },
