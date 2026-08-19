@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
+import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const LigasIndexRoute = LigasIndexRouteImport.update({
   path: '/ligas/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LigasSlugRoute = LigasSlugRouteImport.update({
+  id: '/ligas/$slug',
+  path: '/ligas/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ligas/$slug': typeof LigasSlugRoute
   '/ligas/': typeof LigasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ligas/$slug': typeof LigasSlugRoute
   '/ligas': typeof LigasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ligas/$slug': typeof LigasSlugRoute
   '/ligas/': typeof LigasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ligas/'
+  fullPaths: '/' | '/ligas/$slug' | '/ligas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ligas'
-  id: '__root__' | '/' | '/ligas/'
+  to: '/' | '/ligas/$slug' | '/ligas'
+  id: '__root__' | '/' | '/ligas/$slug' | '/ligas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LigasSlugRoute: typeof LigasSlugRoute
   LigasIndexRoute: typeof LigasIndexRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LigasIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ligas/$slug': {
+      id: '/ligas/$slug'
+      path: '/ligas/$slug'
+      fullPath: '/ligas/$slug'
+      preLoaderRoute: typeof LigasSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LigasSlugRoute: LigasSlugRoute,
   LigasIndexRoute: LigasIndexRoute,
 }
 export const routeTree = rootRouteImport
