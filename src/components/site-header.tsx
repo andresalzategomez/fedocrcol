@@ -19,7 +19,7 @@ const NAV = [
   { to: "/panel", label: "Panel" },
 ] as const;
 
-export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string }) {
+export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | undefined }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
