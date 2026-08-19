@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
@@ -18,6 +19,11 @@ import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventosIndexRoute = EventosIndexRouteImport.update({
@@ -43,6 +49,7 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
@@ -66,12 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/eventos/$eventId' | '/ligas/$slug' | '/eventos/' | '/ligas/'
+    | '/'
+    | '/ranking'
+    | '/eventos/$eventId'
+    | '/ligas/$slug'
+    | '/eventos/'
+    | '/ligas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/eventos/$eventId' | '/ligas/$slug' | '/eventos' | '/ligas'
+  to:
+    | '/'
+    | '/ranking'
+    | '/eventos/$eventId'
+    | '/ligas/$slug'
+    | '/eventos'
+    | '/ligas'
   id:
     | '__root__'
     | '/'
+    | '/ranking'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos/'
@@ -80,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RankingRoute: typeof RankingRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
@@ -93,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/eventos/': {
@@ -128,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RankingRoute: RankingRoute,
   EventosEventIdRoute: EventosEventIdRoute,
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
