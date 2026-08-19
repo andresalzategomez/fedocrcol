@@ -17,6 +17,7 @@ import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
+import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
   path: '/ligas/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPagosWebhookRoute = ApiPublicPagosWebhookRouteImport.update({
+  id: '/api/public/pagos/webhook',
+  path: '/api/public/pagos/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
+  '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/public/pagos/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos'
     | '/ligas'
+    | '/api/public/pagos/webhook'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/public/pagos/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
+  ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LigasSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pagos/webhook': {
+      id: '/api/public/pagos/webhook'
+      path: '/api/public/pagos/webhook'
+      fullPath: '/api/public/pagos/webhook'
+      preLoaderRoute: typeof ApiPublicPagosWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
+  ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
