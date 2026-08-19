@@ -44,7 +44,10 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Bienvenido de vuelta");
     navigate({ to: "/panel" });
   }
@@ -62,7 +65,10 @@ function AuthPage() {
       options: { data: { full_name: fullName, tenant_id: tenant, role: "athlete" } },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Cuenta creada. Revisa tu correo para confirmar.");
   }
 

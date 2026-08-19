@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingRoute = RankingRouteImport.update({
@@ -56,6 +62,7 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/panel'
     | '/ranking'
     | '/eventos/$eventId'
     | '/ligas/$slug'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/panel'
     | '/ranking'
     | '/eventos/$eventId'
     | '/ligas/$slug'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/panel'
     | '/ranking'
     | '/eventos/$eventId'
     | '/ligas/$slug'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  PanelRoute: typeof PanelRoute
   RankingRoute: typeof RankingRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
   LigasSlugRoute: typeof LigasSlugRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ranking': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  PanelRoute: PanelRoute,
   RankingRoute: RankingRoute,
   EventosEventIdRoute: EventosEventIdRoute,
   LigasSlugRoute: LigasSlugRoute,
