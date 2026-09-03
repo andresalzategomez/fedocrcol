@@ -36,7 +36,7 @@ export interface EventRow {
   league_approved: boolean;
   federation_approved: boolean;
 }
-export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; }
+export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; status: string; }
 export interface Category { id: string; name: string; level: string; gender: string; }
@@ -99,11 +99,27 @@ export async function createEvent(input: {
   }).select("*").single();
   if (error) throw error;
   const ev = data as EventRow;
-  // Modalidad por defecto para poder inscribir de inmediato
-  await db().from("event_categories").insert({
-    event_id: ev.id, name: "General", price: 0, slots_available: ev.max_capacity ?? 0,
-  });
+  // Sembrar el maestro de categorías de la carrera con el catálogo nacional.
+  await seedStandardCategories(ev.id);
   return ev;
+}
+
+/** Copia el catálogo nacional de categorías al maestro de esta carrera. */
+export async function seedStandardCategories(eventId: string): Promise<void> {
+  const cats = await listCategories();
+  if (!cats.length) return;
+  const rows = cats.map((c) => ({
+    event_id: eventId, name: c.name, gender: (c as unknown as { gender: string }).gender ?? null,
+    price: 0, slots_available: 0,
+  }));
+  // Evitar duplicados si ya hay categorías con esos nombres.
+  const existing = await listEventCategories(eventId);
+  const have = new Set(existing.map((e) => e.name));
+  const toInsert = rows.filter((r) => !have.has(r.name));
+  if (toInsert.length) {
+    const { error } = await db().from("event_categories").insert(toInsert);
+    if (error) throw error;
+  }
 }
 
 /** Eventos pendientes de aprobación de la federación (todas las ligas). */
@@ -149,8 +165,18 @@ export async function listEventCategories(eventId: string): Promise<EventCategor
   if (error) throw error;
   return data as EventCategory[];
 }
-export async function createEventCategory(eventId: string, name: string, price: number, slots: number) {
-  const { error } = await db().from("event_categories").insert({ event_id: eventId, name, price, slots_available: slots });
+export async function createEventCategory(eventId: string, input: {
+  name: string; gender?: string | null; min_age?: number | null; max_age?: number | null;
+}) {
+  const { error } = await db().from("event_categories").insert({
+    event_id: eventId, name: input.name, gender: input.gender ?? null,
+    min_age: input.min_age ?? null, max_age: input.max_age ?? null, price: 0, slots_available: 0,
+  });
+  if (error) throw error;
+}
+
+export async function deleteEventCategory(id: string) {
+  const { error } = await db().from("event_categories").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -195,6 +221,15 @@ export async function listCategories(): Promise<Category[]> {
   return data as Category[];
 }
 
+/** Conteo de inscritos por evento (para reportes). */
+export async function registrationCountsByEvent(tenantId: string): Promise<Record<string, number>> {
+  const { data, error } = await db().from("registrations").select("event_id").eq("tenant_id", tenantId);
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  (data ?? []).forEach((r) => { const id = (r as { event_id: string }).event_id; counts[id] = (counts[id] ?? 0) + 1; });
+  return counts;
+}
+
 // --------------------------- Inscripciones ---------------------------
 export async function listRegistrations(eventId: string): Promise<Registration[]> {
   const { data, error } = await db().from("registrations")
@@ -204,35 +239,101 @@ export async function listRegistrations(eventId: string): Promise<Registration[]
   return data as Registration[];
 }
 
+/** Próximo dorsal disponible del evento (máximo + 1, empezando en 1). */
+export async function nextBib(eventId: string): Promise<number> {
+  const { data } = await db().from("registrations")
+    .select("bib_number").eq("event_id", eventId)
+    .not("bib_number", "is", null).order("bib_number", { ascending: false }).limit(1);
+  const max = (data && data[0]?.bib_number) || 0;
+  return (max as number) + 1;
+}
+
 export async function createRegistration(input: {
   tenant_id: string; event_id: string; category_id: string;
   athlete_name: string; athlete_document: string; athlete_gender: "F" | "M" | "X";
   bib_number?: number | null; wave_id?: string | null; ranking_category_id?: string | null;
 }): Promise<void> {
-  const qr = `OCR-${input.event_id.slice(0, 6).toUpperCase()}-${input.bib_number ?? "X"}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-  // La política de inserción exige status 'pending'; luego lo confirmamos.
-  const { data, error } = await db().from("registrations").insert({
-    tenant_id: input.tenant_id,
-    event_id: input.event_id,
-    category_id: input.category_id,
-    status: "pending",
-    qr_code: qr,
-    athlete_name: input.athlete_name,
-    athlete_document: input.athlete_document,
-    athlete_gender: input.athlete_gender,
-    amount: 0,
-    bib_number: input.bib_number ?? null,
-    wave_id: input.wave_id ?? null,
-    ranking_category_id: input.ranking_category_id ?? null,
-  }).select("id").single();
-  if (error) throw error;
-  // Confirmar (status 'paid') vía política de update admin/tenant.
-  await db().from("registrations").update({ status: "paid" }).eq("id", (data as { id: string }).id);
+  // Dorsal automático si no viene uno explícito (reintenta ante colisión).
+  let bib = input.bib_number ?? (await nextBib(input.event_id));
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const qr = `OCR-${input.event_id.slice(0, 6).toUpperCase()}-${bib}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const { data, error } = await db().from("registrations").insert({
+      tenant_id: input.tenant_id, event_id: input.event_id, category_id: input.category_id,
+      status: "pending", qr_code: qr,
+      athlete_name: input.athlete_name, athlete_document: input.athlete_document,
+      athlete_gender: input.athlete_gender, amount: 0,
+      bib_number: bib, wave_id: input.wave_id ?? null, ranking_category_id: input.ranking_category_id ?? null,
+    }).select("id").single();
+    if (!error) {
+      await db().from("registrations").update({ status: "paid" }).eq("id", (data as { id: string }).id);
+      return;
+    }
+    // 23505 = dorsal ya usado: reintenta con el siguiente.
+    if ((error as { code?: string }).code === "23505" && input.bib_number == null) { bib += 1; continue; }
+    throw error;
+  }
+  throw new Error("No se pudo asignar un dorsal disponible");
 }
 
 export async function updateRegistration(id: string, patch: {
-  bib_number?: number | null; wave_id?: string | null; status?: string;
+  bib_number?: number | null; wave_id?: string | null; status?: string; category_id?: string;
 }) {
   const { error } = await db().from("registrations").update(patch).eq("id", id);
   if (error) throw error;
+}
+
+// ------------------- Generación automática de oleadas ----------------
+export async function deleteWave(id: string) {
+  const { error } = await db().from("waves").delete().eq("id", id);
+  if (error) throw error;
+}
+export async function updateWave(id: string, patch: { wave_number?: number; name?: string; scheduled_time?: string | null; status?: string }) {
+  const { error } = await db().from("waves").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Genera oleadas automáticamente: separadas por categoría y con máximo
+ * `waveSize` atletas por oleada. Borra las oleadas previas del evento y
+ * reasigna a los inscritos. Devuelve cuántas oleadas se crearon.
+ */
+export async function generateWaves(tenantId: string, eventId: string, waveSize: number): Promise<number> {
+  if (!waveSize || waveSize < 1) throw new Error("El tamaño de oleada debe ser mayor que 0");
+
+  // 1) Borrar oleadas previas (los registros quedan con wave_id = null por FK).
+  const existing = await listWaves(eventId);
+  for (const w of existing) await deleteWave(w.id);
+
+  // 2) Traer inscritos y categorías del evento.
+  const [regs, cats] = await Promise.all([listRegistrations(eventId), listEventCategories(eventId)]);
+  const catName = new Map(cats.map((c) => [c.id, c.name] as const));
+
+  // 3) Agrupar por categoría.
+  const byCat = new Map<string, typeof regs>();
+  for (const r of regs) {
+    const key = r.category_id;
+    if (!byCat.has(key)) byCat.set(key, []);
+    byCat.get(key)!.push(r);
+  }
+
+  // 4) Crear oleadas por categoría en bloques de waveSize y reasignar.
+  let waveNo = 0;
+  for (const [catId, list] of byCat) {
+    list.sort((a, b) => (a.bib_number ?? 0) - (b.bib_number ?? 0));
+    const name = catName.get(catId) ?? "Categoría";
+    for (let i = 0; i < list.length; i += waveSize) {
+      waveNo += 1;
+      const chunk = list.slice(i, i + waveSize);
+      const { data, error } = await db().from("waves").insert({
+        tenant_id: tenantId, event_id: eventId, category_id: catId,
+        wave_number: waveNo, name: `${name} - Oleada ${Math.floor(i / waveSize) + 1}`, status: "pending",
+      }).select("id").single();
+      if (error) throw error;
+      const waveId = (data as { id: string }).id;
+      const ids = chunk.map((c) => c.id);
+      const { error: upErr } = await db().from("registrations").update({ wave_id: waveId }).in("id", ids);
+      if (upErr) throw upErr;
+    }
+  }
+  return waveNo;
 }

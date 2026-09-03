@@ -17,7 +17,14 @@ import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
+import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
+import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth.login'
+import { Route as ApiV1TimeRecordsBatchRouteImport } from './routes/api/v1/time-records.batch'
+import { Route as ApiV1RacesRaceIdAthletesRouteImport } from './routes/api/v1/races.$raceId.athletes'
+import { Route as ApiV1RacesRaceIdSplitsRouteImport } from './routes/api/v1/races.$raceId.splits'
+import { Route as ApiV1RacesRaceIdWavesRouteImport } from './routes/api/v1/races.$raceId.waves'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,10 +66,46 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
   path: '/ligas/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
+  id: '/api/v1/health',
+  path: '/api/v1/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RacesRoute = ApiV1RacesRouteImport.update({
+  id: '/api/v1/races',
+  path: '/api/v1/races',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPagosWebhookRoute = ApiPublicPagosWebhookRouteImport.update({
   id: '/api/public/pagos/webhook',
   path: '/api/public/pagos/webhook',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
+  id: '/api/v1/auth/login',
+  path: '/api/v1/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TimeRecordsBatchRoute = ApiV1TimeRecordsBatchRouteImport.update({
+  id: '/api/v1/time-records/batch',
+  path: '/api/v1/time-records/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RacesRaceIdAthletesRoute =
+  ApiV1RacesRaceIdAthletesRouteImport.update({
+    id: '/$raceId/athletes',
+    path: '/$raceId/athletes',
+    getParentRoute: () => ApiV1RacesRoute,
+  } as any)
+const ApiV1RacesRaceIdSplitsRoute = ApiV1RacesRaceIdSplitsRouteImport.update({
+  id: '/$raceId/splits',
+  path: '/$raceId/splits',
+  getParentRoute: () => ApiV1RacesRoute,
+} as any)
+const ApiV1RacesRaceIdWavesRoute = ApiV1RacesRaceIdWavesRouteImport.update({
+  id: '/$raceId/waves',
+  path: '/$raceId/waves',
+  getParentRoute: () => ApiV1RacesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -74,7 +117,14 @@ export interface FileRoutesByFullPath {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,7 +135,14 @@ export interface FileRoutesByTo {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,7 +154,14 @@ export interface FileRoutesById {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
+  '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +174,14 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/v1/health'
+    | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/v1/auth/login'
+    | '/api/v1/time-records/batch'
+    | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/waves'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,7 +192,14 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos'
     | '/ligas'
+    | '/api/v1/health'
+    | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/v1/auth/login'
+    | '/api/v1/time-records/batch'
+    | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/waves'
   id:
     | '__root__'
     | '/'
@@ -132,7 +210,14 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/v1/health'
+    | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/v1/auth/login'
+    | '/api/v1/time-records/batch'
+    | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/waves'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,7 +229,11 @@ export interface RootRouteChildren {
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
+  ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
+  ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
+  ApiV1TimeRecordsBatchRoute: typeof ApiV1TimeRecordsBatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,6 +294,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LigasSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/health': {
+      id: '/api/v1/health'
+      path: '/api/v1/health'
+      fullPath: '/api/v1/health'
+      preLoaderRoute: typeof ApiV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/races': {
+      id: '/api/v1/races'
+      path: '/api/v1/races'
+      fullPath: '/api/v1/races'
+      preLoaderRoute: typeof ApiV1RacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pagos/webhook': {
       id: '/api/public/pagos/webhook'
       path: '/api/public/pagos/webhook'
@@ -212,8 +315,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPagosWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/auth/login': {
+      id: '/api/v1/auth/login'
+      path: '/api/v1/auth/login'
+      fullPath: '/api/v1/auth/login'
+      preLoaderRoute: typeof ApiV1AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/time-records/batch': {
+      id: '/api/v1/time-records/batch'
+      path: '/api/v1/time-records/batch'
+      fullPath: '/api/v1/time-records/batch'
+      preLoaderRoute: typeof ApiV1TimeRecordsBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/races/$raceId/athletes': {
+      id: '/api/v1/races/$raceId/athletes'
+      path: '/$raceId/athletes'
+      fullPath: '/api/v1/races/$raceId/athletes'
+      preLoaderRoute: typeof ApiV1RacesRaceIdAthletesRouteImport
+      parentRoute: typeof ApiV1RacesRoute
+    }
+    '/api/v1/races/$raceId/splits': {
+      id: '/api/v1/races/$raceId/splits'
+      path: '/$raceId/splits'
+      fullPath: '/api/v1/races/$raceId/splits'
+      preLoaderRoute: typeof ApiV1RacesRaceIdSplitsRouteImport
+      parentRoute: typeof ApiV1RacesRoute
+    }
+    '/api/v1/races/$raceId/waves': {
+      id: '/api/v1/races/$raceId/waves'
+      path: '/$raceId/waves'
+      fullPath: '/api/v1/races/$raceId/waves'
+      preLoaderRoute: typeof ApiV1RacesRaceIdWavesRouteImport
+      parentRoute: typeof ApiV1RacesRoute
+    }
   }
 }
+
+interface ApiV1RacesRouteChildren {
+  ApiV1RacesRaceIdAthletesRoute: typeof ApiV1RacesRaceIdAthletesRoute
+  ApiV1RacesRaceIdSplitsRoute: typeof ApiV1RacesRaceIdSplitsRoute
+  ApiV1RacesRaceIdWavesRoute: typeof ApiV1RacesRaceIdWavesRoute
+}
+
+const ApiV1RacesRouteChildren: ApiV1RacesRouteChildren = {
+  ApiV1RacesRaceIdAthletesRoute: ApiV1RacesRaceIdAthletesRoute,
+  ApiV1RacesRaceIdSplitsRoute: ApiV1RacesRaceIdSplitsRoute,
+  ApiV1RacesRaceIdWavesRoute: ApiV1RacesRaceIdWavesRoute,
+}
+
+const ApiV1RacesRouteWithChildren = ApiV1RacesRoute._addFileChildren(
+  ApiV1RacesRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -224,7 +378,11 @@ const rootRouteChildren: RootRouteChildren = {
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
+  ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
+  ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
+  ApiV1TimeRecordsBatchRoute: ApiV1TimeRecordsBatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
