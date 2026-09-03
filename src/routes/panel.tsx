@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2 } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -16,46 +16,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "@/lib/use-session";
 import * as api from "@/lib/admin-api";
-import type { Tenant, EventRow, Category } from "@/lib/admin-api";
+import type { Tenant, EventRow, EventStatus, Category } from "@/lib/admin-api";
+import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg, phoneCO } from "@/lib/validate";
 
 export const Route = createFileRoute("/panel")({
-  head: () => ({
-    meta: [
-      { title: "Panel de administración — FEDOCR Colombia" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Panel de administración — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
   component: PanelPage,
 });
 
 function PanelPage() {
   const { loading, email, profile, signOut } = useSession();
-
-  if (!isSupabaseConfigured) {
-    return <Shell><Note>Configura las variables de Supabase para usar el panel real.</Note></Shell>;
-  }
+  if (!isSupabaseConfigured) return <Shell><Note>Configura las variables de Supabase para usar el panel real.</Note></Shell>;
   if (loading) return <Shell><Note>Cargando…</Note></Shell>;
-  if (!profile) {
-    return (
-      <Shell>
-        <Note>
-          Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.
-        </Note>
-      </Shell>
-    );
-  }
-  if (profile.role === "athlete") {
-    return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
-  }
+  if (!profile) return <Shell><Note>Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.</Note></Shell>;
+  if (profile.role === "athlete") return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
 
   return (
     <Shell>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-4xl">Panel de administración</h1>
-          <p className="text-sm text-muted-foreground">
-            {email} · {profile.role === "superadmin" ? "Administración nacional" : "Administrador de liga"}
-          </p>
+          <p className="text-sm text-muted-foreground">{email} · {profile.role === "superadmin" ? "Administración nacional" : "Administrador de liga"}</p>
         </div>
         <Button variant="outline" onClick={signOut}>Salir</Button>
       </div>
@@ -65,16 +46,24 @@ function PanelPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen">
-      <SiteHeader />
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{children}</div>
-      <SiteFooter />
-    </div>
-  );
+  return <div className="min-h-screen"><SiteHeader /><div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{children}</div><SiteFooter /></div>;
 }
 function Note({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">{children}</div>;
+}
+
+// ------------------- estado de evento (badge) ------------------------
+const STATUS_LABEL: Record<EventStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  draft: { label: "Borrador", variant: "secondary" },
+  pending_federation: { label: "Pend. federación", variant: "outline" },
+  approved: { label: "Aprobado", variant: "default" },
+  in_progress: { label: "En curso", variant: "default" },
+  finished: { label: "Finalizado", variant: "secondary" },
+  cancelled: { label: "Cancelado", variant: "destructive" },
+};
+function StatusBadge({ status }: { status: EventStatus }) {
+  const s = STATUS_LABEL[status] ?? STATUS_LABEL.draft;
+  return <Badge variant={s.variant}>{s.label}</Badge>;
 }
 
 // =====================================================================
@@ -90,7 +79,6 @@ function AdminConsole({ role, fixedTenant }: { role: string; fixedTenant: string
       if (isSuper && !activeTenant && t[0]) setActiveTenant(t[0].id);
     } catch (e) { toast.error((e as Error).message); }
   }, [isSuper, activeTenant]);
-
   useEffect(() => { loadTenants(); }, [loadTenants]);
 
   return (
@@ -98,13 +86,10 @@ function AdminConsole({ role, fixedTenant }: { role: string; fixedTenant: string
       <TabsList>
         {isSuper ? <TabsTrigger value="ligas"><Building2 className="mr-1 size-4" />Ligas</TabsTrigger> : null}
         <TabsTrigger value="carreras"><Flag className="mr-1 size-4" />Carreras</TabsTrigger>
+        {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
       </TabsList>
 
-      {isSuper ? (
-        <TabsContent value="ligas" className="mt-6">
-          <LigasSection tenants={tenants} onChange={loadTenants} />
-        </TabsContent>
-      ) : null}
+      {isSuper ? <TabsContent value="ligas" className="mt-6"><LigasSection tenants={tenants} onChange={loadTenants} /></TabsContent> : null}
 
       <TabsContent value="carreras" className="mt-6">
         {isSuper ? (
@@ -112,14 +97,14 @@ function AdminConsole({ role, fixedTenant }: { role: string; fixedTenant: string
             <Label>Liga activa</Label>
             <Select value={activeTenant ?? ""} onValueChange={setActiveTenant}>
               <SelectTrigger><SelectValue placeholder="Selecciona una liga" /></SelectTrigger>
-              <SelectContent>
-                {tenants.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
+              <SelectContent>{tenants.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         ) : null}
-        {activeTenant ? <CarrerasSection tenantId={activeTenant} /> : <Note>Selecciona o crea una liga primero.</Note>}
+        {activeTenant ? <CarrerasSection tenantId={activeTenant} isSuper={isSuper} /> : <Note>Selecciona o crea una liga primero.</Note>}
       </TabsContent>
+
+      {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
     </Tabs>
   );
 }
@@ -127,100 +112,149 @@ function AdminConsole({ role, fixedTenant }: { role: string; fixedTenant: string
 // ------------------------------- Ligas -------------------------------
 function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () => void }) {
   const [form, setForm] = useState({ name: "", slug: "", department: "", city: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   async function create() {
-    if (!form.name || !form.slug || !form.department) { toast.error("Nombre, slug y departamento son obligatorios"); return; }
+    const { ok, errors } = validateForm(form, {
+      name: [required("El nombre")], slug: [slugRule()], department: [required("El departamento")],
+    });
+    setErrors(errors as Record<string, string>);
+    if (!ok) return;
     setBusy(true);
-    try {
-      await api.createTenant(form);
-      toast.success("Liga creada");
-      setForm({ name: "", slug: "", department: "", city: "" });
-      onChange();
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    try { await api.createTenant(form); toast.success("Liga creada"); setForm({ name: "", slug: "", department: "", city: "" }); setErrors({}); onChange(); }
+    catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
   return (
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-        <Field label="Nombre"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Liga Valle OCR" /></Field>
-        <Field label="Slug"><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} placeholder="valle" /></Field>
-        <Field label="Departamento"><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Valle del Cauca" /></Field>
+        <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Liga Valle OCR" /></Field>
+        <Field label="Slug *" error={errors.slug}><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} placeholder="valle" /></Field>
+        <Field label="Departamento *" error={errors.department}><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Valle del Cauca" /></Field>
         <Field label="Ciudad"><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Cali" /></Field>
         <div className="sm:col-span-4"><Button onClick={create} disabled={busy}><Plus className="mr-1 size-4" />Crear liga</Button></div>
       </CardContent></Card>
 
-      <Card><CardContent className="p-0">
-        <Table>
-          <TableHeader><TableRow><TableHead>Liga</TableHead><TableHead>Depto</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Habilitada</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {tenants.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-medium">{t.name}</TableCell>
-                <TableCell className="text-muted-foreground">{t.department}</TableCell>
-                <TableCell><Badge variant={t.status === "active" ? "default" : "destructive"}>{t.status === "active" ? "Activa" : "Suspendida"}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <Switch defaultChecked={t.status === "active"} onCheckedChange={async (v) => {
-                    try { await api.setTenantStatus(t.id, v ? "active" : "suspended"); toast.success("Actualizada"); onChange(); }
-                    catch (e) { toast.error((e as Error).message); }
-                  }} />
-                </TableCell>
-              </TableRow>
-            ))}
-            {tenants.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Aún no hay ligas.</TableCell></TableRow> : null}
-          </TableBody>
-        </Table>
-      </CardContent></Card>
+      <SimpleTable head={["Liga", "Depto", "Estado", "Habilitada"]}>
+        {tenants.map((t) => (
+          <TableRow key={t.id}>
+            <TableCell className="font-medium">{t.name}</TableCell>
+            <TableCell className="text-muted-foreground">{t.department}</TableCell>
+            <TableCell><Badge variant={t.status === "active" ? "default" : "destructive"}>{t.status === "active" ? "Activa" : "Suspendida"}</Badge></TableCell>
+            <TableCell className="text-right"><Switch defaultChecked={t.status === "active"} onCheckedChange={async (v) => {
+              try { await api.setTenantStatus(t.id, v ? "active" : "suspended"); toast.success("Actualizada"); onChange(); } catch (e) { toast.error((e as Error).message); }
+            }} /></TableCell>
+          </TableRow>
+        ))}
+        {tenants.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Aún no hay ligas.</TableCell></TableRow> : null}
+      </SimpleTable>
     </div>
   );
 }
 
+// ---------------------------- Aprobaciones ---------------------------
+function Aprobaciones({ tenants }: { tenants: Tenant[] }) {
+  const [rows, setRows] = useState<EventRow[]>([]);
+  const load = useCallback(async () => { try { setRows(await api.listPendingFederation()); } catch (e) { toast.error((e as Error).message); } }, []);
+  useEffect(() => { load(); }, [load]);
+  const ligaName = (id: string) => tenants.find((t) => t.id === id)?.name ?? "—";
+
+  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
+    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+
+  return (
+    <SimpleTable head={["Carrera", "Liga", "Fecha", "Acciones"]}>
+      {rows.map((e) => (
+        <TableRow key={e.id}>
+          <TableCell className="font-medium">{e.title}</TableCell>
+          <TableCell className="text-muted-foreground">{ligaName(e.tenant_id)}</TableCell>
+          <TableCell className="text-muted-foreground">{e.date}</TableCell>
+          <TableCell className="text-right">
+            <div className="flex justify-end gap-2">
+              <Button size="sm" onClick={() => act(e.id, api.approveEvent, "Evento aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+              <Button size="sm" variant="outline" onClick={() => act(e.id, api.rejectEvent, "Devuelto a borrador")}><XCircle className="mr-1 size-4" />Rechazar</Button>
+            </div>
+          </TableCell>
+        </TableRow>
+      ))}
+      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay carreras pendientes de aprobación.</TableCell></TableRow> : null}
+    </SimpleTable>
+  );
+}
+
 // ------------------------------ Carreras -----------------------------
-function CarrerasSection({ tenantId }: { tenantId: string }) {
+function CarrerasSection({ tenantId, isSuper }: { tenantId: string; isSuper: boolean }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", distance_km: "", obstacles: "", max_capacity: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    try { setEvents(await api.listEvents(tenantId)); } catch (e) { toast.error((e as Error).message); }
-  }, [tenantId]);
+  const load = useCallback(async () => { try { setEvents(await api.listEvents(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
   useEffect(() => { setSelected(null); load(); }, [load]);
 
   async function create() {
-    if (!form.title || !form.date || !form.location) { toast.error("Nombre, fecha y lugar son obligatorios"); return; }
+    const { ok, errors } = validateForm(form, {
+      title: [required("El nombre")], date: [required("La fecha")], location: [required("El lugar")],
+      distance_km: [decimalNonNeg("La distancia")], obstacles: [], max_capacity: [],
+    });
+    setErrors(errors as Record<string, string>);
+    if (!ok) return;
     setBusy(true);
-    try { await api.createEvent({ tenant_id: tenantId, ...form }); toast.success("Carrera creada"); setForm({ title: "", date: "", location: "" }); load(); }
-    catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    try {
+      await api.createEvent({
+        tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
+        distance_km: form.distance_km ? Number(form.distance_km) : undefined,
+        obstacles: form.obstacles ? Number(form.obstacles) : undefined,
+        max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
+      });
+      toast.success("Carrera creada (en borrador)");
+      setForm({ title: "", date: "", location: "", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
+    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
   }
 
   if (selected) return <EventoDetalle tenantId={tenantId} event={selected} onBack={() => setSelected(null)} />;
 
   return (
     <div className="grid gap-6">
-      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-        <Field label="Nombre"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
-        <Field label="Fecha"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-        <Field label="Lugar"><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
-        <div className="flex items-end"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+        <Field label="Nombre *" error={errors.title}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
+        <Field label="Fecha *" error={errors.date}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+        <Field label="Lugar *" error={errors.location}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
+        <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
+        <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
+        <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
+        <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
       </CardContent></Card>
 
-      <Card><CardContent className="p-0">
-        <Table>
-          <TableHeader><TableRow><TableHead>Carrera</TableHead><TableHead>Fecha</TableHead><TableHead>Lugar</TableHead><TableHead className="text-right">Gestionar</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {events.map((e) => (
-              <TableRow key={e.id}>
-                <TableCell className="font-medium">{e.title}</TableCell>
-                <TableCell className="text-muted-foreground">{e.date}</TableCell>
-                <TableCell className="text-muted-foreground">{e.location}</TableCell>
-                <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button></TableCell>
-              </TableRow>
-            ))}
-            {events.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Aún no hay carreras en esta liga.</TableCell></TableRow> : null}
-          </TableBody>
-        </Table>
-      </CardContent></Card>
+      <SimpleTable head={["Carrera", "Fecha", "Estado", "Acciones"]}>
+        {events.map((e) => (
+          <TableRow key={e.id}>
+            <TableCell className="font-medium">{e.title}</TableCell>
+            <TableCell className="text-muted-foreground">{e.date}</TableCell>
+            <TableCell><StatusBadge status={e.status} /></TableCell>
+            <TableCell className="text-right">
+              <div className="flex flex-wrap justify-end gap-2">
+                {e.status === "draft" ? <Button size="sm" variant="secondary" onClick={() => act(e.id, api.submitEvent, "Enviado a aprobación")}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
+                {e.status === "pending_federation" && isSuper ? (
+                  <>
+                    <Button size="sm" onClick={() => act(e.id, api.approveEvent, "Aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+                    <Button size="sm" variant="outline" onClick={() => act(e.id, api.rejectEvent, "Rechazado")}><XCircle className="mr-1 size-4" />Rechazar</Button>
+                  </>
+                ) : null}
+                <Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+        {events.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Aún no hay carreras en esta liga.</TableCell></TableRow> : null}
+      </SimpleTable>
     </div>
   );
 }
@@ -230,7 +264,7 @@ function EventoDetalle({ tenantId, event, onBack }: { tenantId: string; event: E
   return (
     <div className="grid gap-4">
       <button onClick={onBack} className="text-left text-sm text-primary">← Volver a carreras</button>
-      <h2 className="font-display text-3xl">{event.title}</h2>
+      <div className="flex items-center gap-3"><h2 className="font-display text-3xl">{event.title}</h2><StatusBadge status={event.status} /></div>
       <p className="text-sm text-muted-foreground">{event.date} · {event.location}</p>
       <Tabs defaultValue="inscritos" className="mt-2">
         <TabsList>
@@ -248,18 +282,21 @@ function EventoDetalle({ tenantId, event, onBack }: { tenantId: string; event: E
 
 function Checkpoints({ tenantId, eventId }: { tenantId: string; eventId: string }) {
   const [rows, setRows] = useState<api.Checkpoint[]>([]);
-  const [form, setForm] = useState({ name: "", ord: 1, is_start: false, is_finish: false });
+  const [form, setForm] = useState({ name: "", ord: "1", is_start: false, is_finish: false });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const load = useCallback(async () => setRows(await api.listCheckpoints(eventId)), [eventId]);
   useEffect(() => { load(); }, [load]);
   async function add() {
-    try { await api.createCheckpoint(tenantId, eventId, form); toast.success("Checkpoint agregado"); setForm({ name: "", ord: form.ord + 1, is_start: false, is_finish: false }); load(); }
+    const { ok, errors } = validateForm(form, { name: [required("El nombre")], ord: [positiveInt("El orden")] });
+    setErrors(errors as Record<string, string>); if (!ok) return;
+    try { await api.createCheckpoint(tenantId, eventId, { name: form.name, ord: Number(form.ord), is_start: form.is_start, is_finish: form.is_finish }); toast.success("Checkpoint agregado"); setForm({ name: "", ord: String(Number(form.ord) + 1), is_start: false, is_finish: false }); setErrors({}); load(); }
     catch (e) { toast.error((e as Error).message); }
   }
   return (
     <div className="grid gap-4">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
-        <Field label="Nombre"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
-        <Field label="Orden"><Input type="number" value={form.ord} onChange={(e) => setForm({ ...form, ord: Number(e.target.value) })} /></Field>
+        <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
+        <Field label="Orden *" error={errors.ord}><Input inputMode="numeric" value={form.ord} onChange={(e) => setForm({ ...form, ord: e.target.value.replace(/\D/g, "") })} /></Field>
         <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_start} onCheckedChange={(v) => setForm({ ...form, is_start: v })} />Salida</label>
         <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_finish} onCheckedChange={(v) => setForm({ ...form, is_finish: v })} />Meta</label>
         <div className="flex items-end"><Button onClick={add}><Plus className="mr-1 size-4" />Agregar</Button></div>
@@ -279,25 +316,26 @@ function Checkpoints({ tenantId, eventId }: { tenantId: string; eventId: string 
 
 function Oleadas({ tenantId, eventId }: { tenantId: string; eventId: string }) {
   const [rows, setRows] = useState<api.Wave[]>([]);
-  const [form, setForm] = useState({ wave_number: 1, name: "", scheduled_time: "" });
+  const [form, setForm] = useState({ wave_number: "1", name: "", scheduled_time: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const load = useCallback(async () => setRows(await api.listWaves(eventId)), [eventId]);
   useEffect(() => { load(); }, [load]);
   async function add() {
-    try { await api.createWave(tenantId, eventId, { wave_number: form.wave_number, name: form.name, scheduled_time: form.scheduled_time || null }); toast.success("Oleada agregada"); setForm({ wave_number: form.wave_number + 1, name: "", scheduled_time: "" }); load(); }
+    const { ok, errors } = validateForm(form, { wave_number: [positiveInt("El número")], name: [required("El nombre")] });
+    setErrors(errors as Record<string, string>); if (!ok) return;
+    try { await api.createWave(tenantId, eventId, { wave_number: Number(form.wave_number), name: form.name, scheduled_time: form.scheduled_time || null }); toast.success("Oleada agregada"); setForm({ wave_number: String(Number(form.wave_number) + 1), name: "", scheduled_time: "" }); setErrors({}); load(); }
     catch (e) { toast.error((e as Error).message); }
   }
   return (
     <div className="grid gap-4">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-        <Field label="N°"><Input type="number" value={form.wave_number} onChange={(e) => setForm({ ...form, wave_number: Number(e.target.value) })} /></Field>
-        <Field label="Nombre"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Oleada 1 - Elite" /></Field>
+        <Field label="N° *" error={errors.wave_number}><Input inputMode="numeric" value={form.wave_number} onChange={(e) => setForm({ ...form, wave_number: e.target.value.replace(/\D/g, "") })} /></Field>
+        <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Oleada 1 - Elite" /></Field>
         <Field label="Hora prevista"><Input type="datetime-local" value={form.scheduled_time} onChange={(e) => setForm({ ...form, scheduled_time: e.target.value })} /></Field>
         <div className="flex items-end"><Button onClick={add}><Plus className="mr-1 size-4" />Agregar</Button></div>
       </CardContent></Card>
       <SimpleTable head={["N°", "Nombre", "Estado"]}>
-        {rows.map((w) => (
-          <TableRow key={w.id}><TableCell>{w.wave_number}</TableCell><TableCell className="font-medium">{w.name}</TableCell><TableCell>{(w.status ?? "pending").toUpperCase()}</TableCell></TableRow>
-        ))}
+        {rows.map((w) => <TableRow key={w.id}><TableCell>{w.wave_number}</TableCell><TableCell className="font-medium">{w.name}</TableCell><TableCell>{(w.status ?? "pending").toUpperCase()}</TableCell></TableRow>)}
       </SimpleTable>
     </div>
   );
@@ -309,31 +347,33 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
   const [cats, setCats] = useState<Category[]>([]);
   const [modalidades, setModalidades] = useState<api.EventCategory[]>([]);
   const [form, setForm] = useState({ athlete_name: "", athlete_document: "", athlete_gender: "M", bib_number: "", wave_id: "", ranking_category_id: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    const [r, w, c, m] = await Promise.all([
-      api.listRegistrations(eventId), api.listWaves(eventId), api.listCategories(), api.listEventCategories(eventId),
-    ]);
+    const [r, w, c, m] = await Promise.all([api.listRegistrations(eventId), api.listWaves(eventId), api.listCategories(), api.listEventCategories(eventId)]);
     setRows(r); setWaves(w); setCats(c); setModalidades(m);
   }, [eventId]);
   useEffect(() => { load(); }, [load]);
 
   async function add() {
-    if (!form.athlete_name || !form.athlete_document) { toast.error("Nombre y documento son obligatorios"); return; }
+    const { ok, errors } = validateForm(form, {
+      athlete_name: [required("El nombre")],
+      athlete_document: [numeric("El documento", 5)],
+      bib_number: form.bib_number ? [positiveInt("El dorsal")] : [],
+    });
+    setErrors(errors as Record<string, string>); if (!ok) return;
     const modalidad = modalidades[0];
-    if (!modalidad) { toast.error("Crea una modalidad primero (se crea sola al crear la carrera)"); return; }
+    if (!modalidad) { toast.error("Crea una modalidad primero"); return; }
     try {
       await api.createRegistration({
         tenant_id: tenantId, event_id: eventId, category_id: modalidad.id,
         athlete_name: form.athlete_name, athlete_document: form.athlete_document,
         athlete_gender: form.athlete_gender as "F" | "M" | "X",
         bib_number: form.bib_number ? Number(form.bib_number) : null,
-        wave_id: form.wave_id || null,
-        ranking_category_id: form.ranking_category_id || null,
+        wave_id: form.wave_id || null, ranking_category_id: form.ranking_category_id || null,
       });
       toast.success("Atleta inscrito");
-      setForm({ athlete_name: "", athlete_document: "", athlete_gender: "M", bib_number: "", wave_id: "", ranking_category_id: "" });
-      load();
+      setForm({ athlete_name: "", athlete_document: "", athlete_gender: "M", bib_number: "", wave_id: "", ranking_category_id: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); }
   }
 
@@ -343,15 +383,15 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
   return (
     <div className="grid gap-4">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-6">
-        <Field label="Nombre"><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
-        <Field label="Documento"><Input value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value })} /></Field>
+        <Field label="Nombre *" error={errors.athlete_name}><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
+        <Field label="Documento *" error={errors.athlete_document}><Input inputMode="numeric" value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value.replace(/\D/g, "") })} /></Field>
         <Field label="Sexo">
           <Select value={form.athlete_gender} onValueChange={(v) => setForm({ ...form, athlete_gender: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="M">M</SelectItem><SelectItem value="F">F</SelectItem><SelectItem value="X">X</SelectItem></SelectContent>
           </Select>
         </Field>
-        <Field label="Dorsal"><Input type="number" value={form.bib_number} onChange={(e) => setForm({ ...form, bib_number: e.target.value })} /></Field>
+        <Field label="Dorsal" error={errors.bib_number}><Input inputMode="numeric" value={form.bib_number} onChange={(e) => setForm({ ...form, bib_number: e.target.value.replace(/\D/g, "") })} /></Field>
         <Field label="Oleada">
           <Select value={form.wave_id} onValueChange={(v) => setForm({ ...form, wave_id: v })}>
             <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
@@ -385,16 +425,14 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
 }
 
 // ----------------------------- helpers UI ----------------------------
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="grid gap-2"><Label>{label}</Label>{children}</div>;
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return <div className="grid gap-1.5"><Label>{label}</Label>{children}{error ? <span className="text-xs text-destructive">{error}</span> : null}</div>;
 }
 function SimpleTable({ head, children }: { head: string[]; children: React.ReactNode }) {
   return (
-    <Card><CardContent className="p-0">
-      <Table>
-        <TableHeader><TableRow>{head.map((h, i) => <TableHead key={i} className={i === head.length - 1 ? "text-right" : ""}>{h}</TableHead>)}</TableRow></TableHeader>
-        <TableBody>{children}</TableBody>
-      </Table>
-    </CardContent></Card>
+    <Card><CardContent className="p-0"><Table>
+      <TableHeader><TableRow>{head.map((h, i) => <TableHead key={i} className={i === head.length - 1 ? "text-right" : ""}>{h}</TableHead>)}</TableRow></TableHeader>
+      <TableBody>{children}</TableBody>
+    </Table></CardContent></Card>
   );
 }

@@ -21,6 +21,7 @@ export interface Tenant {
   secondary_color: string;
   status: "active" | "suspended";
 }
+export type EventStatus = "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 export interface EventRow {
   id: string;
   tenant_id: string;
@@ -31,6 +32,9 @@ export interface EventRow {
   obstacles: number | null;
   max_capacity: number;
   published: boolean;
+  status: EventStatus;
+  league_approved: boolean;
+  federation_approved: boolean;
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
@@ -90,7 +94,8 @@ export async function createEvent(input: {
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
     max_capacity: input.max_capacity ?? 0,
-    published: true,
+    published: false,
+    status: "draft",
   }).select("*").single();
   if (error) throw error;
   const ev = data as EventRow;
@@ -99,6 +104,43 @@ export async function createEvent(input: {
     event_id: ev.id, name: "General", price: 0, slots_available: ev.max_capacity ?? 0,
   });
   return ev;
+}
+
+/** Eventos pendientes de aprobación de la federación (todas las ligas). */
+export async function listPendingFederation(): Promise<EventRow[]> {
+  const { data, error } = await db().from("events").select("*").eq("status", "pending_federation").order("date");
+  if (error) throw error;
+  return data as EventRow[];
+}
+
+/** La liga envía el evento a aprobación de la federación. */
+export async function submitEvent(id: string) {
+  const { error } = await db().from("events")
+    .update({ status: "pending_federation", league_approved: true, submitted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** La federación aprueba el evento (queda publicado y descargable por el Timer). */
+export async function approveEvent(id: string) {
+  const { error } = await db().from("events")
+    .update({ status: "approved", federation_approved: true, published: true, approved_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** La federación rechaza: vuelve a borrador para que la liga lo corrija. */
+export async function rejectEvent(id: string) {
+  const { error } = await db().from("events")
+    .update({ status: "draft", league_approved: false, federation_approved: false, published: false })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Cambia el estado de carrera (in_progress / finished / cancelled). */
+export async function setEventStatus(id: string, status: EventStatus) {
+  const { error } = await db().from("events").update({ status }).eq("id", id);
+  if (error) throw error;
 }
 
 // --------------------------- Modalidades -----------------------------
