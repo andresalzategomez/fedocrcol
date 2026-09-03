@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
@@ -10,16 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEMO_LEAGUES } from "@/data/demo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { listTenants, type Tenant } from "@/lib/admin-api";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Ingresar o registrarte — FEDOCR Colombia" },
-      { name: "description", content: "Accede a tu cuenta de atleta, administrador de liga o administración nacional de la Federación de OCR." },
-      { property: "og:title", content: "Ingresar o registrarte — FEDOCR Colombia" },
-      { property: "og:description", content: "Cuenta única para atletas y administradores de ligas OCR." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -33,42 +30,35 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [tenant, setTenant] = useState("");
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    listTenants().then(setTenants).catch(() => setTenants([]));
+  }, []);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) {
-      toast.info("Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para habilitar el login real.");
-      navigate({ to: "/panel" });
-      return;
-    }
+    if (!supabase) { toast.info("Configura Supabase para habilitar el login real."); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     toast.success("Bienvenido de vuelta");
     navigate({ to: "/panel" });
   }
 
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) {
-      toast.info("Conecta tu proyecto de Supabase externo para crear cuentas reales.");
-      return;
-    }
+    if (!supabase) { toast.info("Conecta tu proyecto de Supabase externo para crear cuentas reales."); return; }
+    if (!tenant) { toast.error("Selecciona tu liga"); return; }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { full_name: fullName, tenant_id: tenant, role: "athlete" } },
     });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     toast.success("Cuenta creada. Revisa tu correo para confirmar.");
   }
 
@@ -87,10 +77,7 @@ function AuthPage() {
         {!isSupabaseConfigured ? (
           <div className="flex gap-3 rounded border border-warning/40 bg-warning/10 p-4 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
-            <p>
-              Modo demo: aún no hay credenciales de Supabase. Copia <code>.env.example</code> a{" "}
-              <code>.env</code> y ejecuta <code>supabase/schema.sql</code> en tu proyecto.
-            </p>
+            <p>Modo demo: aún no hay credenciales de Supabase.</p>
           </div>
         ) : null}
 
@@ -135,8 +122,8 @@ function AuthPage() {
                     <Select value={tenant} onValueChange={setTenant}>
                       <SelectTrigger><SelectValue placeholder="Selecciona tu liga" /></SelectTrigger>
                       <SelectContent>
-                        {DEMO_LEAGUES.filter((l) => l.status === "active").map((l) => (
-                          <SelectItem key={l.id} value={l.id}>{l.department}</SelectItem>
+                        {tenants.filter((l) => l.status === "active").map((l) => (
+                          <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
