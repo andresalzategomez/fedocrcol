@@ -54,7 +54,7 @@ supabase/
   schema.sql         Esquema consolidado (fuente de verdad)
   migrations/        Migraciones idempotentes 0001..N
 docs/                Documentación técnica (arquitectura, BD, integración Timer, despliegue)
-brochure/            Brochure de presentación (producto)
+  brochure/          Brochure de presentación del producto (index.html)
 ```
 
 ## Puesta en marcha

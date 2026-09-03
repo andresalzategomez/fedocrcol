@@ -150,3 +150,31 @@ supabase/migrations/0002_timing.sql
 supabase/migrations/0003_clubs_affiliations_categories.sql
 ```
 (o simplemente re-ejecuta `supabase/schema.sql`, que ya los incluye).
+
+---
+
+## Actualizaciones del modelo (migraciones 0007–0010)
+
+### Eventos con ciclo de vida y aprobación (`0009`)
+`events` tiene ahora `status` (`event_status`: `draft`, `pending_federation`,
+`approved`, `in_progress`, `finished`, `cancelled`) más `league_approved`,
+`federation_approved`, `submitted_at` y `approved_at`. La liga envía el evento a
+aprobación (`pending_federation`) y la federación lo aprueba (`approved`, se publica).
+
+### `event_categories` como maestro por carrera (`0010`)
+`event_categories` dejó de ser solo una "modalidad con precio": ahora es el **maestro
+de categorías de la carrera**, con `gender`, `min_age` y `max_age` (precio opcional,
+default 0). Las `registrations.category_id` y las `waves.category_id` apuntan a este
+maestro, y la **generación de oleadas** se hace agrupando por estas categorías.
+
+### Resultados de invitado y del Timer (`0006`, `0007`)
+`results.source` marca los resultados enviados por el Timer (`'timer'`) para que el
+recálculo automático no los sobrescriba; `results.athlete_id` es nullable para
+inscripciones sin cuenta de usuario.
+
+### Reglas de negocio en la app
+- **Dorsal automático:** al inscribir sin dorsal, se asigna `max(bib)+1` del evento.
+- **Generación de oleadas:** por categoría, en bloques de tamaño configurable; borra
+  y reasigna. Editable a mano (agregar/borrar oleada, reasignar atletas).
+- **Aislamiento:** todas las lecturas del panel usan el cliente Supabase del usuario
+  (RLS); solo `recalculate_event_positions` corre con service role.
