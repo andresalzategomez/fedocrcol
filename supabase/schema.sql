@@ -297,3 +297,482 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+
+-- #####################################################################
+-- #  AMPLIACIONES CONSOLIDADAS (equivalentes a las migraciones)
+-- #  Todo lo de abajo es idempotente. Ver supabase/migrations/.
+-- #####################################################################
+
+-- =====================================================================
+-- 0002_timing — Integración de CRONOMETRAJE (FedOCR Timer)
+-- ---------------------------------------------------------------------
+-- Añade el modelo necesario para que el aplicativo FedOCR Timer lea las
+-- inscripciones (dorsales / oleadas) y escriba lecturas de tiempo en los
+-- puntos de control, y para que la federación consolide resultados.
+--
+-- Idempotente: seguro de re-ejecutar en el SQL Editor de Supabase.
+-- =====================================================================
+
+-- ---------- Helper compartido: updated_at automático -----------------
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end; $$;
+
+-- ---------- Tipos ----------------------------------------------------
+do $$ begin
+  create type public.result_status as enum ('finished', 'dnf', 'dns', 'dsq');
+exception when duplicate_object then null; end $$;
+
+-- ---------- API Keys (autenticación de servicios: FedOCR Timer) -------
+create table if not exists public.api_keys (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,                 -- "FedOCR Timer - Evento X"
+  key_hash     text not null unique,          -- hash del token (nunca el token en claro)
+  tenant_id    uuid references public.tenants(id) on delete cascade,
+  scopes       text[] not null default '{timing:write,registrations:read}',
+  is_active    boolean not null default true,
+  last_used_at timestamptz,
+  expires_at   timestamptz,
+  created_at   timestamptz not null default now()
+);
+grant all on public.api_keys to service_role;
+alter table public.api_keys enable row level security;
+-- Sin políticas para anon/authenticated: las api_keys solo se manejan con service_role.
+
+-- ---------- Oleadas de salida (waves) --------------------------------
+create table if not exists public.waves (
+  id             uuid primary key default gen_random_uuid(),
+  tenant_id      uuid not null references public.tenants(id) on delete cascade,
+  event_id       uuid not null references public.events(id) on delete cascade,
+  category_id    uuid references public.event_categories(id) on delete set null,
+  name           text not null,               -- "Oleada 1 - 08:00"
+  scheduled_time timestamptz,
+  started_at     timestamptz,                 -- hora real de salida (la fija el Timer)
+  created_at     timestamptz not null default now(),
+  unique (event_id, name)
+);
+create index if not exists idx_waves_event on public.waves(event_id);
+grant select on public.waves to anon, authenticated;
+grant insert, update, delete on public.waves to authenticated;
+grant all on public.waves to service_role;
+alter table public.waves enable row level security;
+
+-- ---------- Puntos de control / obstáculos ---------------------------
+create table if not exists public.checkpoints (
+  id         uuid primary key default gen_random_uuid(),
+  tenant_id  uuid not null references public.tenants(id) on delete cascade,
+  event_id   uuid not null references public.events(id) on delete cascade,
+  name       text not null,                   -- "Salida", "KM 2.5", "Meta"
+  ord        int  not null,                   -- orden en el recorrido
+  is_start   boolean not null default false,
+  is_finish  boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (event_id, ord)
+);
+create index if not exists idx_checkpoints_event on public.checkpoints(event_id);
+grant select on public.checkpoints to anon, authenticated;
+grant insert, update, delete on public.checkpoints to authenticated;
+grant all on public.checkpoints to service_role;
+alter table public.checkpoints enable row level security;
+
+-- ---------- Campos de cronometraje en registrations ------------------
+alter table public.registrations add column if not exists bib_number int;
+alter table public.registrations add column if not exists wave_id uuid references public.waves(id) on delete set null;
+-- Dorsal único por evento
+create unique index if not exists uq_registrations_event_bib
+  on public.registrations(event_id, bib_number) where bib_number is not null;
+
+-- ---------- Lecturas de tiempo (append-only) -------------------------
+create table if not exists public.timing_reads (
+  id              uuid primary key default gen_random_uuid(),
+  tenant_id       uuid not null references public.tenants(id) on delete cascade,
+  event_id        uuid not null references public.events(id) on delete cascade,
+  registration_id uuid not null references public.registrations(id) on delete cascade,
+  checkpoint_id   uuid not null references public.checkpoints(id) on delete cascade,
+  read_at         timestamptz not null,        -- momento exacto de la lectura
+  source          text default 'fedocr-timer', -- origen del dato
+  raw_payload     jsonb,                        -- datos originales del dispositivo (auditoría)
+  created_at      timestamptz not null default now()
+);
+create index if not exists idx_timing_reads_reg on public.timing_reads(registration_id, checkpoint_id);
+create index if not exists idx_timing_reads_event on public.timing_reads(event_id, read_at);
+grant select on public.timing_reads to authenticated;
+grant insert on public.timing_reads to authenticated;
+grant all on public.timing_reads to service_role;
+alter table public.timing_reads enable row level security;
+
+-- ---------- Extender results con datos de cronometraje ---------------
+alter table public.results add column if not exists registration_id uuid references public.registrations(id) on delete cascade;
+alter table public.results add column if not exists tenant_id uuid references public.tenants(id) on delete cascade;
+alter table public.results add column if not exists status public.result_status not null default 'finished';
+alter table public.results add column if not exists start_time timestamptz;
+alter table public.results add column if not exists finish_at timestamptz;
+alter table public.results add column if not exists duration_ms bigint;      -- tiempo neto autoritativo
+alter table public.results add column if not exists category_rank int;
+alter table public.results add column if not exists updated_at timestamptz not null default now();
+create unique index if not exists uq_results_registration on public.results(registration_id) where registration_id is not null;
+create index if not exists idx_results_event_duration on public.results(event_id, duration_ms);
+
+drop trigger if exists trg_results_updated_at on public.results;
+create trigger trg_results_updated_at before update on public.results
+  for each row execute function public.set_updated_at();
+
+-- =====================================================================
+--  LÓGICA DE CONSOLIDACIÓN
+-- =====================================================================
+
+-- Recalcula el resultado de UNA inscripción a partir de sus timing_reads:
+-- toma la lectura del checkpoint de salida y la de meta del evento.
+create or replace function public.recalculate_result(p_registration_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_reg        public.registrations%rowtype;
+  v_start_ts   timestamptz;
+  v_finish_ts  timestamptz;
+  v_athlete    uuid;
+begin
+  select * into v_reg from public.registrations where id = p_registration_id;
+  if not found then return; end if;
+
+  -- Salida: primera lectura en un checkpoint is_start; si no hay, usa started_at de la oleada
+  select min(tr.read_at) into v_start_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_start;
+
+  if v_start_ts is null then
+    select w.started_at into v_start_ts from public.waves w where w.id = v_reg.wave_id;
+  end if;
+
+  -- Meta: última lectura en un checkpoint is_finish
+  select max(tr.read_at) into v_finish_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_finish;
+
+  v_athlete := v_reg.athlete_id;
+
+  insert into public.results (event_id, tenant_id, registration_id, athlete_id,
+                              start_time, finish_at, duration_ms, finish_time, status)
+  values (
+    v_reg.event_id, v_reg.tenant_id, p_registration_id, v_athlete,
+    v_start_ts, v_finish_ts,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (extract(epoch from (v_finish_ts - v_start_ts)) * 1000)::bigint end,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (v_finish_ts - v_start_ts) end,
+    case when v_finish_ts is not null then 'finished'::public.result_status
+         else 'dnf'::public.result_status end
+  )
+  on conflict (registration_id) do update set
+    start_time  = excluded.start_time,
+    finish_at   = excluded.finish_at,
+    duration_ms = excluded.duration_ms,
+    finish_time = excluded.finish_time,
+    status      = excluded.status;
+end; $$;
+
+-- Recalcula posiciones (general y por modalidad) de un evento completo.
+create or replace function public.recalculate_event_positions(p_event_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  with ranked as (
+    select r.id,
+           row_number() over (order by r.duration_ms asc) as overall
+    from public.results r
+    where r.event_id = p_event_id and r.status = 'finished' and r.duration_ms is not null
+  )
+  update public.results r set position = ranked.overall
+  from ranked where ranked.id = r.id;
+end; $$;
+
+-- Trigger: cada lectura de tiempo recalcula el resultado de esa inscripción.
+create or replace function public.on_timing_read_insert()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.recalculate_result(new.registration_id);
+  return new;
+end; $$;
+
+drop trigger if exists trg_timing_read_recalc on public.timing_reads;
+create trigger trg_timing_read_recalc after insert on public.timing_reads
+  for each row execute function public.on_timing_read_insert();
+
+-- =====================================================================
+--  RLS — Cronometraje
+--  Escritura permitida a superadmin o al admin/juez del tenant dueño del
+--  evento. Lectura pública de lo que ya es público (waves/checkpoints).
+-- =====================================================================
+
+-- Waves
+drop policy if exists "waves_public_read" on public.waves;
+create policy "waves_public_read" on public.waves for select using (true);
+drop policy if exists "waves_tenant_manage" on public.waves;
+create policy "waves_tenant_manage" on public.waves for all to authenticated
+  using (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id())
+  with check (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
+
+-- Checkpoints
+drop policy if exists "checkpoints_public_read" on public.checkpoints;
+create policy "checkpoints_public_read" on public.checkpoints for select using (true);
+drop policy if exists "checkpoints_tenant_manage" on public.checkpoints;
+create policy "checkpoints_tenant_manage" on public.checkpoints for all to authenticated
+  using (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id())
+  with check (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
+
+-- Timing reads: lectura por admin/superadmin del tenant; inserción por el
+-- tenant dueño del evento. El FedOCR Timer que use service_role no pasa por RLS.
+drop policy if exists "timing_reads_read_scoped" on public.timing_reads;
+create policy "timing_reads_read_scoped" on public.timing_reads for select to authenticated
+  using (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
+drop policy if exists "timing_reads_insert_scoped" on public.timing_reads;
+create policy "timing_reads_insert_scoped" on public.timing_reads for insert to authenticated
+  with check (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
+
+-- =====================================================================
+-- 0003_clubs_affiliations_categories
+-- ---------------------------------------------------------------------
+-- Clubes (por liga), afiliaciones/membresías de atletas (carnet) y el
+-- catálogo nacional de categorías deportivas (edad / nivel / género).
+--
+-- Idempotente: seguro de re-ejecutar en el SQL Editor de Supabase.
+-- =====================================================================
+
+-- ---------- Tipos ----------------------------------------------------
+do $$ begin
+  create type public.club_status as enum ('active', 'inactive', 'suspended');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type public.affiliation_type as enum ('individual', 'club');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type public.affiliation_status as enum ('pending', 'active', 'expired', 'rejected');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type public.competitive_level as enum ('elite','age_group','amateur','beginner','kids');
+exception when duplicate_object then null; end $$;
+
+-- ---------- Catálogo nacional de categorías --------------------------
+create table if not exists public.categories (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null unique,            -- "Elite Masculino", "18-29 Femenino"
+  level      public.competitive_level not null,
+  gender     text not null check (gender in ('F','M','X')),
+  min_age    int,
+  max_age    int,
+  created_at timestamptz not null default now()
+);
+grant select on public.categories to anon, authenticated;
+grant insert, update, delete on public.categories to authenticated;
+grant all on public.categories to service_role;
+alter table public.categories enable row level security;
+
+drop policy if exists "categories_public_read" on public.categories;
+create policy "categories_public_read" on public.categories for select using (true);
+drop policy if exists "categories_superadmin_manage" on public.categories;
+create policy "categories_superadmin_manage" on public.categories for all to authenticated
+  using (public.has_role(auth.uid(),'superadmin'))
+  with check (public.has_role(auth.uid(),'superadmin'));
+
+-- ---------- Clubes (pertenecen a una liga/tenant) --------------------
+create table if not exists public.clubs (
+  id            uuid primary key default gen_random_uuid(),
+  tenant_id     uuid not null references public.tenants(id) on delete cascade,
+  name          text not null,
+  nit           text,
+  city          text,
+  department    text,
+  logo_url      text,
+  contact_email text,
+  contact_phone text,
+  status        public.club_status not null default 'active',
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  unique (tenant_id, name)
+);
+create index if not exists idx_clubs_tenant on public.clubs(tenant_id);
+grant select on public.clubs to anon, authenticated;
+grant insert, update, delete on public.clubs to authenticated;
+grant all on public.clubs to service_role;
+alter table public.clubs enable row level security;
+
+drop trigger if exists trg_clubs_updated_at on public.clubs;
+create trigger trg_clubs_updated_at before update on public.clubs
+  for each row execute function public.set_updated_at();
+
+drop policy if exists "clubs_public_read" on public.clubs;
+create policy "clubs_public_read" on public.clubs for select using (true);
+drop policy if exists "clubs_tenant_manage" on public.clubs;
+create policy "clubs_tenant_manage" on public.clubs for all to authenticated
+  using (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id())
+  with check (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
+
+-- ---------- Afiliaciones / membresías (carnet) -----------------------
+create table if not exists public.affiliations (
+  id          uuid primary key default gen_random_uuid(),
+  tenant_id   uuid not null references public.tenants(id) on delete cascade,
+  athlete_id  uuid not null references public.profiles(id) on delete cascade,
+  club_id     uuid references public.clubs(id) on delete set null,
+  season      int  not null,                  -- año de la temporada, p. ej. 2026
+  type        public.affiliation_type not null default 'individual',
+  status      public.affiliation_status not null default 'pending',
+  member_code text unique,                    -- código de carnet
+  start_date  timestamptz not null default now(),
+  end_date    timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (athlete_id, season, tenant_id)
+);
+create index if not exists idx_affiliations_tenant_season on public.affiliations(tenant_id, season, status);
+grant select, insert, update, delete on public.affiliations to authenticated;
+grant all on public.affiliations to service_role;
+alter table public.affiliations enable row level security;
+
+drop trigger if exists trg_affiliations_updated_at on public.affiliations;
+create trigger trg_affiliations_updated_at before update on public.affiliations
+  for each row execute function public.set_updated_at();
+
+-- El atleta ve/crea su propia afiliación; admin/superadmin gestionan las de su tenant.
+drop policy if exists "affiliations_read_scoped" on public.affiliations;
+create policy "affiliations_read_scoped" on public.affiliations for select to authenticated
+  using (
+    athlete_id = auth.uid()
+    or public.has_role(auth.uid(),'superadmin')
+    or (public.has_role(auth.uid(),'admin') and tenant_id = public.current_tenant_id())
+  );
+drop policy if exists "affiliations_insert_self" on public.affiliations;
+create policy "affiliations_insert_self" on public.affiliations for insert to authenticated
+  with check (athlete_id = auth.uid() and status = 'pending');
+drop policy if exists "affiliations_admin_update" on public.affiliations;
+create policy "affiliations_admin_update" on public.affiliations for update to authenticated
+  using (public.has_role(auth.uid(),'superadmin') or (public.has_role(auth.uid(),'admin') and tenant_id = public.current_tenant_id()))
+  with check (public.has_role(auth.uid(),'superadmin') or (public.has_role(auth.uid(),'admin') and tenant_id = public.current_tenant_id()));
+
+-- ---------- Vincular categoría (opcional) a inscripciones ------------
+alter table public.registrations add column if not exists ranking_category_id uuid references public.categories(id) on delete set null;
+
+-- ---------- Semillas de categorías estándar OCR ----------------------
+insert into public.categories (name, level, gender, min_age, max_age) values
+  ('Elite Masculino',    'elite',     'M', 18, null),
+  ('Elite Femenino',     'elite',     'F', 18, null),
+  ('18-29 Masculino',    'age_group', 'M', 18, 29),
+  ('18-29 Femenino',     'age_group', 'F', 18, 29),
+  ('30-39 Masculino',    'age_group', 'M', 30, 39),
+  ('30-39 Femenino',     'age_group', 'F', 30, 39),
+  ('40-49 Masculino',    'age_group', 'M', 40, 49),
+  ('40-49 Femenino',     'age_group', 'F', 40, 49),
+  ('50+ Masculino',      'age_group', 'M', 50, null),
+  ('50+ Femenino',       'age_group', 'F', 50, null),
+  ('Kids',               'kids',      'X', 6,  13)
+on conflict (name) do nothing;
+
+-- =====================================================================
+-- 0004_harden_functions — refuerzo de seguridad de funciones (0002)
+-- ---------------------------------------------------------------------
+-- Resuelve avisos del linter de Supabase:
+--  * search_path mutable en set_updated_at()
+--  * funciones internas de consolidación expuestas por RPC a anon/authenticated
+-- Idempotente.
+-- =====================================================================
+
+alter function public.set_updated_at() set search_path = public;
+
+revoke execute on function public.recalculate_result(uuid) from anon, authenticated;
+revoke execute on function public.recalculate_event_positions(uuid) from anon, authenticated;
+revoke execute on function public.on_timing_read_insert() from anon, authenticated;
+
+grant execute on function public.recalculate_result(uuid) to service_role;
+grant execute on function public.recalculate_event_positions(uuid) to service_role;
+
+-- =====================================================================
+-- 0005_timer_contract_reconciliation
+-- Ajusta el esquema para calzar el contrato del FedOCR Timer.
+-- Idempotente.
+-- =====================================================================
+
+do $$ begin
+  create type public.wave_status as enum ('pending','started','completed');
+exception when duplicate_object then null; end $$;
+
+alter table public.waves add column if not exists wave_number int;
+alter table public.waves add column if not exists status public.wave_status not null default 'pending';
+
+-- Penalización (segundos) que el Timer ya sumó al net_time.
+alter table public.results add column if not exists penalty_seconds int not null default 0;
+
+-- Id del registro en el cliente (Timer) para idempotencia en el push.
+alter table public.timing_reads add column if not exists client_record_id uuid;
+create unique index if not exists uq_timing_reads_client
+  on public.timing_reads(client_record_id) where client_record_id is not null;
+
+-- =====================================================================
+-- 0006_results_source_guard
+-- Los resultados enviados por el Timer (source='timer') son autoritativos;
+-- el recálculo automático desde timing_reads no debe sobrescribirlos.
+-- Idempotente.
+-- =====================================================================
+
+alter table public.results add column if not exists source text not null default 'computed';
+
+create or replace function public.recalculate_result(p_registration_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_reg        public.registrations%rowtype;
+  v_start_ts   timestamptz;
+  v_finish_ts  timestamptz;
+  v_athlete    uuid;
+begin
+  if exists (select 1 from public.results
+             where registration_id = p_registration_id and source = 'timer') then
+    return;
+  end if;
+
+  select * into v_reg from public.registrations where id = p_registration_id;
+  if not found then return; end if;
+
+  select min(tr.read_at) into v_start_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_start;
+
+  if v_start_ts is null then
+    select w.started_at into v_start_ts from public.waves w where w.id = v_reg.wave_id;
+  end if;
+
+  select max(tr.read_at) into v_finish_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_finish;
+
+  v_athlete := v_reg.athlete_id;
+
+  insert into public.results (event_id, tenant_id, registration_id, athlete_id,
+                              start_time, finish_at, duration_ms, finish_time, status, source)
+  values (
+    v_reg.event_id, v_reg.tenant_id, p_registration_id, v_athlete,
+    v_start_ts, v_finish_ts,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (extract(epoch from (v_finish_ts - v_start_ts)) * 1000)::bigint end,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (v_finish_ts - v_start_ts) end,
+    case when v_finish_ts is not null then 'finished'::public.result_status
+         else 'dnf'::public.result_status end,
+    'computed'
+  )
+  on conflict (registration_id) do update set
+    start_time  = excluded.start_time,
+    finish_at   = excluded.finish_at,
+    duration_ms = excluded.duration_ms,
+    finish_time = excluded.finish_time,
+    status      = excluded.status;
+end; $$;
+
+revoke execute on function public.recalculate_result(uuid) from anon, authenticated;
+grant execute on function public.recalculate_result(uuid) to service_role;

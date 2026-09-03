@@ -1,0 +1,14 @@
+-- =====================================================================
+-- 0001_baseline
+-- La línea base del esquema es el archivo supabase/schema.sql original
+-- (tenants, profiles, events, event_categories, registrations, payments,
+--  results, RLS, vista de ranking y trigger de auth).
+--
+-- Este archivo existe solo como marcador para dejar clara la numeración:
+-- las migraciones incrementales empiezan en 0002.
+--
+-- Para un proyecto NUEVO: ejecuta supabase/schema.sql (contiene TODO,
+-- ya consolidado) o, alternativamente, las migraciones 0001..N en orden.
+-- Todas las migraciones son idempotentes (seguras de re-ejecutar).
+-- =====================================================================
+select 1;
