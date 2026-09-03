@@ -34,6 +34,40 @@ function Home() {
     <div className="min-h-screen">
       <SiteHeader />
 
+      {/* Banner promocional — OCR LATAM Colombia 2027 */}
+      <section className="border-b border-border" style={{ background: "linear-gradient(120deg,#0a1732 0%,#102a5c 55%,#0a1732 100%)" }}>
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 py-10 sm:px-6 md:flex-row md:py-12">
+          <img
+            src="/ocr-latam-colombia-2027.jpg"
+            alt="OCR LATAM Colombia 2027 — Campeonato Sudamericano de Carreras de Obstáculos"
+            width={240}
+            height={240}
+            loading="eager"
+            className="w-40 shrink-0 rounded-2xl shadow-2xl ring-1 ring-white/10 sm:w-52"
+          />
+          <div className="text-center md:text-left">
+            <span className="inline-block rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-amber-300">
+              Evento continental · 2027
+            </span>
+            <h2 className="mt-3 font-display text-4xl leading-tight text-white sm:text-5xl">
+              OCR LATAM Colombia <span className="text-amber-400">2027</span>
+            </h2>
+            <p className="mt-3 max-w-xl text-base text-white/70">
+              El Campeonato Sudamericano de Carreras de Obstáculos llega a Colombia.
+              Sé parte del evento de OCR más grande de la región.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3 md:justify-start">
+              <Button asChild size="lg" className="bg-amber-400 text-slate-900 hover:bg-amber-300">
+                <Link to="/eventos">Quiero participar <ArrowRight className="ml-2 size-4" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                <Link to="/eventos">Más información</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="surface-grit border-b border-border">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:py-28">
           <div>
