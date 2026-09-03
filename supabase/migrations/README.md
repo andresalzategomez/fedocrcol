@@ -12,10 +12,11 @@ Historial versionado. Todas **idempotentes** (seguras de re-ejecutar).
 | `0005_timer_contract_reconciliation.sql` | `waves.wave_number`/`status`, `results.penalty_seconds`, `timing_reads.client_record_id`. | ✅ |
 | `0006_results_source_guard.sql` | `results.source`; el recálculo no pisa resultados del Timer. | ✅ |
 | `0007_results_athlete_nullable.sql` | `results.athlete_id` nullable (inscripciones de invitado). | ✅ |
-| `0008_fix_recalc_onconflict_partial_index.sql` | Fix `ON CONFLICT` con índice parcial en `recalculate_result` (evita 42P10). | ✅ |
+| `0008_fix_recalc_onconflict_partial_index.sql` | Fix `ON CONFLICT` con índice parcial en `recalculate_result`. | ✅ |
+| `0009_event_approval_workflow.sql` | Ciclo de vida de eventos (`event_status`) + banderas de aprobación liga/federación. | ✅ |
+| `0010_event_categories_master.sql` | `event_categories` como maestro por carrera (género, edad; precio opcional). | ✅ |
 
 `../schema.sql` es el **snapshot consolidado**. En una base nueva basta con ejecutarlo;
 en una existente, aplica solo las migraciones que falten.
 
 > La API que consume el Timer vive en `src/routes/api/v1/`. Ver `docs/TIMER_INTEGRATION.md`.
-> Probada end-to-end (health, login, pull de carrera/oleadas/splits/atletas, push idempotente).
