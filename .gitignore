@@ -34,4 +34,8 @@ dist-ssr
 # --- Documentación de gestión (Cowork/PM) — local, NO versionada ---
 # Igual que en el proyecto FedOCR Timer: el código sí se versiona y sincroniza
 # con Lovable; estos archivos dan contexto a los agentes pero viven solo local.
-
+/CLAUDE.md
+/context/
+/phases/
+/outputs/
+/brochure/
