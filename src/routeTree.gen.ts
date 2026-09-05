@@ -17,6 +17,7 @@ import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
+import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
@@ -66,6 +67,12 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
   path: '/ligas/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminRecalculatePositionsRoute =
+  ApiAdminRecalculatePositionsRouteImport.update({
+    id: '/api/admin/recalculate-positions',
+    path: '/api/admin/recalculate-positions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
+  '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos'
     | '/ligas'
+    | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -229,6 +242,7 @@ export interface RootRouteChildren {
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
+  ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
@@ -292,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/ligas/$slug'
       fullPath: '/ligas/$slug'
       preLoaderRoute: typeof LigasSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/recalculate-positions': {
+      id: '/api/admin/recalculate-positions'
+      path: '/api/admin/recalculate-positions'
+      fullPath: '/api/admin/recalculate-positions'
+      preLoaderRoute: typeof ApiAdminRecalculatePositionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/health': {
@@ -378,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
+  ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
