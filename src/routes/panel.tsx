@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Children, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/use-session";
 import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
@@ -280,11 +280,13 @@ function EventoDetalle({ tenantId, event, onBack }: { tenantId: string; event: E
           <TabsTrigger value="inscritos">Inscritos</TabsTrigger>
           <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
           <TabsTrigger value="checkpoints">Checkpoints</TabsTrigger>
+          <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} /></TabsContent>
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} /></TabsContent>
+        <TabsContent value="resultados" className="mt-4"><Resultados eventId={event.id} /></TabsContent>
       </Tabs>
     </div>
   );
@@ -375,6 +377,15 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
   async function reassignWave(regId: string, waveId: string) {
     try { await api.updateRegistration(regId, { wave_id: waveId || null }); load(); } catch (e) { toast.error((e as Error).message); }
   }
+  async function changeBib(regId: string, value: string) {
+    const bib = value.trim() === "" ? null : Number(value);
+    if (bib != null && (!Number.isInteger(bib) || bib <= 0)) { toast.error("El dorsal debe ser un entero mayor que 0"); load(); return; }
+    try { await api.updateRegistration(regId, { bib_number: bib }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
+  async function autoAssign() {
+    try { const n = await api.bulkAssignBibs(eventId); toast.success(n > 0 ? `${n} dorsal(es) asignado(s)` : "Todos los inscritos ya tienen dorsal"); load(); }
+    catch (e) { toast.error((e as Error).message); }
+  }
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.name ?? "—";
   const waveName = (id: string | null) => waves.find((w) => w.id === id)?.name ?? "";
 
@@ -415,6 +426,7 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-muted-foreground">{rows.length} inscrito(s)</span>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={autoAssign}><Hash className="mr-1 size-4" />Autoasignar dorsales</Button>
           <Button size="sm" variant="outline" onClick={() => exportRoster("excel")}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
           <Button size="sm" variant="outline" onClick={() => exportRoster("pdf")}><FileText className="mr-1 size-4" />PDF</Button>
         </div>
@@ -423,7 +435,10 @@ function Inscritos({ tenantId, eventId }: { tenantId: string; eventId: string })
       <SimpleTable head={["Dorsal", "Atleta", "Doc", "Categoría", "Oleada"]}>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="font-mono">{r.bib_number ?? "—"}</TableCell>
+            <TableCell>
+              <Input className="h-8 w-20 font-mono" inputMode="numeric" defaultValue={r.bib_number ?? ""} key={r.bib_number ?? "empty"}
+                onBlur={(e) => { if (e.target.value !== String(r.bib_number ?? "")) changeBib(r.id, e.target.value.replace(/\D/g, "")); }} />
+            </TableCell>
             <TableCell className="font-medium">{r.athlete_name}</TableCell>
             <TableCell className="text-muted-foreground">{r.athlete_document}</TableCell>
             <TableCell>{catName(r.category_id)}</TableCell>
@@ -473,6 +488,18 @@ function Oleadas({ tenantId, eventId }: { tenantId: string; eventId: string }) {
     try { await api.createWave(tenantId, eventId, { wave_number: Number(form.wave_number), name: form.name, scheduled_time: form.scheduled_time || null }); toast.success("Oleada agregada"); setForm({ wave_number: String(Number(form.wave_number) + 1), name: "", scheduled_time: "" }); setErrors({}); load(); }
     catch (e) { toast.error((e as Error).message); }
   }
+  async function renameWave(id: string, name: string) {
+    try { await api.updateWave(id, { name }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
+  async function rescheduleWave(id: string, scheduled_time: string) {
+    try { await api.updateWave(id, { scheduled_time: scheduled_time || null }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
+  function toLocalInput(iso: string | null) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
   return (
     <div className="grid gap-4">
@@ -489,17 +516,27 @@ function Oleadas({ tenantId, eventId }: { tenantId: string; eventId: string }) {
         <div className="flex items-end"><Button variant="outline" onClick={addManual}><Plus className="mr-1 size-4" />Agregar manual</Button></div>
       </CardContent></Card>
 
-      <SimpleTable head={["N°", "Nombre", "Atletas", "Estado", ""]}>
+      <SimpleTable head={["N°", "Nombre", "Hora prevista", "Atletas", "Estado / salida real", ""]}>
         {rows.map((w) => (
           <TableRow key={w.id}>
             <TableCell>{w.wave_number}</TableCell>
-            <TableCell className="font-medium">{w.name}</TableCell>
+            <TableCell>
+              <Input className="h-8 w-40 font-medium" defaultValue={w.name} key={w.name}
+                onBlur={(e) => { if (e.target.value.trim() && e.target.value !== w.name) renameWave(w.id, e.target.value.trim()); }} />
+            </TableCell>
+            <TableCell>
+              <Input className="h-8 w-48" type="datetime-local" defaultValue={toLocalInput(w.scheduled_time)} key={w.scheduled_time ?? "none"}
+                onBlur={(e) => rescheduleWave(w.id, e.target.value)} />
+            </TableCell>
             <TableCell>{counts[w.id] ?? 0}</TableCell>
-            <TableCell>{(w.status ?? "pending").toUpperCase()}</TableCell>
+            <TableCell>
+              <div>{(w.status ?? "pending").toUpperCase()}</div>
+              {w.started_at ? <div className="text-xs text-muted-foreground">Salió: {new Date(w.started_at).toLocaleTimeString("es-CO")}</div> : null}
+            </TableCell>
             <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={async () => { try { await api.deleteWave(w.id); load(); } catch (e) { toast.error((e as Error).message); } }}><Trash2 className="size-4" /></Button></TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin oleadas. Usa “Generar oleadas automáticamente”.</TableCell></TableRow> : null}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin oleadas. Usa “Generar oleadas automáticamente”.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -535,6 +572,68 @@ function Checkpoints({ tenantId, eventId }: { tenantId: string; eventId: string 
             <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={async () => { await api.deleteCheckpoint(c.id); load(); }}><Trash2 className="size-4" /></Button></TableCell>
           </TableRow>
         ))}
+      </SimpleTable>
+    </div>
+  );
+}
+
+// --------------------------- Resultados en vivo -----------------------
+const RESULT_STATUS_LABEL: Record<api.EventResult["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  finished: { label: "OK", variant: "default" },
+  dnf: { label: "DNF", variant: "destructive" },
+  dsq: { label: "DSQ", variant: "destructive" },
+  dns: { label: "DNS", variant: "secondary" },
+};
+function formatDuration(ms: number | null) {
+  if (ms == null) return "—";
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+function Resultados({ eventId }: { eventId: string }) {
+  const [rows, setRows] = useState<api.EventResult[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => { try { setRows(await api.listResults(eventId)); } catch (e) { toast.error((e as Error).message); } }, [eventId]);
+  useEffect(() => { load(); }, [load]);
+
+  // Realtime: refresca la tabla cuando el Timer inserta/actualiza un resultado.
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel(`results-${eventId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "results", filter: `event_id=eq.${eventId}` }, () => load())
+      .subscribe();
+    return () => { supabase!.removeChannel(channel); };
+  }, [eventId, load]);
+
+  async function recalc() {
+    setBusy(true);
+    try { await api.recalculatePositions(eventId); toast.success("Posiciones recalculadas"); load(); }
+    catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm text-muted-foreground">{rows.length} resultado(s) · se actualiza en vivo</span>
+        <Button size="sm" onClick={recalc} disabled={busy}><RefreshCw className="mr-1 size-4" />Recalcular posiciones</Button>
+      </div>
+      <SimpleTable head={["Pos.", "Dorsal", "Atleta", "Oleada", "Tiempo", "Estado"]}>
+        {rows.map((r) => (
+          <TableRow key={r.id}>
+            <TableCell className="font-mono">{r.position ?? "—"}</TableCell>
+            <TableCell className="font-mono">{r.bib_number ?? "—"}</TableCell>
+            <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{r.wave_name ?? "—"}</TableCell>
+            <TableCell className="font-mono">{formatDuration(r.duration_ms)}</TableCell>
+            <TableCell><Badge variant={RESULT_STATUS_LABEL[r.status].variant}>{RESULT_STATUS_LABEL[r.status].label}</Badge></TableCell>
+          </TableRow>
+        ))}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Aún no hay resultados. Se llenan cuando el juez cronometra con FedOCR Timer.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

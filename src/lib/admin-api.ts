@@ -38,7 +38,18 @@ export interface EventRow {
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
-export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; status: string; }
+export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
+export interface EventResult {
+  id: string;
+  registration_id: string | null;
+  bib_number: number | null;
+  athlete_name: string | null;
+  wave_name: string | null;
+  status: "finished" | "dnf" | "dns" | "dsq";
+  duration_ms: number | null;
+  penalty_seconds: number;
+  position: number | null;
+}
 export interface Category { id: string; name: string; level: string; gender: string; }
 export interface Registration {
   id: string; event_id: string; bib_number: number | null; wave_id: string | null;
@@ -189,8 +200,20 @@ export async function listCheckpoints(eventId: string): Promise<Checkpoint[]> {
 export async function createCheckpoint(tenantId: string, eventId: string, input: {
   name: string; ord: number; is_start: boolean; is_finish: boolean;
 }) {
+  // Regla de negocio: solo puede haber un checkpoint de salida por carrera.
+  if (input.is_start) {
+    const existing = await listCheckpoints(eventId);
+    if (existing.some((c) => c.is_start)) {
+      throw new Error("Ya existe un checkpoint de salida para esta carrera");
+    }
+  }
   const { error } = await db().from("checkpoints").insert({ tenant_id: tenantId, event_id: eventId, ...input });
-  if (error) throw error;
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new Error(`Ya existe un checkpoint con el orden ${input.ord} en esta carrera`);
+    }
+    throw error;
+  }
 }
 export async function deleteCheckpoint(id: string) {
   const { error } = await db().from("checkpoints").delete().eq("id", id);
@@ -279,7 +302,31 @@ export async function updateRegistration(id: string, patch: {
   bib_number?: number | null; wave_id?: string | null; status?: string; category_id?: string;
 }) {
   const { error } = await db().from("registrations").update(patch).eq("id", id);
+  if (error) {
+    if ((error as { code?: string }).code === "23505" && "bib_number" in patch) {
+      throw new Error("Ese dorsal ya está en uso en esta carrera");
+    }
+    throw error;
+  }
+}
+
+/** Asigna dorsal a los inscritos que aún no tienen, en orden de inscripción. Devuelve cuántos se asignaron. */
+export async function bulkAssignBibs(eventId: string): Promise<number> {
+  const { data, error } = await db().from("registrations")
+    .select("id, bib_number, created_at")
+    .eq("event_id", eventId)
+    .is("bib_number", null)
+    .order("created_at", { ascending: true });
   if (error) throw error;
+  const pending = (data ?? []) as { id: string }[];
+  if (!pending.length) return 0;
+  let next = await nextBib(eventId);
+  for (const r of pending) {
+    const { error: upErr } = await db().from("registrations").update({ bib_number: next }).eq("id", r.id);
+    if (upErr) throw upErr;
+    next += 1;
+  }
+  return pending.length;
 }
 
 // ------------------- Generación automática de oleadas ----------------
@@ -336,4 +383,49 @@ export async function generateWaves(tenantId: string, eventId: string, waveSize:
     }
   }
   return waveNo;
+}
+
+// ------------------------- Resultados en vivo -------------------------
+interface ResultRow {
+  id: string;
+  registration_id: string | null;
+  status: EventResult["status"];
+  duration_ms: number | null;
+  penalty_seconds: number;
+  position: number | null;
+  registrations: { bib_number: number | null; athlete_name: string | null; waves: { name: string } | null } | null;
+}
+
+export async function listResults(eventId: string): Promise<EventResult[]> {
+  const { data, error } = await db().from("results")
+    .select("id, registration_id, status, duration_ms, penalty_seconds, position, registrations(bib_number, athlete_name, waves(name))")
+    .eq("event_id", eventId)
+    .order("position", { ascending: true, nullsFirst: false })
+    .order("duration_ms", { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return (data as unknown as ResultRow[] ?? []).map((r) => ({
+    id: r.id,
+    registration_id: r.registration_id,
+    bib_number: r.registrations?.bib_number ?? null,
+    athlete_name: r.registrations?.athlete_name ?? null,
+    wave_name: r.registrations?.waves?.name ?? null,
+    status: r.status,
+    duration_ms: r.duration_ms,
+    penalty_seconds: r.penalty_seconds,
+    position: r.position,
+  }));
+}
+
+/** Pide al servidor (service role) que recalcule las posiciones del evento. */
+export async function recalculatePositions(eventId: string): Promise<void> {
+  const { data } = await db().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+  const res = await fetch("/api/admin/recalculate-positions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify({ event_id: eventId }),
+  });
+  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo recalcular las posiciones");
 }
