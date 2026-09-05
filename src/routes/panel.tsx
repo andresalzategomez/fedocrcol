@@ -593,11 +593,36 @@ function formatDuration(ms: number | null) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+type ResultScope = "general" | "wave" | "category";
+
+/** Ordena por tiempo (OK primero) y numera solo a los que terminaron con tiempo — igual que hace recalculate_event_positions, pero recalculado en el navegador para poder aplicarlo a cualquier subconjunto (oleada/categoría). */
+function rankResults(list: api.EventResult[]): (api.EventResult & { rank: number | null })[] {
+  const finished = list
+    .filter((r) => r.status === "finished" && r.duration_ms != null)
+    .sort((a, b) => (a.duration_ms as number) - (b.duration_ms as number));
+  const rankById = new Map(finished.map((r, i) => [r.id, i + 1]));
+  const others = list.filter((r) => !rankById.has(r.id));
+  return [
+    ...finished.map((r) => ({ ...r, rank: rankById.get(r.id) as number })),
+    ...others.map((r) => ({ ...r, rank: null })),
+  ];
+}
+
 function Resultados({ eventId }: { eventId: string }) {
   const [rows, setRows] = useState<api.EventResult[]>([]);
+  const [waves, setWaves] = useState<api.Wave[]>([]);
+  const [cats, setCats] = useState<api.EventCategory[]>([]);
+  const [scope, setScope] = useState<ResultScope>("general");
+  const [waveId, setWaveId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => { try { setRows(await api.listResults(eventId)); } catch (e) { toast.error((e as Error).message); } }, [eventId]);
+  const load = useCallback(async () => {
+    try {
+      const [r, w, c] = await Promise.all([api.listResults(eventId), api.listWaves(eventId), api.listEventCategories(eventId)]);
+      setRows(r); setWaves(w); setCats(c);
+    } catch (e) { toast.error((e as Error).message); }
+  }, [eventId]);
   useEffect(() => { load(); }, [load]);
 
   // Realtime: refresca la tabla cuando el Timer inserta/actualiza un resultado.
@@ -610,30 +635,75 @@ function Resultados({ eventId }: { eventId: string }) {
     return () => { supabase!.removeChannel(channel); };
   }, [eventId, load]);
 
+  // Preselecciona la primera oleada/categoría al cambiar de vista.
+  useEffect(() => {
+    if (scope === "wave" && !waveId && waves[0]) setWaveId(waves[0].id);
+    if (scope === "category" && !categoryId && cats[0]) setCategoryId(cats[0].id);
+  }, [scope, waves, cats, waveId, categoryId]);
+
   async function recalc() {
     setBusy(true);
     try { await api.recalculatePositions(eventId); toast.success("Posiciones recalculadas"); load(); }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
+  const catName = (id: string | null) => cats.find((c) => c.id === id)?.name ?? "—";
+
+  const filtered = scope === "wave" && waveId ? rows.filter((r) => r.wave_id === waveId)
+    : scope === "category" && categoryId ? rows.filter((r) => r.category_id === categoryId)
+    : rows;
+  const ranked = rankResults(filtered);
+
   return (
     <div className="grid gap-4">
+      <Card><CardContent className="flex flex-wrap items-end gap-4 p-6">
+        <Field label="Clasificación">
+          <Select value={scope} onValueChange={(v) => setScope(v as ResultScope)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General</SelectItem>
+              <SelectItem value="wave">Por oleada</SelectItem>
+              <SelectItem value="category">Por categoría</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        {scope === "wave" ? (
+          <Field label="Oleada">
+            <Select value={waveId} onValueChange={setWaveId}>
+              <SelectTrigger className="w-56"><SelectValue placeholder="Selecciona una oleada" /></SelectTrigger>
+              <SelectContent>{waves.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+        ) : null}
+        {scope === "category" ? (
+          <Field label="Categoría">
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="w-56"><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+              <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+        ) : null}
+      </CardContent></Card>
+
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">{rows.length} resultado(s) · se actualiza en vivo</span>
+        <span className="text-sm text-muted-foreground">{ranked.length} resultado(s) · se actualiza en vivo</span>
         <Button size="sm" onClick={recalc} disabled={busy}><RefreshCw className="mr-1 size-4" />Recalcular posiciones</Button>
       </div>
-      <SimpleTable head={["Pos.", "Dorsal", "Atleta", "Oleada", "Tiempo", "Estado"]}>
-        {rows.map((r) => (
+      <SimpleTable head={["Pos.", "Dorsal", "Atleta", "Categoría", "Oleada", "Tiempo", "Estado"]}>
+        {ranked.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="font-mono">{r.position ?? "—"}</TableCell>
+            <TableCell className="font-mono">{r.rank ?? "—"}</TableCell>
             <TableCell className="font-mono">{r.bib_number ?? "—"}</TableCell>
             <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{catName(r.category_id)}</TableCell>
             <TableCell className="text-muted-foreground">{r.wave_name ?? "—"}</TableCell>
             <TableCell className="font-mono">{formatDuration(r.duration_ms)}</TableCell>
             <TableCell><Badge variant={RESULT_STATUS_LABEL[r.status].variant}>{RESULT_STATUS_LABEL[r.status].label}</Badge></TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Aún no hay resultados. Se llenan cuando el juez cronometra con FedOCR Timer.</TableCell></TableRow> : null}
+        {ranked.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">
+          {rows.length === 0 ? "Aún no hay resultados. Se llenan cuando el juez cronometra con FedOCR Timer." : "Sin resultados para este filtro."}
+        </TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
