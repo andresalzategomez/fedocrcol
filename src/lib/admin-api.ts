@@ -35,6 +35,8 @@ export interface EventRow {
   status: EventStatus;
   league_approved: boolean;
   federation_approved: boolean;
+  is_official: boolean | null;
+  created_by: string | null;
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
@@ -96,7 +98,7 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
 }
 
 export async function createEvent(input: {
-  tenant_id: string; title: string; date: string; location: string;
+  tenant_id: string; title: string; date: string; location: string; is_official: boolean;
   distance_km?: number; obstacles?: number; max_capacity?: number;
 }): Promise<EventRow> {
   const { data, error } = await db().from("events").insert({
@@ -104,6 +106,7 @@ export async function createEvent(input: {
     title: input.title,
     date: input.date,
     location: input.location,
+    is_official: input.is_official,
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
     max_capacity: input.max_capacity ?? 0,
