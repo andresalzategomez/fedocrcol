@@ -19,7 +19,7 @@ alter table public.events add column if not exists created_by uuid references pu
 
 -- El creador de una carrera lo decide el servidor (auth.uid()), nunca el cliente.
 create or replace function public.set_event_created_by()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 begin
   new.created_by := auth.uid();
   return new;
