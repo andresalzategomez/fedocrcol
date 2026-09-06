@@ -95,6 +95,34 @@ Comportamiento por registro:
 Un `id` que vuelve en `synced_ids` tras un reintento indica `DUPLICATE_RECORD`
 (ya estaba) — el Timer lo marca `is_synced = 1` sin reintentar.
 
+### `POST /races/:raceId/start`  *(auth)*
+El Timer llama esto cuando el juez **inicia la competencia** en pista
+(típicamente al disparar la primera oleada). Pasa la carrera de `approved` a
+`in_progress` en fedocrcol — a partir de ahí, el panel web congela su
+contenido (checkpoints, oleadas, categorías, inscritos): nadie puede
+modificarlos hasta finalizarla.
+
+Sin body. Respuesta `200`:
+```json
+{ "status": "in_progress" }
+```
+Idempotente: si ya estaba `in_progress`, responde `{ "status": "in_progress", "already": true }`
+sin error — seguro de reintentar si el Timer estaba offline.
+
+Errores: `404 NOT_FOUND` (carrera no existe o no es de tu liga), `409 INVALID_STATE`
+si la carrera no está `approved` (por ejemplo, sigue en borrador o ya finalizó).
+
+### `POST /races/:raceId/finish`  *(auth)*
+El Timer llama esto cuando el juez **cierra la competencia** (todas las
+oleadas completadas). Pasa la carrera de `in_progress` a `finished`.
+
+Sin body. Respuesta `200`:
+```json
+{ "status": "finished" }
+```
+Idempotente igual que `/start`. Error `409 INVALID_STATE` si la carrera no
+está `in_progress`.
+
 ## 4. Variables de entorno del servidor
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` (cliente por-usuario con RLS),
 `SUPABASE_SERVICE_ROLE_KEY` (solo operaciones administrativas). Ver `.env.example`.
