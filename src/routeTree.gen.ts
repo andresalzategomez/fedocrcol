@@ -24,7 +24,9 @@ import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/p
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth.login'
 import { Route as ApiV1TimeRecordsBatchRouteImport } from './routes/api/v1/time-records.batch'
 import { Route as ApiV1RacesRaceIdAthletesRouteImport } from './routes/api/v1/races.$raceId.athletes'
+import { Route as ApiV1RacesRaceIdFinishRouteImport } from './routes/api/v1/races.$raceId.finish'
 import { Route as ApiV1RacesRaceIdSplitsRouteImport } from './routes/api/v1/races.$raceId.splits'
+import { Route as ApiV1RacesRaceIdStartRouteImport } from './routes/api/v1/races.$raceId.start'
 import { Route as ApiV1RacesRaceIdWavesRouteImport } from './routes/api/v1/races.$raceId.waves'
 
 const IndexRoute = IndexRouteImport.update({
@@ -104,9 +106,19 @@ const ApiV1RacesRaceIdAthletesRoute =
     path: '/$raceId/athletes',
     getParentRoute: () => ApiV1RacesRoute,
   } as any)
+const ApiV1RacesRaceIdFinishRoute = ApiV1RacesRaceIdFinishRouteImport.update({
+  id: '/$raceId/finish',
+  path: '/$raceId/finish',
+  getParentRoute: () => ApiV1RacesRoute,
+} as any)
 const ApiV1RacesRaceIdSplitsRoute = ApiV1RacesRaceIdSplitsRouteImport.update({
   id: '/$raceId/splits',
   path: '/$raceId/splits',
+  getParentRoute: () => ApiV1RacesRoute,
+} as any)
+const ApiV1RacesRaceIdStartRoute = ApiV1RacesRaceIdStartRouteImport.update({
+  id: '/$raceId/start',
+  path: '/$raceId/start',
   getParentRoute: () => ApiV1RacesRoute,
 } as any)
 const ApiV1RacesRaceIdWavesRoute = ApiV1RacesRaceIdWavesRouteImport.update({
@@ -131,7 +143,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRoutesByTo {
@@ -150,7 +164,9 @@ export interface FileRoutesByTo {
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRoutesById {
@@ -170,7 +186,9 @@ export interface FileRoutesById {
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
+  '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
+  '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
 }
 export interface FileRouteTypes {
@@ -191,7 +209,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -210,7 +230,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
   id:
     | '__root__'
@@ -229,7 +251,9 @@ export interface FileRouteTypes {
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
+    | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
+    | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
   fileRoutesById: FileRoutesById
 }
@@ -357,11 +381,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1RacesRaceIdAthletesRouteImport
       parentRoute: typeof ApiV1RacesRoute
     }
+    '/api/v1/races/$raceId/finish': {
+      id: '/api/v1/races/$raceId/finish'
+      path: '/$raceId/finish'
+      fullPath: '/api/v1/races/$raceId/finish'
+      preLoaderRoute: typeof ApiV1RacesRaceIdFinishRouteImport
+      parentRoute: typeof ApiV1RacesRoute
+    }
     '/api/v1/races/$raceId/splits': {
       id: '/api/v1/races/$raceId/splits'
       path: '/$raceId/splits'
       fullPath: '/api/v1/races/$raceId/splits'
       preLoaderRoute: typeof ApiV1RacesRaceIdSplitsRouteImport
+      parentRoute: typeof ApiV1RacesRoute
+    }
+    '/api/v1/races/$raceId/start': {
+      id: '/api/v1/races/$raceId/start'
+      path: '/$raceId/start'
+      fullPath: '/api/v1/races/$raceId/start'
+      preLoaderRoute: typeof ApiV1RacesRaceIdStartRouteImport
       parentRoute: typeof ApiV1RacesRoute
     }
     '/api/v1/races/$raceId/waves': {
@@ -376,13 +414,17 @@ declare module '@tanstack/react-router' {
 
 interface ApiV1RacesRouteChildren {
   ApiV1RacesRaceIdAthletesRoute: typeof ApiV1RacesRaceIdAthletesRoute
+  ApiV1RacesRaceIdFinishRoute: typeof ApiV1RacesRaceIdFinishRoute
   ApiV1RacesRaceIdSplitsRoute: typeof ApiV1RacesRaceIdSplitsRoute
+  ApiV1RacesRaceIdStartRoute: typeof ApiV1RacesRaceIdStartRoute
   ApiV1RacesRaceIdWavesRoute: typeof ApiV1RacesRaceIdWavesRoute
 }
 
 const ApiV1RacesRouteChildren: ApiV1RacesRouteChildren = {
   ApiV1RacesRaceIdAthletesRoute: ApiV1RacesRaceIdAthletesRoute,
+  ApiV1RacesRaceIdFinishRoute: ApiV1RacesRaceIdFinishRoute,
   ApiV1RacesRaceIdSplitsRoute: ApiV1RacesRaceIdSplitsRoute,
+  ApiV1RacesRaceIdStartRoute: ApiV1RacesRaceIdStartRoute,
   ApiV1RacesRaceIdWavesRoute: ApiV1RacesRaceIdWavesRoute,
 }
 
