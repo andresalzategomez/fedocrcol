@@ -355,7 +355,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
-        <TabsContent value="resultados" className="mt-4"><Resultados eventId={event.id} /></TabsContent>
+        <TabsContent value="resultados" className="mt-4"><Resultados event={event} /></TabsContent>
       </Tabs>
     </div>
   );
@@ -670,6 +670,24 @@ function formatDuration(ms: number | null) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+/** HH:MM:SS,mmm — formato largo para exportar (Excel/PDF), igual al de las planillas de liga. */
+function formatDurationLong(ms: number | null) {
+  if (ms == null) return "";
+  const total = Math.max(0, Math.round(ms));
+  const pad = (n: number, l = 2) => String(n).padStart(l, "0");
+  const h = Math.floor(total / 3600000);
+  const m = Math.floor((total % 3600000) / 60000);
+  const s = Math.floor((total % 60000) / 1000);
+  const msRest = total % 1000;
+  return `${pad(h)}:${pad(m)}:${pad(s)},${pad(msRest, 3)}`;
+}
+/** HH:MM:SS,mmm de un timestamp ISO, en hora local — para "Hora de salida/llegada" en el export. */
+function formatClockTime(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number, l = 2) => String(n).padStart(l, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())},${pad(d.getMilliseconds(), 3)}`;
+}
 type ResultScope = "general" | "wave" | "category";
 
 /** Ordena por tiempo (OK primero) y numera solo a los que terminaron con tiempo — igual que hace recalculate_event_positions, pero recalculado en el navegador para poder aplicarlo a cualquier subconjunto (oleada/categoría). */
@@ -685,10 +703,12 @@ function rankResults(list: api.EventResult[]): (api.EventResult & { rank: number
   ];
 }
 
-function Resultados({ eventId }: { eventId: string }) {
+function Resultados({ event }: { event: EventRow }) {
+  const eventId = event.id;
   const [rows, setRows] = useState<api.EventResult[]>([]);
   const [waves, setWaves] = useState<api.Wave[]>([]);
   const [cats, setCats] = useState<api.EventCategory[]>([]);
+  const [tenantName, setTenantName] = useState("");
   const [scope, setScope] = useState<ResultScope>("general");
   const [waveId, setWaveId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -701,6 +721,10 @@ function Resultados({ eventId }: { eventId: string }) {
     } catch (e) { toast.error((e as Error).message); }
   }, [eventId]);
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api.listTenants().then((ts) => setTenantName(ts.find((t) => t.id === event.tenant_id)?.name ?? "")).catch(() => {});
+  }, [event.tenant_id]);
 
   // Realtime: refresca la tabla cuando el Timer inserta/actualiza un resultado.
   useEffect(() => {
@@ -730,6 +754,33 @@ function Resultados({ eventId }: { eventId: string }) {
     : scope === "category" && categoryId ? rows.filter((r) => r.category_id === categoryId)
     : rows;
   const ranked = rankResults(filtered);
+
+  // Título de la planilla, según el filtro activo — ej. "LIGA X — CARRERA — POR CATEGORÍA: ELITE MASCULINO"
+  const scopeLabel = scope === "wave" ? `Por oleada: ${waves.find((w) => w.id === waveId)?.name ?? ""}`
+    : scope === "category" ? `Por categoría: ${cats.find((c) => c.id === categoryId)?.name ?? ""}`
+    : "Clasificación general";
+  const sheetTitle = [tenantName, event.title, scopeLabel].filter(Boolean).join(" — ").toUpperCase();
+
+  function exportResults(kind: "excel" | "pdf") {
+    const cols: Column[] = [
+      { header: "Posición", key: "pos" }, { header: "Dorsal", key: "bib" }, { header: "Atleta", key: "name" },
+      { header: "Documento", key: "doc" }, { header: "Categoría", key: "cat" }, { header: "Oleada", key: "wave" },
+      { header: "Hora de Salida", key: "start" }, { header: "Hora de Llegada", key: "finish" },
+      { header: "Tiempo Bruto", key: "gross" }, { header: "Penalización", key: "penalty" },
+      { header: "Tiempo Neto", key: "net" }, { header: "Estado", key: "status" },
+    ];
+    const data = ranked.map((r) => ({
+      pos: r.rank ?? "", bib: r.bib_number ?? "", name: r.athlete_name ?? "", doc: r.athlete_document ?? "",
+      cat: catName(r.category_id), wave: r.wave_name ?? "",
+      start: formatClockTime(r.start_time), finish: formatClockTime(r.finish_at),
+      gross: r.duration_ms != null ? formatDurationLong(r.duration_ms - r.penalty_seconds * 1000) : "",
+      penalty: r.penalty_seconds ? `${r.penalty_seconds}s` : "",
+      net: formatDurationLong(r.duration_ms),
+      status: RESULT_STATUS_LABEL[r.status].label,
+    }));
+    if (kind === "excel") exportExcel(`resultados-${scope}`, [{ name: "Resultados", columns: cols, rows: data }]);
+    else exportPDF(`resultados-${scope}`, sheetTitle, cols, data);
+  }
 
   return (
     <div className="grid gap-4">
@@ -764,7 +815,11 @@ function Resultados({ eventId }: { eventId: string }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-muted-foreground">{ranked.length} resultado(s) · se actualiza en vivo</span>
-        <Button size="sm" onClick={recalc} disabled={busy}><RefreshCw className="mr-1 size-4" />Recalcular posiciones</Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => exportResults("excel")}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportResults("pdf")}><FileText className="mr-1 size-4" />PDF</Button>
+          <Button size="sm" onClick={recalc} disabled={busy}><RefreshCw className="mr-1 size-4" />Recalcular posiciones</Button>
+        </div>
       </div>
       <SimpleTable head={["Pos.", "Dorsal", "Atleta", "Categoría", "Oleada", "Tiempo", "Estado"]}>
         {ranked.map((r) => (
