@@ -123,6 +123,37 @@ Sin body. Respuesta `200`:
 Idempotente igual que `/start`. Error `409 INVALID_STATE` si la carrera no
 está `in_progress`.
 
+### `POST /waves/:waveId/start`  *(auth)*
+El Timer llama esto al disparar una oleada (`startWave` local), para que
+`waves.started_at` deje de quedar siempre vacío en fedocrcol — hasta ahora
+nada lo sincronizaba, así que ni el panel web ni ningún reporte podían
+mostrar la hora real de salida de una oleada.
+
+Body:
+```json
+{ "started_at": 1746890722531 }
+```
+`started_at` es el epoch ms exacto capturado por el Timer al disparar (el
+mismo valor que ya guarda localmente en `waves.start_time_ms`).
+
+Respuesta `200`:
+```json
+{ "started_at": "2026-09-06T08:34:46.000Z" }
+```
+Idempotente: si la oleada ya tenía `started_at`, no lo sobrescribe — responde
+`{ "started_at": "<el que ya tenía>", "already": true }` (protege la hora real
+ante un reintento tardío del Timer).
+
+Errores: `404 NOT_FOUND` (oleada no existe o no es de tu liga), `400 BAD_REQUEST`
+si falta `started_at`.
+
+> Nota: a diferencia de `/races/:id/start|finish`, esta escritura se hace con
+> `service_role` en el servidor — la política RLS de `waves` congela su
+> contenido mientras el evento está `in_progress`, pero una oleada arranca
+> precisamente en ese momento, así que el endpoint valida el permiso con el
+> JWT del juez y luego escribe saltándose esa regla (igual que ya hace
+> `recalculate_event_positions`).
+
 ## 4. Variables de entorno del servidor
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` (cliente por-usuario con RLS),
 `SUPABASE_SERVICE_ROLE_KEY` (solo operaciones administrativas). Ver `.env.example`.

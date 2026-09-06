@@ -28,6 +28,7 @@ import { Route as ApiV1RacesRaceIdFinishRouteImport } from './routes/api/v1/race
 import { Route as ApiV1RacesRaceIdSplitsRouteImport } from './routes/api/v1/races.$raceId.splits'
 import { Route as ApiV1RacesRaceIdStartRouteImport } from './routes/api/v1/races.$raceId.start'
 import { Route as ApiV1RacesRaceIdWavesRouteImport } from './routes/api/v1/races.$raceId.waves'
+import { Route as ApiV1WavesWaveIdStartRouteImport } from './routes/api/v1/waves.$waveId.start'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -126,6 +127,11 @@ const ApiV1RacesRaceIdWavesRoute = ApiV1RacesRaceIdWavesRouteImport.update({
   path: '/$raceId/waves',
   getParentRoute: () => ApiV1RacesRoute,
 } as any)
+const ApiV1WavesWaveIdStartRoute = ApiV1WavesWaveIdStartRouteImport.update({
+  id: '/api/v1/waves/$waveId/start',
+  path: '/api/v1/waves/$waveId/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
+  '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
+  '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
+  '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
+    | '/api/v1/waves/$waveId/start'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
+    | '/api/v1/waves/$waveId/start'
   id:
     | '__root__'
     | '/'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
+    | '/api/v1/waves/$waveId/start'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1TimeRecordsBatchRoute: typeof ApiV1TimeRecordsBatchRoute
+  ApiV1WavesWaveIdStartRoute: typeof ApiV1WavesWaveIdStartRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -409,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1RacesRaceIdWavesRouteImport
       parentRoute: typeof ApiV1RacesRoute
     }
+    '/api/v1/waves/$waveId/start': {
+      id: '/api/v1/waves/$waveId/start'
+      path: '/api/v1/waves/$waveId/start'
+      fullPath: '/api/v1/waves/$waveId/start'
+      preLoaderRoute: typeof ApiV1WavesWaveIdStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -447,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1TimeRecordsBatchRoute: ApiV1TimeRecordsBatchRoute,
+  ApiV1WavesWaveIdStartRoute: ApiV1WavesWaveIdStartRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
