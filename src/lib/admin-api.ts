@@ -46,10 +46,13 @@ export interface EventResult {
   registration_id: string | null;
   bib_number: number | null;
   athlete_name: string | null;
+  athlete_document: string | null;
   wave_id: string | null;
   wave_name: string | null;
   category_id: string | null;
   status: "finished" | "dnf" | "dns" | "dsq";
+  start_time: string | null;
+  finish_at: string | null;
   duration_ms: number | null;
   penalty_seconds: number;
   position: number | null;
@@ -395,18 +398,20 @@ interface ResultRow {
   id: string;
   registration_id: string | null;
   status: EventResult["status"];
+  start_time: string | null;
+  finish_at: string | null;
   duration_ms: number | null;
   penalty_seconds: number;
   position: number | null;
   registrations: {
-    bib_number: number | null; athlete_name: string | null; wave_id: string | null;
+    bib_number: number | null; athlete_name: string | null; athlete_document: string | null; wave_id: string | null;
     category_id: string | null; waves: { name: string } | null;
   } | null;
 }
 
 export async function listResults(eventId: string): Promise<EventResult[]> {
   const { data, error } = await db().from("results")
-    .select("id, registration_id, status, duration_ms, penalty_seconds, position, registrations(bib_number, athlete_name, wave_id, category_id, waves(name))")
+    .select("id, registration_id, status, start_time, finish_at, duration_ms, penalty_seconds, position, registrations(bib_number, athlete_name, athlete_document, wave_id, category_id, waves(name))")
     .eq("event_id", eventId)
     .order("position", { ascending: true, nullsFirst: false })
     .order("duration_ms", { ascending: true, nullsFirst: false });
@@ -416,10 +421,13 @@ export async function listResults(eventId: string): Promise<EventResult[]> {
     registration_id: r.registration_id,
     bib_number: r.registrations?.bib_number ?? null,
     athlete_name: r.registrations?.athlete_name ?? null,
+    athlete_document: r.registrations?.athlete_document ?? null,
     wave_id: r.registrations?.wave_id ?? null,
     wave_name: r.registrations?.waves?.name ?? null,
     category_id: r.registrations?.category_id ?? null,
     status: r.status,
+    start_time: r.start_time,
+    finish_at: r.finish_at,
     duration_ms: r.duration_ms,
     penalty_seconds: r.penalty_seconds,
     position: r.position,
