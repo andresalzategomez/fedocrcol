@@ -46,6 +46,13 @@ declare
     new.is_official is not distinct from old.is_official and
     new.tenant_id is not distinct from old.tenant_id;
 begin
+  -- Sin sesión de usuario autenticado (service_role vía API, o una conexión
+  -- administrativa directa como el SQL Editor / MCP de Supabase): omite
+  -- estas reglas, igual que ya omite RLS por diseño del proyecto.
+  if auth.uid() is null then
+    return new;
+  end if;
+
   -- No se puede aprobar una carrera sin haber indicado si es oficial.
   if new.status = 'approved' and old.status is distinct from 'approved' and new.is_official is null then
     raise exception 'La carrera debe indicar si es oficial o no antes de aprobarla';
