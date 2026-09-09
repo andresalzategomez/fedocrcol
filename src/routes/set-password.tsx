@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
-export const Route = createFileRoute("/auth/set-password")({
+export const Route = createFileRoute("/set-password")({
   head: () => ({ meta: [{ title: "Crear contraseña — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
   component: SetPasswordPage,
 });
@@ -21,6 +21,12 @@ export const Route = createFileRoute("/auth/set-password")({
  * Supabase detecta la sesión del enlace en la URL automáticamente
  * (detectSessionInUrl, activo por defecto) — esta página solo espera a
  * que aparezca esa sesión y deja fijar la contraseña definitiva.
+ *
+ * Nota: NO se llama `auth.set-password.tsx` a propósito. Con ese nombre
+ * TanStack Router la registra como hija de la ruta `/auth` (convención de
+ * puntos = anidamiento), y como `AuthPage` no renderiza `<Outlet />`, la
+ * página hija nunca se mostraba — quedaba tapada por el login normal. Un
+ * archivo de nivel raíz (`/set-password`) evita el problema por completo.
  */
 function SetPasswordPage() {
   const [ready, setReady] = useState(false);
@@ -42,6 +48,16 @@ function SetPasswordPage() {
     if (password.length < 8) { toast.error("La contraseña debe tener al menos 8 caracteres"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
+    if (!error) {
+      // Marca en su propio profile que ya terminó de crear la contraseña —
+      // permitido por profiles_update_own (id = auth.uid()). Best-effort: si
+      // falla, la contraseña ya quedó guardada igual; solo afecta el badge
+      // "Cuenta creada" que ve el admin en el panel, no el login del juez.
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await supabase.from("profiles").update({ password_set_at: new Date().toISOString() }).eq("id", userData.user.id);
+      }
+    }
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     setDone(true);

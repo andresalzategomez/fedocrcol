@@ -746,6 +746,7 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
   const [form, setForm] = useState({ full_name: "", email: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviting, setInviting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const load = useCallback(async () => setJudges(await api.listJudges(tenantId)), [tenantId]);
   useEffect(() => { load(); }, [load]);
@@ -761,6 +762,15 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
     } catch (e) { toast.error((e as Error).message); } finally { setInviting(false); }
   }
 
+  async function resend(j: api.Judge) {
+    if (!j.email || !j.full_name) return;
+    setResendingId(j.id);
+    try {
+      await api.inviteJudge({ full_name: j.full_name, email: j.email });
+      toast.success(`Invitación reenviada a ${j.email}`);
+    } catch (e) { toast.error((e as Error).message); } finally { setResendingId(null); }
+  }
+
   return (
     <div className="grid gap-4">
       {!locked ? (
@@ -774,14 +784,23 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           </p>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Nombre", "Correo"]}>
+      <SimpleTable head={["Nombre", "Correo", "Estado"]}>
         {judges.map((j) => (
           <TableRow key={j.id}>
             <TableCell className="font-medium">{j.full_name ?? "—"}</TableCell>
             <TableCell className="text-muted-foreground">{j.email ?? "—"}</TableCell>
+            <TableCell className="text-right">
+              {j.password_set_at ? (
+                <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
+              ) : (
+                <Button size="sm" variant="outline" disabled={locked || resendingId === j.id} onClick={() => resend(j)}>
+                  <Mail className="mr-1 size-4" />{resendingId === j.id ? "Enviando..." : "Reenviar invitación"}
+                </Button>
+              )}
+            </TableCell>
           </TableRow>
         ))}
-        {judges.length === 0 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
+        {judges.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

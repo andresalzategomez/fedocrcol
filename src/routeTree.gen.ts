@@ -13,7 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as RankingRouteImport } from './routes/ranking'
-import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
 import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
@@ -52,10 +52,10 @@ const RankingRoute = RankingRouteImport.update({
   path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+const SetPasswordRoute = SetPasswordRouteImport.update({
   id: '/set-password',
   path: '/set-password',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EventosIndexRoute = EventosIndexRouteImport.update({
   id: '/eventos/',
@@ -147,10 +147,10 @@ const ApiV1WavesWaveIdStartRoute = ApiV1WavesWaveIdStartRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
-  '/auth/set-password': typeof AuthSetPasswordRoute
+  '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
@@ -171,10 +171,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
-  '/auth/set-password': typeof AuthSetPasswordRoute
+  '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
@@ -196,10 +196,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
-  '/auth/set-password': typeof AuthSetPasswordRoute
+  '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
@@ -225,7 +225,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
-    | '/auth/set-password'
+    | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos/'
@@ -249,7 +249,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
-    | '/auth/set-password'
+    | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos'
@@ -273,7 +273,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
-    | '/auth/set-password'
+    | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos/'
@@ -295,9 +295,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthRoute: typeof AuthRoute
   PanelRoute: typeof PanelRoute
   RankingRoute: typeof RankingRoute
+  SetPasswordRoute: typeof SetPasswordRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
@@ -342,12 +343,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/set-password': {
-      id: '/auth/set-password'
+    '/set-password': {
+      id: '/set-password'
       path: '/set-password'
-      fullPath: '/auth/set-password'
-      preLoaderRoute: typeof AuthSetPasswordRouteImport
-      parentRoute: typeof AuthRoute
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/eventos/': {
       id: '/eventos/'
@@ -471,16 +472,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthRouteChildren {
-  AuthSetPasswordRoute: typeof AuthSetPasswordRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthSetPasswordRoute: AuthSetPasswordRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 interface ApiV1RacesRouteChildren {
   ApiV1RacesRaceIdAthletesRoute: typeof ApiV1RacesRaceIdAthletesRoute
   ApiV1RacesRaceIdFinishRoute: typeof ApiV1RacesRaceIdFinishRoute
@@ -503,9 +494,10 @@ const ApiV1RacesRouteWithChildren = ApiV1RacesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRouteWithChildren,
+  AuthRoute: AuthRoute,
   PanelRoute: PanelRoute,
   RankingRoute: RankingRoute,
+  SetPasswordRoute: SetPasswordRoute,
   EventosEventIdRoute: EventosEventIdRoute,
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
