@@ -52,6 +52,13 @@ Errores: `401 INVALID_CREDENTIALS`, `403 NO_LEAGUE`.
 ### `GET /races/:raceId/splits`  *(auth)*
 `[ { id, name, order, is_start, is_finish } ]`.
 
+> **Jueces (rol `judge`):** si quien llama tiene `user_role: "judge"`, esta lista
+> viene **ya filtrada** a solo los checkpoints que el admin de la liga le asignó
+> (`checkpoint_judges`). Admin/superadmin siguen viendo todos. El Timer no
+> necesita lógica extra para esto — el selector de punto de control del
+> Dashboard ya solo tiene para elegir entre lo que llega acá. Si un juez no
+> tiene ningún checkpoint asignado, la lista viene vacía (`[]`).
+
 ### `GET /races/:raceId/athletes`  *(auth)*
 `[ { id, bib_number, full_name, document, gender, wave_id, category, registration_status } ]`.
 

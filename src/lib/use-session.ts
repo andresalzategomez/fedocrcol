@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 
 export interface Profile {
   id: string;
-  role: "superadmin" | "admin" | "athlete";
+  role: "superadmin" | "admin" | "athlete" | "judge";
   tenant_id: string | null;
   full_name: string | null;
 }

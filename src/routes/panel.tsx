@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Children, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ function PanelPage() {
   if (loading) return <Shell><Note>Cargando…</Note></Shell>;
   if (!profile) return <Shell><Note>Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.</Note></Shell>;
   if (profile.role === "athlete") return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
+  if (profile.role === "judge") return <Shell><Note>Tu cuenta es de juez. Usa FedOCR Timer para cronometrar — este panel es para administradores de liga.</Note></Shell>;
 
   return (
     <Shell>
@@ -353,12 +354,14 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           <TabsTrigger value="inscritos">Inscritos</TabsTrigger>
           <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
           <TabsTrigger value="checkpoints">Checkpoints</TabsTrigger>
+          <TabsTrigger value="jueces"><Gavel className="mr-1 size-4" />Jueces</TabsTrigger>
           <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
+        <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
         <TabsContent value="resultados" className="mt-4"><Resultados event={event} /></TabsContent>
       </Tabs>
     </div>
@@ -663,35 +666,122 @@ function Oleadas({ tenantId, eventId, eventDate, locked }: { tenantId: string; e
 // ---------------------------- Checkpoints ----------------------------
 function Checkpoints({ tenantId, eventId, locked }: { tenantId: string; eventId: string; locked: boolean }) {
   const [rows, setRows] = useState<api.Checkpoint[]>([]);
-  const [form, setForm] = useState({ name: "", ord: "1", is_start: false, is_finish: false });
+  const [judges, setJudges] = useState<api.Judge[]>([]);
+  const [checkpointJudge, setCheckpointJudge] = useState<Record<string, string>>({}); // checkpoint_id -> judge_id
+  const [form, setForm] = useState({ name: "", ord: "1", is_start: false, is_finish: false, judge_id: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const load = useCallback(async () => setRows(await api.listCheckpoints(eventId)), [eventId]);
+
+  const load = useCallback(async () => {
+    const [cps, js, byJudge] = await Promise.all([api.listCheckpoints(eventId), api.listJudges(tenantId), api.listCheckpointJudges(eventId)]);
+    setRows(cps); setJudges(js);
+    // listCheckpointJudges viene indexado por juez; se invierte a por-checkpoint
+    // porque en esta UI cada checkpoint tiene como máximo un juez asignado.
+    const byCheckpoint: Record<string, string> = {};
+    Object.entries(byJudge).forEach(([judgeId, checkpointIds]) => {
+      checkpointIds.forEach((cpId) => { byCheckpoint[cpId] = judgeId; });
+    });
+    setCheckpointJudge(byCheckpoint);
+  }, [eventId, tenantId]);
   useEffect(() => { load(); }, [load]);
+
   async function add() {
     const { ok, errors } = validateForm(form, { name: [required("El nombre")], ord: [positiveInt("El orden")] });
     setErrors(errors as Record<string, string>); if (!ok) return;
-    try { await api.createCheckpoint(tenantId, eventId, { name: form.name, ord: Number(form.ord), is_start: form.is_start, is_finish: form.is_finish }); toast.success("Checkpoint agregado"); setForm({ name: "", ord: String(Number(form.ord) + 1), is_start: false, is_finish: false }); setErrors({}); load(); }
-    catch (e) { toast.error((e as Error).message); }
+    try {
+      const id = await api.createCheckpoint(tenantId, eventId, { name: form.name, ord: Number(form.ord), is_start: form.is_start, is_finish: form.is_finish });
+      if (form.judge_id) await api.assignJudgeToCheckpoint(tenantId, id, form.judge_id);
+      toast.success("Checkpoint agregado");
+      setForm({ name: "", ord: String(Number(form.ord) + 1), is_start: false, is_finish: false, judge_id: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); }
+  }
+  async function setJudgeFor(checkpointId: string, newJudgeId: string) {
+    const prev = checkpointJudge[checkpointId];
+    try {
+      if (prev && prev !== newJudgeId) await api.unassignJudgeFromCheckpoint(checkpointId, prev);
+      if (newJudgeId) await api.assignJudgeToCheckpoint(tenantId, checkpointId, newJudgeId);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
   }
   return (
     <div className="grid gap-4">
       {!locked ? (
-        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
+        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-6">
           <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
           <Field label="Orden *" error={errors.ord}><Input inputMode="numeric" value={form.ord} onChange={(e) => setForm({ ...form, ord: e.target.value.replace(/\D/g, "") })} /></Field>
           <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_start} onCheckedChange={(v) => setForm({ ...form, is_start: v })} />Salida</label>
           <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_finish} onCheckedChange={(v) => setForm({ ...form, is_finish: v })} />Meta</label>
+          <Field label="Juez">
+            <Select value={form.judge_id} onValueChange={(v) => setForm({ ...form, judge_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+              <SelectContent>{judges.map((j) => <SelectItem key={j.id} value={j.id}>{j.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
           <div className="flex items-end"><Button onClick={add}><Plus className="mr-1 size-4" />Agregar</Button></div>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Orden", "Nombre", "Tipo", ""]}>
+      <SimpleTable head={["Orden", "Nombre", "Tipo", "Juez", ""]}>
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell>{c.ord}</TableCell><TableCell className="font-medium">{c.name}</TableCell>
             <TableCell>{c.is_start ? "Salida" : c.is_finish ? "Meta" : "Intermedio"}</TableCell>
+            <TableCell>
+              <Select value={checkpointJudge[c.id] ?? ""} onValueChange={(v) => setJudgeFor(c.id, v)} disabled={locked}>
+                <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+                <SelectContent>{judges.map((j) => <SelectItem key={j.id} value={j.id}>{j.full_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </TableCell>
             <TableCell className="text-right">{!locked ? <Button size="sm" variant="ghost" onClick={async () => { await api.deleteCheckpoint(c.id); load(); }}><Trash2 className="size-4" /></Button> : null}</TableCell>
           </TableRow>
         ))}
+      </SimpleTable>
+    </div>
+  );
+}
+
+// ------------------------------- Jueces -------------------------------
+// Solo crea/lista jueces — asignarlos a un checkpoint se hace desde la
+// pestaña Checkpoints (un combo por checkpoint), no aquí.
+function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
+  const [judges, setJudges] = useState<api.Judge[]>([]);
+  const [form, setForm] = useState({ full_name: "", email: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [inviting, setInviting] = useState(false);
+
+  const load = useCallback(async () => setJudges(await api.listJudges(tenantId)), [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function invite() {
+    const { ok, errors } = validateForm(form, { full_name: [required("El nombre")], email: [required("El correo")] });
+    setErrors(errors as Record<string, string>); if (!ok) return;
+    setInviting(true);
+    try {
+      await api.inviteJudge(form);
+      toast.success("Invitación enviada — el juez recibirá un correo para crear su contraseña");
+      setForm({ full_name: "", email: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); } finally { setInviting(false); }
+  }
+
+  return (
+    <div className="grid gap-4">
+      {!locked ? (
+        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
+          <Field label="Nombre *" error={errors.full_name}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
+          <Field label="Correo *" error={errors.email}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar juez</Button></div>
+          <p className="sm:col-span-4 text-xs text-muted-foreground">
+            El juez recibe un correo para crear su contraseña; con ella inicia sesión en FedOCR Timer. Asigna el
+            checkpoint de cada juez desde la pestaña Checkpoints.
+          </p>
+        </CardContent></Card>
+      ) : null}
+      <SimpleTable head={["Nombre", "Correo"]}>
+        {judges.map((j) => (
+          <TableRow key={j.id}>
+            <TableCell className="font-medium">{j.full_name ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{j.email ?? "—"}</TableCell>
+          </TableRow>
+        ))}
+        {judges.length === 0 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
