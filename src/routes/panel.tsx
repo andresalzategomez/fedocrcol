@@ -73,7 +73,7 @@ function StatusBadge({ status }: { status: EventStatus }) {
  * esto solo evita intentos inútiles en la UI, la regla real la aplica RLS.
  */
 function canManageEvent(event: EventRow, isSuper: boolean, userId: string): boolean {
-  if (event.status === "in_progress") return false;
+  if (event.status === "in_progress" || event.status === "finished") return false;
   if (isSuper) return event.created_by === userId;
   return true;
 }
@@ -310,8 +310,8 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 }) {
   const [busy, setBusy] = useState(false);
   const canManage = canManageEvent(event, isSuper, userId);
-  const locked = event.status === "in_progress";
-  const foreignEvent = isSuper && event.created_by !== userId && event.status !== "in_progress";
+  const locked = event.status === "in_progress" || event.status === "finished";
+  const foreignEvent = isSuper && event.created_by !== userId && !locked;
 
   async function changeStatus(status: api.EventStatus, msg: string) {
     setBusy(true);
@@ -339,7 +339,11 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
       </div>
       <p className="text-sm text-muted-foreground">{event.date} · {event.location}</p>
       {locked ? (
-        <Note>Esta carrera ya está <strong>en curso</strong>: no se puede modificar nada (categorías, inscritos, oleadas o checkpoints) hasta finalizarla.</Note>
+        <Note>
+          Esta carrera ya está <strong>{event.status === "finished" ? "finalizada" : "en curso"}</strong>: no se
+          puede agregar, modificar ni eliminar nada (categorías, inscritos, oleadas o checkpoints)
+          {event.status === "finished" ? "." : " hasta finalizarla."}
+        </Note>
       ) : foreignEvent ? (
         <Note>Esta carrera no la creaste tú. Como superadmin solo puedes ver su información y aprobarla o rechazarla, no modificarla.</Note>
       ) : null}
