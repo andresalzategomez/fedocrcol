@@ -574,17 +574,18 @@ function Oleadas({ tenantId, eventId, eventDate, locked }: { tenantId: string; e
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  // Sugiere la hora de la próxima oleada manual = primera oleada + (N ya
-  // creadas) * intervalo. Solo rellena si el campo sigue vacío, para no
-  // pisar una hora que el admin ya haya editado a mano.
+  // Sugiere la hora de la próxima oleada manual = hora de la ÚLTIMA oleada
+  // existente + intervalo (no depende de "Hora primera oleada", que es solo
+  // el ancla para generar en bloque y se resetea al recargar la página).
+  // Solo rellena si el campo sigue vacío, para no pisar una hora ya editada.
   useEffect(() => {
-    if (!firstWaveTime || !intervalMinutes || form.scheduled_time) return;
-    const base = combineWithEventDate(firstWaveTime);
-    if (!base) return;
-    const next = new Date(new Date(base).getTime() + rows.length * Number(intervalMinutes) * 60000);
+    if (!intervalMinutes || form.scheduled_time || rows.length === 0) return;
+    const last = [...rows].sort((a, b) => (a.wave_number ?? 0) - (b.wave_number ?? 0)).at(-1);
+    if (!last?.scheduled_time) return;
+    const next = new Date(new Date(last.scheduled_time).getTime() + Number(intervalMinutes) * 60000);
     setForm((f) => (f.scheduled_time ? f : { ...f, scheduled_time: toTimeInput(next.toISOString()) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstWaveTime, intervalMinutes, rows.length]);
+  }, [intervalMinutes, rows]);
 
   async function generate() {
     const n = Number(waveSize);
