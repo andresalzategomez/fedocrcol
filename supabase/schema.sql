@@ -1033,3 +1033,22 @@ create policy "registrations_public_insert" on public.registrations for insert t
     status = 'pending'
     and exists (select 1 from public.events e where e.id = event_id and e.status not in ('in_progress', 'finished'))
   );
+
+-- =====================================================================
+-- 0014 — Dorsal (bib_number) de 4 dígitos con ceros a la izquierda
+-- Idempotente. El dorsal se exporta para fabricar las manillas físicas
+-- de la carrera, así que el formato "0001" vive en el dato guardado
+-- (bib_number pasa de int a text), no solo en cómo se muestra.
+-- =====================================================================
+
+do $$
+begin
+  if (
+    select data_type from information_schema.columns
+    where table_schema = 'public' and table_name = 'registrations' and column_name = 'bib_number'
+  ) = 'integer' then
+    alter table public.registrations
+      alter column bib_number type text
+      using (case when bib_number is null then null else lpad(bib_number::text, 4, '0') end);
+  end if;
+end $$;
