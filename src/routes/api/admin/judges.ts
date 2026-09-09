@@ -10,16 +10,23 @@ const bodySchema = z.object({
 
 /**
  * POST /api/admin/judges
- * El admin de liga (o superadmin) invita a un juez por correo. Crear un
- * usuario de Supabase Auth requiere service_role (el juez no se
- * auto-registra), así que esto no se puede hacer desde el cliente con RLS
- * — de ahí este server route.
+ * El admin de liga (o superadmin) invita a un juez por correo, y también
+ * REENVÍA la invitación (mismo endpoint) mientras el juez no la haya
+ * aceptado. Crear un usuario de Supabase Auth requiere service_role (el
+ * juez no se auto-registra), así que esto no se puede hacer desde el
+ * cliente con RLS — de ahí este server route.
  *
- * Flujo: `auth.admin.inviteUserByEmail` crea el usuario y le manda el
- * correo de invitación (el juez define su contraseña al aceptar, ver
- * /set-password). El trigger `handle_new_user()` crea su `profile`
- * automáticamente con role='athlete' — este endpoint lo corrige a
- * 'judge' y fija su tenant_id justo después.
+ * Reenvío: `auth.admin.inviteUserByEmail` falla con "already registered"
+ * si el correo ya existe (confirmado o no — se comprobó en producción).
+ * No hay una API de "reenviar invitación" en Supabase que además envíe el
+ * correo, así que para un juez que TODAVÍA no confirmó (password_set_at
+ * null) se borra la cuenta vieja y se crea una nueva con el mismo correo
+ * — preservando sus asignaciones de checkpoint, que si no se perderían
+ * por el ON DELETE CASCADE de checkpoint_judges.judge_id.
+ *
+ * Si el correo ya pertenece a una cuenta CONFIRMADA, o a otra liga, o a
+ * un rol distinto de judge, se rechaza como conflicto real (no se borra
+ * nada de otra liga ni de una cuenta ya activa).
  */
 export const Route = createFileRoute("/api/admin/judges")({
   server: {
@@ -37,6 +44,27 @@ export const Route = createFileRoute("/api/admin/judges")({
 
         const redirectTo = `${new URL(request.url).origin}/set-password`;
         const admin = serviceClient();
+
+        // ¿Ya existe un profile con este correo? Determina si esto es un
+        // reenvío (borrar+recrear preservando asignaciones) o un conflicto real.
+        const { data: existing, error: existingErr } = await admin
+          .from("profiles")
+          .select("id, role, tenant_id, password_set_at")
+          .eq("email", email)
+          .maybeSingle();
+        if (existingErr) return apiError("DB_ERROR", existingErr.message, 500);
+
+        let preservedAssignments: { tenant_id: string; checkpoint_id: string }[] = [];
+        if (existing) {
+          const canResend = existing.role === "judge" && existing.tenant_id === leagueId && !existing.password_set_at;
+          if (!canResend) {
+            return apiError("EMAIL_TAKEN", "Ya existe una cuenta con este correo (de otra liga, de otro rol, o ya confirmada)", 409);
+          }
+          const { data: assigned } = await admin.from("checkpoint_judges").select("tenant_id, checkpoint_id").eq("judge_id", existing.id);
+          preservedAssignments = assigned ?? [];
+          const { error: delErr } = await admin.auth.admin.deleteUser(existing.id);
+          if (delErr) return apiError("INVITE_FAILED", `No se pudo reenviar: ${delErr.message}`, 500);
+        }
 
         const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
           data: { full_name, tenant_id: leagueId },
@@ -57,7 +85,14 @@ export const Route = createFileRoute("/api/admin/judges")({
           .eq("id", userId);
         if (profErr) return apiError("DB_ERROR", profErr.message, 500);
 
-        return json({ id: userId, email, full_name });
+        if (preservedAssignments.length) {
+          const { error: reassignErr } = await admin
+            .from("checkpoint_judges")
+            .insert(preservedAssignments.map((a) => ({ tenant_id: a.tenant_id, checkpoint_id: a.checkpoint_id, judge_id: userId })));
+          if (reassignErr) return apiError("DB_ERROR", `Invitación reenviada, pero no se pudieron restaurar sus checkpoints: ${reassignErr.message}`, 500);
+        }
+
+        return json({ id: userId, email, full_name, resent: Boolean(existing) });
       }),
     },
   },
