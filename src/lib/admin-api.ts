@@ -213,7 +213,7 @@ export async function listCheckpoints(eventId: string): Promise<Checkpoint[]> {
 }
 export async function createCheckpoint(tenantId: string, eventId: string, input: {
   name: string; ord: number; is_start: boolean; is_finish: boolean;
-}) {
+}): Promise<string> {
   // Regla de negocio: solo puede haber un checkpoint de salida por carrera.
   if (input.is_start) {
     const existing = await listCheckpoints(eventId);
@@ -221,13 +221,14 @@ export async function createCheckpoint(tenantId: string, eventId: string, input:
       throw new Error("Ya existe un checkpoint de salida para esta carrera");
     }
   }
-  const { error } = await db().from("checkpoints").insert({ tenant_id: tenantId, event_id: eventId, ...input });
+  const { data, error } = await db().from("checkpoints").insert({ tenant_id: tenantId, event_id: eventId, ...input }).select("id").single();
   if (error) {
     if ((error as { code?: string }).code === "23505") {
       throw new Error(`Ya existe un checkpoint con el orden ${input.ord} en esta carrera`);
     }
     throw error;
   }
+  return (data as { id: string }).id;
 }
 export async function deleteCheckpoint(id: string) {
   const { error } = await db().from("checkpoints").delete().eq("id", id);
