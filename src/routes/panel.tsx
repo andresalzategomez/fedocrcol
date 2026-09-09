@@ -357,7 +357,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
-        <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
+        <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="resultados" className="mt-4"><Resultados event={event} /></TabsContent>
       </Tabs>
@@ -537,7 +537,7 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
 }
 
 // ------------------------------ Oleadas ------------------------------
-function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: string; locked: boolean }) {
+function Oleadas({ tenantId, eventId, eventDate, locked }: { tenantId: string; eventId: string; eventDate: string; locked: boolean }) {
   const [rows, setRows] = useState<api.Wave[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [waveSize, setWaveSize] = useState("20");
@@ -545,9 +545,10 @@ function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: str
   const [form, setForm] = useState({ wave_number: "1", name: "", scheduled_time: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Intervalo entre salidas: "cada cuántos minutos sale la siguiente oleada".
-  // Se usa tanto al generar automáticamente como para sugerir la hora del
-  // formulario manual — no se persiste en BD, es solo un ayudante de captura.
-  const [firstWaveTime, setFirstWaveTime] = useState("");
+  // Solo se captura la HORA — la fecha ya es la de la carrera (eventDate),
+  // no tiene sentido volver a pedirla oleada por oleada. No se persiste en
+  // BD: es un ayudante de captura para la sesión actual.
+  const [firstWaveTime, setFirstWaveTime] = useState(""); // "HH:MM"
   const [intervalMinutes, setIntervalMinutes] = useState("10");
 
   const load = useCallback(async () => {
@@ -559,11 +560,18 @@ function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: str
   }, [eventId]);
   useEffect(() => { load(); }, [load]);
 
-  function toLocalInput(iso: string | null) {
+  /** ISO completo = fecha de la carrera + una hora "HH:MM" (hora local del navegador). */
+  function combineWithEventDate(time: string): string | null {
+    if (!time) return null;
+    const d = new Date(`${eventDate}T${time}:00`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  /** "HH:MM" a partir de un timestamp guardado, para mostrar/editar. */
+  function toTimeInput(iso: string | null) {
     if (!iso) return "";
     const d = new Date(iso);
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   // Sugiere la hora de la próxima oleada manual = primera oleada + (N ya
@@ -571,8 +579,10 @@ function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: str
   // pisar una hora que el admin ya haya editado a mano.
   useEffect(() => {
     if (!firstWaveTime || !intervalMinutes || form.scheduled_time) return;
-    const next = new Date(new Date(firstWaveTime).getTime() + rows.length * Number(intervalMinutes) * 60000);
-    setForm((f) => (f.scheduled_time ? f : { ...f, scheduled_time: toLocalInput(next.toISOString()) }));
+    const base = combineWithEventDate(firstWaveTime);
+    if (!base) return;
+    const next = new Date(new Date(base).getTime() + rows.length * Number(intervalMinutes) * 60000);
+    setForm((f) => (f.scheduled_time ? f : { ...f, scheduled_time: toTimeInput(next.toISOString()) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstWaveTime, intervalMinutes, rows.length]);
 
@@ -581,45 +591,44 @@ function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: str
     if (!n || n < 1) { toast.error("El tamaño de oleada debe ser mayor que 0"); return; }
     if (!confirm("Esto reemplaza las oleadas actuales y reasigna a los inscritos por categoría. ¿Continuar?")) return;
     setBusy(true);
-    const schedule = firstWaveTime && intervalMinutes
-      ? { startTime: new Date(firstWaveTime).toISOString(), intervalMinutes: Number(intervalMinutes) }
-      : null;
+    const startTime = combineWithEventDate(firstWaveTime);
+    const schedule = startTime && intervalMinutes ? { startTime, intervalMinutes: Number(intervalMinutes) } : null;
     try { const created = await api.generateWaves(tenantId, eventId, n, schedule); toast.success(`${created} oleadas generadas`); load(); }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   async function addManual() {
     const { ok, errors } = validateForm(form, { wave_number: [positiveInt("El número")], name: [required("El nombre")] });
     setErrors(errors as Record<string, string>); if (!ok) return;
-    try { await api.createWave(tenantId, eventId, { wave_number: Number(form.wave_number), name: form.name, scheduled_time: form.scheduled_time || null }); toast.success("Oleada agregada"); setForm({ wave_number: String(Number(form.wave_number) + 1), name: "", scheduled_time: "" }); setErrors({}); load(); }
+    try { await api.createWave(tenantId, eventId, { wave_number: Number(form.wave_number), name: form.name, scheduled_time: combineWithEventDate(form.scheduled_time) }); toast.success("Oleada agregada"); setForm({ wave_number: String(Number(form.wave_number) + 1), name: "", scheduled_time: "" }); setErrors({}); load(); }
     catch (e) { toast.error((e as Error).message); }
   }
   async function renameWave(id: string, name: string) {
     try { await api.updateWave(id, { name }); load(); } catch (e) { toast.error((e as Error).message); load(); }
   }
-  async function rescheduleWave(id: string, scheduled_time: string) {
-    try { await api.updateWave(id, { scheduled_time: scheduled_time || null }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  async function rescheduleWave(id: string, time: string) {
+    try { await api.updateWave(id, { scheduled_time: combineWithEventDate(time) }); load(); } catch (e) { toast.error((e as Error).message); load(); }
   }
 
   return (
     <div className="grid gap-4">
       {!locked ? (<>
         <Card><CardContent className="flex flex-wrap items-end gap-4 p-6">
-          <Field label="Hora primera oleada"><Input className="w-52" type="datetime-local" value={firstWaveTime} onChange={(e) => setFirstWaveTime(e.target.value)} /></Field>
+          <Field label="Hora primera oleada"><Input className="w-32" type="time" value={firstWaveTime} onChange={(e) => setFirstWaveTime(e.target.value)} /></Field>
           <Field label="Intervalo (min)"><Input className="w-28" inputMode="numeric" value={intervalMinutes} onChange={(e) => setIntervalMinutes(e.target.value.replace(/\D/g, ""))} /></Field>
           <Field label="Atletas por oleada"><Input className="w-32" inputMode="numeric" value={waveSize} onChange={(e) => setWaveSize(e.target.value.replace(/\D/g, ""))} /></Field>
           <Button onClick={generate} disabled={busy}><Wand2 className="mr-1 size-4" />Generar oleadas automáticamente</Button>
           <p className="w-full text-xs text-muted-foreground">
-            Crea oleadas separadas por categoría, con máximo N atletas cada una, y reasigna a los inscritos.
-            Si configuras hora e intervalo, cada oleada sale esa cantidad de minutos después de la anterior — el
-            mismo intervalo sugiere automáticamente la hora al agregar una oleada manual abajo. Puedes ajustarlas
-            manualmente después.
+            Crea oleadas separadas por categoría, con máximo N atletas cada una, y reasigna a los inscritos, todas
+            el {eventDate} (la fecha de la carrera). Si configuras hora e intervalo, cada oleada sale esa cantidad
+            de minutos después de la anterior — el mismo intervalo sugiere automáticamente la hora al agregar una
+            oleada manual abajo. Puedes ajustarlas manualmente después.
           </p>
         </CardContent></Card>
 
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
           <Field label="N° *" error={errors.wave_number}><Input inputMode="numeric" value={form.wave_number} onChange={(e) => setForm({ ...form, wave_number: e.target.value.replace(/\D/g, "") })} /></Field>
           <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Oleada manual" /></Field>
-          <Field label="Hora prevista"><Input type="datetime-local" value={form.scheduled_time} onChange={(e) => setForm({ ...form, scheduled_time: e.target.value })} /></Field>
+          <Field label="Hora prevista"><Input type="time" value={form.scheduled_time} onChange={(e) => setForm({ ...form, scheduled_time: e.target.value })} /></Field>
           <div className="flex items-end"><Button variant="outline" onClick={addManual}><Plus className="mr-1 size-4" />Agregar manual</Button></div>
         </CardContent></Card>
       </>) : null}
@@ -633,7 +642,7 @@ function Oleadas({ tenantId, eventId, locked }: { tenantId: string; eventId: str
                 onBlur={(e) => { if (e.target.value.trim() && e.target.value !== w.name) renameWave(w.id, e.target.value.trim()); }} />
             </TableCell>
             <TableCell>
-              <Input className="h-8 w-48" type="datetime-local" disabled={locked} defaultValue={toLocalInput(w.scheduled_time)} key={w.scheduled_time ?? "none"}
+              <Input className="h-8 w-28" type="time" disabled={locked} defaultValue={toTimeInput(w.scheduled_time)} key={w.scheduled_time ?? "none"}
                 onBlur={(e) => rescheduleWave(w.id, e.target.value)} />
             </TableCell>
             <TableCell>{counts[w.id] ?? 0}</TableCell>
