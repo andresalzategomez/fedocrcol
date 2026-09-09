@@ -73,7 +73,7 @@ function StatusBadge({ status }: { status: EventStatus }) {
  * esto solo evita intentos inútiles en la UI, la regla real la aplica RLS.
  */
 function canManageEvent(event: EventRow, isSuper: boolean, userId: string): boolean {
-  if (event.status === "in_progress") return false;
+  if (event.status === "in_progress" || event.status === "finished") return false;
   if (isSuper) return event.created_by === userId;
   return true;
 }
@@ -310,8 +310,8 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 }) {
   const [busy, setBusy] = useState(false);
   const canManage = canManageEvent(event, isSuper, userId);
-  const locked = event.status === "in_progress";
-  const foreignEvent = isSuper && event.created_by !== userId && event.status !== "in_progress";
+  const locked = event.status === "in_progress" || event.status === "finished";
+  const foreignEvent = isSuper && event.created_by !== userId && !locked;
 
   async function changeStatus(status: api.EventStatus, msg: string) {
     setBusy(true);
@@ -339,7 +339,11 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
       </div>
       <p className="text-sm text-muted-foreground">{event.date} · {event.location}</p>
       {locked ? (
-        <Note>Esta carrera ya está <strong>en curso</strong>: no se puede modificar nada (categorías, inscritos, oleadas o checkpoints) hasta finalizarla.</Note>
+        <Note>
+          Esta carrera ya está <strong>{event.status === "finished" ? "finalizada" : "en curso"}</strong>: no se
+          puede agregar, modificar ni eliminar nada (categorías, inscritos, oleadas o checkpoints)
+          {event.status === "finished" ? "." : " hasta finalizarla."}
+        </Note>
       ) : foreignEvent ? (
         <Note>Esta carrera no la creaste tú. Como superadmin solo puedes ver su información y aprobarla o rechazarla, no modificarla.</Note>
       ) : null}
@@ -399,16 +403,15 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
           <div className="sm:col-span-5"><Button variant="outline" size="sm" onClick={seed}><Layers className="mr-1 size-4" />Sembrar categorías estándar</Button></div>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Categoría", "Género", "Edad", ""]}>
+      <SimpleTable head={["Categoría", "Género", "Edad"]}>
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.name}</TableCell>
             <TableCell>{c.gender ?? "Todos"}</TableCell>
             <TableCell>{c.min_age ?? "—"}{c.max_age ? `–${c.max_age}` : c.min_age ? "+" : ""}</TableCell>
-            <TableCell className="text-right">{!locked ? <Button size="sm" variant="ghost" onClick={async () => { try { await api.deleteEventCategory(c.id); load(); } catch (e) { toast.error((e as Error).message); } }}><Trash2 className="size-4" /></Button> : null}</TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -447,11 +450,6 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
 
   async function reassignWave(regId: string, waveId: string) {
     try { await api.updateRegistration(regId, { wave_id: waveId || null }); load(); } catch (e) { toast.error((e as Error).message); }
-  }
-  async function changeBib(regId: string, value: string) {
-    const bib = value.trim() === "" ? null : Number(value);
-    if (bib != null && (!Number.isInteger(bib) || bib <= 0)) { toast.error("El dorsal debe ser un entero mayor que 0"); load(); return; }
-    try { await api.updateRegistration(regId, { bib_number: bib }); load(); } catch (e) { toast.error((e as Error).message); load(); }
   }
   async function autoAssign() {
     try { const n = await api.bulkAssignBibs(eventId); toast.success(n > 0 ? `${n} dorsal(es) asignado(s)` : "Todos los inscritos ya tienen dorsal"); load(); }
@@ -508,10 +506,7 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
       <SimpleTable head={["Dorsal", "Atleta", "Doc", "Categoría", "Oleada"]}>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell>
-              <Input className="h-8 w-20 font-mono" inputMode="numeric" disabled={locked} defaultValue={r.bib_number ?? ""} key={r.bib_number ?? "empty"}
-                onBlur={(e) => { if (e.target.value !== String(r.bib_number ?? "")) changeBib(r.id, e.target.value.replace(/\D/g, "")); }} />
-            </TableCell>
+            <TableCell className="font-mono">{r.bib_number ?? "—"}</TableCell>
             <TableCell className="font-medium">{r.athlete_name}</TableCell>
             <TableCell className="text-muted-foreground">{r.athlete_document}</TableCell>
             <TableCell>{catName(r.category_id)}</TableCell>

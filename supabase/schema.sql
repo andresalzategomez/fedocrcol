@@ -961,10 +961,10 @@ begin
 
   if is_own_tenant or (is_super and is_creator) then
     -- Dueño de la carrera (su liga, o el superadmin que la creó): puede
-    -- editarla mientras no haya iniciado. Ya iniciada, solo se le puede
-    -- cambiar el estado (p.ej. finalizarla), no su contenido.
-    if old.status = 'in_progress' and not core_unchanged then
-      raise exception 'La carrera ya está en curso; no se puede modificar';
+    -- editarla mientras no esté en curso ni finalizada. En esos dos
+    -- estados solo se le puede seguir cambiando el status (p.ej. cerrarla).
+    if old.status in ('in_progress', 'finished') and not core_unchanged then
+      raise exception 'La carrera ya está en curso o finalizada; no se puede modificar';
     end if;
     return new;
   end if;
@@ -987,13 +987,13 @@ create trigger trg_events_write_rules before update on public.events
 
 -- Regla compartida para checkpoints/waves/event_categories/registrations:
 -- se puede escribir si (dueño de la liga, o superadmin creador) y la
--- carrera no está en curso.
+-- carrera no está en curso ni finalizada.
 create or replace function public.can_manage_event(p_event_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.events e
     where e.id = p_event_id
-      and e.status <> 'in_progress'
+      and e.status not in ('in_progress', 'finished')
       and (
         e.tenant_id = public.current_tenant_id()
         or (public.has_role(auth.uid(), 'superadmin') and e.created_by = auth.uid())
@@ -1026,10 +1026,10 @@ create policy "registrations_admin_update" on public.registrations for update to
   with check (public.can_manage_event(event_id));
 
 -- Registrations: alta (panel o inscripción pública del sitio). Antes solo
--- exigía status='pending'; ahora además bloquea si la carrera ya inició.
+-- exigía status='pending'; ahora además bloquea si la carrera ya inició o finalizó.
 drop policy if exists "registrations_public_insert" on public.registrations;
 create policy "registrations_public_insert" on public.registrations for insert to anon, authenticated
   with check (
     status = 'pending'
-    and exists (select 1 from public.events e where e.id = event_id and e.status <> 'in_progress')
+    and exists (select 1 from public.events e where e.id = event_id and e.status not in ('in_progress', 'finished'))
   );

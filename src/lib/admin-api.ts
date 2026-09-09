@@ -196,7 +196,12 @@ export async function createEventCategory(eventId: string, input: {
 
 export async function deleteEventCategory(id: string) {
   const { error } = await db().from("event_categories").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    if ((error as { code?: string }).code === "23503") {
+      throw new Error("No se puede eliminar esta categoría: ya tiene atletas inscritos o depende de ella una oleada.");
+    }
+    throw error;
+  }
 }
 
 // ---------------------------- Checkpoints ----------------------------
