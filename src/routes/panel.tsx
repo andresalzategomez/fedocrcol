@@ -403,15 +403,16 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
           <div className="sm:col-span-5"><Button variant="outline" size="sm" onClick={seed}><Layers className="mr-1 size-4" />Sembrar categorías estándar</Button></div>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Categoría", "Género", "Edad"]}>
+      <SimpleTable head={["Categoría", "Género", "Edad", ""]}>
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.name}</TableCell>
             <TableCell>{c.gender ?? "Todos"}</TableCell>
             <TableCell>{c.min_age ?? "—"}{c.max_age ? `–${c.max_age}` : c.min_age ? "+" : ""}</TableCell>
+            <TableCell className="text-right">{!locked ? <Button size="sm" variant="ghost" onClick={async () => { try { await api.deleteEventCategory(c.id); load(); } catch (e) { toast.error((e as Error).message); } }}><Trash2 className="size-4" /></Button> : null}</TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -450,6 +451,11 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
 
   async function reassignWave(regId: string, waveId: string) {
     try { await api.updateRegistration(regId, { wave_id: waveId || null }); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+  async function changeBib(regId: string, value: string) {
+    const bib = value.trim() === "" ? null : Number(value);
+    if (bib != null && (!Number.isInteger(bib) || bib <= 0)) { toast.error("El dorsal debe ser un entero mayor que 0"); load(); return; }
+    try { await api.updateRegistration(regId, { bib_number: bib }); load(); } catch (e) { toast.error((e as Error).message); load(); }
   }
   async function autoAssign() {
     try { const n = await api.bulkAssignBibs(eventId); toast.success(n > 0 ? `${n} dorsal(es) asignado(s)` : "Todos los inscritos ya tienen dorsal"); load(); }
@@ -506,7 +512,10 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
       <SimpleTable head={["Dorsal", "Atleta", "Doc", "Categoría", "Oleada"]}>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="font-mono">{r.bib_number ?? "—"}</TableCell>
+            <TableCell>
+              <Input className="h-8 w-20 font-mono" inputMode="numeric" disabled={locked} defaultValue={r.bib_number ?? ""} key={r.bib_number ?? "empty"}
+                onBlur={(e) => { if (e.target.value !== String(r.bib_number ?? "")) changeBib(r.id, e.target.value.replace(/\D/g, "")); }} />
+            </TableCell>
             <TableCell className="font-medium">{r.athlete_name}</TableCell>
             <TableCell className="text-muted-foreground">{r.athlete_document}</TableCell>
             <TableCell>{catName(r.category_id)}</TableCell>
