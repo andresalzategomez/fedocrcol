@@ -1052,3 +1052,50 @@ begin
       using (case when bib_number is null then null else lpad(bib_number::text, 4, '0') end);
   end if;
 end $$;
+
+-- =====================================================================
+-- 0015 — Jueces por checkpoint
+-- Idempotente. Un admin de liga crea cuentas de "juez" (nuevo rol) y las
+-- asigna a uno o varios checkpoints; el mismo juez puede quedar en varios.
+-- =====================================================================
+
+alter type public.app_role add value if not exists 'judge';
+
+-- profiles no tenía email propio (vive en auth.users, no expuesto al
+-- cliente vía RLS) — se denormaliza para poder listar jueces con su
+-- correo desde el panel sin un endpoint aparte.
+alter table public.profiles add column if not exists email text;
+
+create table if not exists public.checkpoint_judges (
+  id            uuid primary key default gen_random_uuid(),
+  tenant_id     uuid not null references public.tenants(id) on delete cascade,
+  checkpoint_id uuid not null references public.checkpoints(id) on delete cascade,
+  judge_id      uuid not null references public.profiles(id) on delete cascade,
+  created_at    timestamptz not null default now(),
+  unique (checkpoint_id, judge_id)
+);
+create index if not exists idx_checkpoint_judges_judge on public.checkpoint_judges(judge_id);
+create index if not exists idx_checkpoint_judges_checkpoint on public.checkpoint_judges(checkpoint_id);
+
+grant select, insert, update, delete on public.checkpoint_judges to authenticated;
+grant all on public.checkpoint_judges to service_role;
+alter table public.checkpoint_judges enable row level security;
+
+-- El juez lee sus propias asignaciones.
+drop policy if exists "checkpoint_judges_read_own" on public.checkpoint_judges;
+create policy "checkpoint_judges_read_own" on public.checkpoint_judges for select to authenticated
+  using (judge_id = auth.uid());
+
+-- Gestionar asignaciones: solo admin/superadmin (rol explícito, no solo
+-- "mismo tenant" — ahora puede haber jueces en el tenant), y solo si
+-- pueden gestionar el evento dueño del checkpoint (congelamiento in_progress/finished).
+drop policy if exists "checkpoint_judges_manage" on public.checkpoint_judges;
+create policy "checkpoint_judges_manage" on public.checkpoint_judges for all to authenticated
+  using (
+    (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'superadmin'))
+    and exists (select 1 from public.checkpoints c where c.id = checkpoint_id and public.can_manage_event(c.event_id))
+  )
+  with check (
+    (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'superadmin'))
+    and exists (select 1 from public.checkpoints c where c.id = checkpoint_id and public.can_manage_event(c.event_id))
+  );

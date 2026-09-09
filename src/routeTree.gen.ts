@@ -13,10 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
+import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
@@ -50,6 +52,11 @@ const RankingRoute = RankingRouteImport.update({
   path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => AuthRoute,
+} as any)
 const EventosIndexRoute = EventosIndexRouteImport.update({
   id: '/eventos/',
   path: '/eventos/',
@@ -68,6 +75,11 @@ const LigasIndexRoute = LigasIndexRouteImport.update({
 const LigasSlugRoute = LigasSlugRouteImport.update({
   id: '/ligas/$slug',
   path: '/ligas/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminJudgesRoute = ApiAdminJudgesRouteImport.update({
+  id: '/api/admin/judges',
+  path: '/api/admin/judges',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminRecalculatePositionsRoute =
@@ -135,13 +147,15 @@ const ApiV1WavesWaveIdStartRoute = ApiV1WavesWaveIdStartRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -157,13 +171,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
+  '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -180,13 +196,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/panel': typeof PanelRoute
   '/ranking': typeof RankingRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
+  '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -207,10 +225,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
+    | '/auth/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/admin/judges'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -229,10 +249,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
+    | '/auth/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos'
     | '/ligas'
+    | '/api/admin/judges'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -251,10 +273,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/panel'
     | '/ranking'
+    | '/auth/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
     | '/eventos/'
     | '/ligas/'
+    | '/api/admin/judges'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -271,13 +295,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   PanelRoute: typeof PanelRoute
   RankingRoute: typeof RankingRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
   LigasSlugRoute: typeof LigasSlugRoute
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
+  ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
@@ -317,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/set-password': {
+      id: '/auth/set-password'
+      path: '/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthSetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/eventos/': {
       id: '/eventos/'
       path: '/eventos'
@@ -343,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/ligas/$slug'
       fullPath: '/ligas/$slug'
       preLoaderRoute: typeof LigasSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/judges': {
+      id: '/api/admin/judges'
+      path: '/api/admin/judges'
+      fullPath: '/api/admin/judges'
+      preLoaderRoute: typeof ApiAdminJudgesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/recalculate-positions': {
@@ -432,6 +471,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthRouteChildren {
+  AuthSetPasswordRoute: typeof AuthSetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthSetPasswordRoute: AuthSetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 interface ApiV1RacesRouteChildren {
   ApiV1RacesRaceIdAthletesRoute: typeof ApiV1RacesRaceIdAthletesRoute
   ApiV1RacesRaceIdFinishRoute: typeof ApiV1RacesRaceIdFinishRoute
@@ -454,13 +503,14 @@ const ApiV1RacesRouteWithChildren = ApiV1RacesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   PanelRoute: PanelRoute,
   RankingRoute: RankingRoute,
   EventosEventIdRoute: EventosEventIdRoute,
   LigasSlugRoute: LigasSlugRoute,
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
+  ApiAdminJudgesRoute: ApiAdminJudgesRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,

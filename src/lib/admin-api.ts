@@ -40,6 +40,7 @@ export interface EventRow {
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
+export interface Judge { id: string; email: string | null; full_name: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
   id: string;
@@ -230,6 +231,53 @@ export async function createCheckpoint(tenantId: string, eventId: string, input:
 }
 export async function deleteCheckpoint(id: string) {
   const { error } = await db().from("checkpoints").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ------------------------------- Jueces -------------------------------
+/** Jueces de la liga (rol `judge`), para asignarlos a checkpoints de cualquiera de sus carreras. */
+export async function listJudges(tenantId: string): Promise<Judge[]> {
+  const { data, error } = await db().from("profiles")
+    .select("id, email, full_name").eq("tenant_id", tenantId).eq("role", "judge").order("full_name");
+  if (error) throw error;
+  return data as Judge[];
+}
+
+/** Invita a un juez por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
+export async function inviteJudge(input: { full_name: string; email: string }): Promise<Judge> {
+  const { data: sessionData } = await db().auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+  const res = await fetch("/api/admin/judges", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
+  });
+  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al juez");
+  return body as Judge;
+}
+
+/** IDs de checkpoints asignados a cada juez, para una carrera puntual. */
+export async function listCheckpointJudges(eventId: string): Promise<Record<string, string[]>> {
+  const { data, error } = await db().from("checkpoint_judges")
+    .select("judge_id, checkpoint_id, checkpoints!inner(event_id)").eq("checkpoints.event_id", eventId);
+  if (error) throw error;
+  const byJudge: Record<string, string[]> = {};
+  (data ?? []).forEach((r) => {
+    const judgeId = (r as { judge_id: string }).judge_id;
+    (byJudge[judgeId] ??= []).push((r as { checkpoint_id: string }).checkpoint_id);
+  });
+  return byJudge;
+}
+
+export async function assignJudgeToCheckpoint(tenantId: string, checkpointId: string, judgeId: string) {
+  const { error } = await db().from("checkpoint_judges").insert({ tenant_id: tenantId, checkpoint_id: checkpointId, judge_id: judgeId });
+  if (error && (error as { code?: string }).code !== "23505") throw error; // 23505: ya estaba asignado, no pasa nada
+}
+
+export async function unassignJudgeFromCheckpoint(checkpointId: string, judgeId: string) {
+  const { error } = await db().from("checkpoint_judges").delete().eq("checkpoint_id", checkpointId).eq("judge_id", judgeId);
   if (error) throw error;
 }
 
