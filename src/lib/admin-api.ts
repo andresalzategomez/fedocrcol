@@ -40,7 +40,7 @@ export interface EventRow {
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
-export interface Judge { id: string; email: string | null; full_name: string | null; }
+export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
   id: string;
@@ -239,7 +239,7 @@ export async function deleteCheckpoint(id: string) {
 /** Jueces de la liga (rol `judge`), para asignarlos a checkpoints de cualquiera de sus carreras. */
 export async function listJudges(tenantId: string): Promise<Judge[]> {
   const { data, error } = await db().from("profiles")
-    .select("id, email, full_name").eq("tenant_id", tenantId).eq("role", "judge").order("full_name");
+    .select("id, email, full_name, password_set_at").eq("tenant_id", tenantId).eq("role", "judge").order("full_name");
   if (error) throw error;
   return data as Judge[];
 }

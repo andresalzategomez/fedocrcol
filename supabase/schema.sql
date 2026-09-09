@@ -1099,3 +1099,11 @@ create policy "checkpoint_judges_manage" on public.checkpoint_judges for all to 
     (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'superadmin'))
     and exists (select 1 from public.checkpoints c where c.id = checkpoint_id and public.can_manage_event(c.event_id))
   );
+
+-- =====================================================================
+-- 0016 — Marca cuándo un juez terminó de crear su contraseña
+-- Idempotente. Lo actualiza el propio juez desde /set-password
+-- (profiles_update_own ya lo permite), no hace falta política nueva.
+-- =====================================================================
+
+alter table public.profiles add column if not exists password_set_at timestamptz;

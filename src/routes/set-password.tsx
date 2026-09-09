@@ -48,6 +48,16 @@ function SetPasswordPage() {
     if (password.length < 8) { toast.error("La contraseña debe tener al menos 8 caracteres"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
+    if (!error) {
+      // Marca en su propio profile que ya terminó de crear la contraseña —
+      // permitido por profiles_update_own (id = auth.uid()). Best-effort: si
+      // falla, la contraseña ya quedó guardada igual; solo afecta el badge
+      // "Cuenta creada" que ve el admin en el panel, no el login del juez.
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await supabase.from("profiles").update({ password_set_at: new Date().toISOString() }).eq("id", userData.user.id);
+      }
+    }
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     setDone(true);
