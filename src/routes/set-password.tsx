@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
-export const Route = createFileRoute("/auth/set-password")({
+export const Route = createFileRoute("/set-password")({
   head: () => ({ meta: [{ title: "Crear contraseña — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
   component: SetPasswordPage,
 });
@@ -21,6 +21,12 @@ export const Route = createFileRoute("/auth/set-password")({
  * Supabase detecta la sesión del enlace en la URL automáticamente
  * (detectSessionInUrl, activo por defecto) — esta página solo espera a
  * que aparezca esa sesión y deja fijar la contraseña definitiva.
+ *
+ * Nota: NO se llama `auth.set-password.tsx` a propósito. Con ese nombre
+ * TanStack Router la registra como hija de la ruta `/auth` (convención de
+ * puntos = anidamiento), y como `AuthPage` no renderiza `<Outlet />`, la
+ * página hija nunca se mostraba — quedaba tapada por el login normal. Un
+ * archivo de nivel raíz (`/set-password`) evita el problema por completo.
  */
 function SetPasswordPage() {
   const [ready, setReady] = useState(false);

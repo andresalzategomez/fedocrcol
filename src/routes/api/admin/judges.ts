@@ -17,7 +17,7 @@ const bodySchema = z.object({
  *
  * Flujo: `auth.admin.inviteUserByEmail` crea el usuario y le manda el
  * correo de invitación (el juez define su contraseña al aceptar, ver
- * /auth/set-password). El trigger `handle_new_user()` crea su `profile`
+ * /set-password). El trigger `handle_new_user()` crea su `profile`
  * automáticamente con role='athlete' — este endpoint lo corrige a
  * 'judge' y fija su tenant_id justo después.
  */
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/admin/judges")({
         if (!parsed.success) return apiError("BAD_REQUEST", "email y full_name son requeridos", 400);
         const { email, full_name } = parsed.data;
 
-        const redirectTo = `${new URL(request.url).origin}/auth/set-password`;
+        const redirectTo = `${new URL(request.url).origin}/set-password`;
         const admin = serviceClient();
 
         const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
