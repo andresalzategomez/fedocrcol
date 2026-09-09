@@ -44,7 +44,7 @@ export interface Wave { id: string; event_id: string; wave_number: number | null
 export interface EventResult {
   id: string;
   registration_id: string | null;
-  bib_number: number | null;
+  bib_number: string | null;
   athlete_name: string | null;
   athlete_document: string | null;
   wave_id: string | null;
@@ -59,7 +59,7 @@ export interface EventResult {
 }
 export interface Category { id: string; name: string; level: string; gender: string; }
 export interface Registration {
-  id: string; event_id: string; bib_number: number | null; wave_id: string | null;
+  id: string; event_id: string; bib_number: string | null; wave_id: string | null;
   status: string; athlete_name: string | null; athlete_document: string | null;
   athlete_gender: string | null; ranking_category_id: string | null; category_id: string;
 }
@@ -275,13 +275,27 @@ export async function listRegistrations(eventId: string): Promise<Registration[]
   return data as Registration[];
 }
 
-/** Próximo dorsal disponible del evento (máximo + 1, empezando en 1). */
+/** Dorsal para mostrar/exportar: siempre 4 dígitos con ceros a la izquierda ("0001"). */
+export function formatBib(n: number): string {
+  return String(n).padStart(4, "0");
+}
+
+/**
+ * Próximo dorsal disponible del evento (máximo + 1, empezando en 1).
+ * Trae todos los dorsales del evento y los parsea en el cliente en vez de
+ * ordenar por texto en la BD — bib_number es texto con ceros a la
+ * izquierda, y un `order by` de texto solo da el máximo numérico correcto
+ * si todos los valores tienen el mismo ancho (ya no se puede asumir con
+ * datos históricos).
+ */
 export async function nextBib(eventId: string): Promise<number> {
   const { data } = await db().from("registrations")
-    .select("bib_number").eq("event_id", eventId)
-    .not("bib_number", "is", null).order("bib_number", { ascending: false }).limit(1);
-  const max = (data && data[0]?.bib_number) || 0;
-  return (max as number) + 1;
+    .select("bib_number").eq("event_id", eventId).not("bib_number", "is", null);
+  const max = (data ?? []).reduce((m, r) => {
+    const n = parseInt(String((r as { bib_number: string }).bib_number), 10);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return max + 1;
 }
 
 export async function createRegistration(input: {
@@ -292,13 +306,14 @@ export async function createRegistration(input: {
   // Dorsal automático si no viene uno explícito (reintenta ante colisión).
   let bib = input.bib_number ?? (await nextBib(input.event_id));
   for (let attempt = 0; attempt < 5; attempt++) {
-    const qr = `OCR-${input.event_id.slice(0, 6).toUpperCase()}-${bib}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const bibStr = formatBib(bib);
+    const qr = `OCR-${input.event_id.slice(0, 6).toUpperCase()}-${bibStr}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const { data, error } = await db().from("registrations").insert({
       tenant_id: input.tenant_id, event_id: input.event_id, category_id: input.category_id,
       status: "pending", qr_code: qr,
       athlete_name: input.athlete_name, athlete_document: input.athlete_document,
       athlete_gender: input.athlete_gender, amount: 0,
-      bib_number: bib, wave_id: input.wave_id ?? null, ranking_category_id: input.ranking_category_id ?? null,
+      bib_number: bibStr, wave_id: input.wave_id ?? null, ranking_category_id: input.ranking_category_id ?? null,
     }).select("id").single();
     if (!error) {
       await db().from("registrations").update({ status: "paid" }).eq("id", (data as { id: string }).id);
@@ -314,7 +329,9 @@ export async function createRegistration(input: {
 export async function updateRegistration(id: string, patch: {
   bib_number?: number | null; wave_id?: string | null; status?: string; category_id?: string;
 }) {
-  const { error } = await db().from("registrations").update(patch).eq("id", id);
+  const dbPatch: Record<string, unknown> = { ...patch };
+  if ("bib_number" in patch) dbPatch["bib_number"] = patch.bib_number == null ? null : formatBib(patch.bib_number);
+  const { error } = await db().from("registrations").update(dbPatch).eq("id", id);
   if (error) {
     if ((error as { code?: string }).code === "23505" && "bib_number" in patch) {
       throw new Error("Ese dorsal ya está en uso en esta carrera");
@@ -335,7 +352,7 @@ export async function bulkAssignBibs(eventId: string): Promise<number> {
   if (!pending.length) return 0;
   let next = await nextBib(eventId);
   for (const r of pending) {
-    const { error: upErr } = await db().from("registrations").update({ bib_number: next }).eq("id", r.id);
+    const { error: upErr } = await db().from("registrations").update({ bib_number: formatBib(next) }).eq("id", r.id);
     if (upErr) throw upErr;
     next += 1;
   }
@@ -356,8 +373,15 @@ export async function updateWave(id: string, patch: { wave_number?: number; name
  * Genera oleadas automáticamente: separadas por categoría y con máximo
  * `waveSize` atletas por oleada. Borra las oleadas previas del evento y
  * reasigna a los inscritos. Devuelve cuántas oleadas se crearon.
+ *
+ * `schedule`, si viene, fija `scheduled_time` de cada oleada como
+ * `startTime + (n-1) * intervalMinutes` según su `wave_number` — el mismo
+ * intervalo configurado en el panel para "cada cuántos minutos salen".
  */
-export async function generateWaves(tenantId: string, eventId: string, waveSize: number): Promise<number> {
+export async function generateWaves(
+  tenantId: string, eventId: string, waveSize: number,
+  schedule?: { startTime: string; intervalMinutes: number } | null,
+): Promise<number> {
   if (!waveSize || waveSize < 1) throw new Error("El tamaño de oleada debe ser mayor que 0");
 
   // 1) Borrar oleadas previas (los registros quedan con wave_id = null por FK).
@@ -379,14 +403,18 @@ export async function generateWaves(tenantId: string, eventId: string, waveSize:
   // 4) Crear oleadas por categoría en bloques de waveSize y reasignar.
   let waveNo = 0;
   for (const [catId, list] of byCat) {
-    list.sort((a, b) => (a.bib_number ?? 0) - (b.bib_number ?? 0));
+    list.sort((a, b) => parseInt(a.bib_number ?? "0", 10) - parseInt(b.bib_number ?? "0", 10));
     const name = catName.get(catId) ?? "Categoría";
     for (let i = 0; i < list.length; i += waveSize) {
       waveNo += 1;
       const chunk = list.slice(i, i + waveSize);
+      const scheduled_time = schedule
+        ? new Date(new Date(schedule.startTime).getTime() + (waveNo - 1) * schedule.intervalMinutes * 60000).toISOString()
+        : null;
       const { data, error } = await db().from("waves").insert({
         tenant_id: tenantId, event_id: eventId, category_id: catId,
         wave_number: waveNo, name: `${name} - Oleada ${Math.floor(i / waveSize) + 1}`, status: "pending",
+        scheduled_time,
       }).select("id").single();
       if (error) throw error;
       const waveId = (data as { id: string }).id;
@@ -409,7 +437,7 @@ interface ResultRow {
   penalty_seconds: number;
   position: number | null;
   registrations: {
-    bib_number: number | null; athlete_name: string | null; athlete_document: string | null; wave_id: string | null;
+    bib_number: string | null; athlete_name: string | null; athlete_document: string | null; wave_id: string | null;
     category_id: string | null; waves: { name: string } | null;
   } | null;
 }

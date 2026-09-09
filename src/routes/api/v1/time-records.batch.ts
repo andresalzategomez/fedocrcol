@@ -54,8 +54,14 @@ export const Route = createFileRoute("/api/v1/time-records/batch")({
           supa.from("checkpoints").select("id, is_finish").eq("event_id", race_id),
         ]);
 
+        // bib_number en la BD es texto con ceros a la izquierda ("0001"), pero el
+        // Timer siempre lo envía como número (su coerceBib lo normaliza así) — se
+        // compara parseando ambos lados a entero, sin importar el formato de guardado.
         const regByBib = new Map<number, { id: string; athlete_id: string | null }>();
-        (regs ?? []).forEach((r) => regByBib.set(r.bib_number as number, { id: r.id, athlete_id: r.athlete_id }));
+        (regs ?? []).forEach((r) => {
+          const bib = parseInt(String(r.bib_number), 10);
+          if (Number.isFinite(bib)) regByBib.set(bib, { id: r.id, athlete_id: r.athlete_id });
+        });
         const finishById = new Map<string, boolean>();
         (cps ?? []).forEach((c) => finishById.set(c.id, c.is_finish as boolean));
 

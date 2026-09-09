@@ -55,6 +55,13 @@ Errores: `401 INVALID_CREDENTIALS`, `403 NO_LEAGUE`.
 ### `GET /races/:raceId/athletes`  *(auth)*
 `[ { id, bib_number, full_name, document, gender, wave_id, category, registration_status } ]`.
 
+> **`bib_number` cambió de número a string de 4 dígitos** (`"0001"`, `"0142"`) —
+> se guarda así en fedocrcol porque de ahí se exporta la lista para fabricar los
+> dorsales físicos. No requiere ningún cambio del lado del Timer: ya lo
+> convertías a texto al guardarlo localmente (`String(a.bib_number)`), así que
+> tanto `"0142"` como `142` caen bien ahí. Lo único que sí importa es el envío
+> en `/time-records/batch` de abajo — sigue siendo numérico.
+
 ### `POST /time-records/batch`  *(auth)*
 El push del Timer. El `net_time_ms` calculado offline es **autoritativo**
 (`results.source = 'timer'`; el recálculo automático no lo sobrescribe).
@@ -66,7 +73,7 @@ Body:
   "records": [
     {
       "id": "<uuid del registro en el Timer>",   // idempotencia
-      "bib_number": 142,
+      "bib_number": 142,                             // numérico — el Timer lo sigue enviando así (coerceBib)
       "split_id": "<checkpoint uuid | null>",      // null = meta directa
       "exact_timestamp": 1746890722531,             // epoch ms de la lectura
       "penalty_seconds": 30,
@@ -83,6 +90,9 @@ Respuesta:
 ```
 Comportamiento por registro:
 - Resuelve la inscripción por `race_id + bib_number` → si no existe: `ATHLETE_NOT_FOUND`.
+  (fedocrcol guarda el dorsal como texto con ceros ("0142") pero compara
+  parseando ambos lados a entero, así que da igual si en algún momento se
+  envía `142` o `"0142"`.)
 - En la **meta** (`split_id` es un checkpoint con `is_finish`, o `split_id = null`)
   hace *upsert* del `result` con `duration_ms = net_time_ms`, `penalty_seconds`,
   `status` y `source = 'timer'`.
