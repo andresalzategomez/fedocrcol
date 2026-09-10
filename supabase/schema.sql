@@ -1179,3 +1179,36 @@ create policy "events_race_manager_update" on public.events for update to authen
     and tenant_id = public.current_tenant_id()
     and status not in ('approved', 'in_progress', 'finished', 'cancelled')
   );
+
+-- =====================================================================
+-- 0019 — Fase C: afiliación a club opcional en el registro de atleta.
+-- Idempotente. Ver migración para el porqué de extender el trigger en
+-- vez de dejar que el cliente inserte la afiliación directamente.
+-- =====================================================================
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_tenant_id uuid;
+  v_club_id uuid;
+begin
+  v_tenant_id := nullif(new.raw_user_meta_data->>'tenant_id','')::uuid;
+
+  insert into public.profiles (id, full_name, tenant_id, role)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    v_tenant_id,
+    'athlete'
+  )
+  on conflict (id) do nothing;
+
+  v_club_id := nullif(new.raw_user_meta_data->>'club_id','')::uuid;
+  if v_club_id is not null and v_tenant_id is not null then
+    insert into public.affiliations (tenant_id, athlete_id, club_id, season, type, status)
+    values (v_tenant_id, new.id, v_club_id, extract(year from now())::int, 'club', 'active')
+    on conflict (athlete_id, season, tenant_id) do nothing;
+  end if;
+
+  return new;
+end; $$;

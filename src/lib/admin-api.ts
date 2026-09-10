@@ -19,8 +19,9 @@ export interface Tenant {
   city: string | null;
   primary_color: string;
   secondary_color: string;
-  status: "active" | "suspended";
+  status: "active" | "suspended" | "pending";
 }
+export interface PublicClub { id: string; name: string; tenant_id: string | null; }
 export type EventStatus = "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 export interface EventRow {
   id: string;
@@ -71,6 +72,16 @@ export async function listTenants(): Promise<Tenant[]> {
   const { data, error } = await db().from("tenants").select("*").order("name");
   if (error) throw error;
   return data as Tenant[];
+}
+
+/** Clubs aprobados y afiliados a una liga -- para el combo opcional del registro de atleta. */
+export async function listClubsForTenant(tenantId: string): Promise<PublicClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id")
+    .eq("tenant_id", tenantId).eq("approval_status", "active").eq("status", "active")
+    .order("name");
+  if (error) throw error;
+  return data as PublicClub[];
 }
 
 export async function createTenant(input: {

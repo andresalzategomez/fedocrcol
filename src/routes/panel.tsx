@@ -32,7 +32,20 @@ function PanelPage() {
   if (!profile) return <Shell><Note>Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.</Note></Shell>;
   if (profile.role === "athlete") return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
   if (profile.role === "judge") return <Shell><Note>Tu cuenta es de juez. Usa FedOCR Timer para cronometrar — este panel es para administradores de liga.</Note></Shell>;
-  if (profile.role === "club") return <Shell><Note>Tu cuenta es de club. Esta vista todavía no está lista.</Note></Shell>;
+  if (profile.role === "club") {
+    return (
+      <Shell>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-4xl">Panel de administración</h1>
+            <p className="text-sm text-muted-foreground">{email} · Club</p>
+          </div>
+          <Button variant="outline" onClick={signOut}>Salir</Button>
+        </div>
+        <ClubStatusNote userId={profile.id} />
+      </Shell>
+    );
+  }
 
   if (profile.role === "race_manager") {
     if (!profile.tenant_id) return <Shell><Note>Tu cuenta no tiene una liga asignada.</Note></Shell>;
@@ -59,9 +72,66 @@ function PanelPage() {
         </div>
         <Button variant="outline" onClick={signOut}>Salir</Button>
       </div>
-      <AdminConsole role={profile.role} userId={profile.id} fixedTenant={profile.tenant_id} />
+      {profile.role === "admin" ? (
+        <AdminGate tenantId={profile.tenant_id} userId={profile.id} />
+      ) : (
+        <AdminConsole role={profile.role} userId={profile.id} fixedTenant={profile.tenant_id} />
+      )}
     </Shell>
   );
+}
+
+/** Para un admin de liga: bloquea el panel si su liga sigue pendiente de aprobación (o suspendida). */
+function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: string }) {
+  const [status, setStatus] = useState<Tenant["status"] | "loading" | "none">("loading");
+
+  useEffect(() => {
+    if (!tenantId) { setStatus("none"); return; }
+    api.listTenants().then((all) => setStatus(all.find((t) => t.id === tenantId)?.status ?? "none")).catch(() => setStatus("none"));
+  }, [tenantId]);
+
+  if (status === "loading") return <Note>Cargando…</Note>;
+  if (status === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
+  if (status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
+  if (status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
+  return <AdminConsole role="admin" userId={userId} fixedTenant={tenantId} />;
+}
+
+/** Para un club: muestra su estado de aprobación, o le permite reintentar si fue rechazado. */
+function ClubStatusNote({ userId }: { userId: string }) {
+  const [club, setClub] = useState<{ id: string; approval_status: string } | "loading" | "none">("loading");
+  const [retrying, setRetrying] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!supabase) { setClub("none"); return; }
+    const { data } = await supabase.from("clubs").select("id, approval_status").eq("owner_id", userId).maybeSingle();
+    setClub(data ? { id: data.id as string, approval_status: data.approval_status as string } : "none");
+  }, [userId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function retry() {
+    if (!supabase || club === "loading" || club === "none") return;
+    setRetrying(true);
+    try {
+      const { error } = await supabase.from("clubs").update({ approval_status: "pending" }).eq("id", club.id);
+      if (error) throw error;
+      toast.success("Solicitud reenviada");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setRetrying(false); }
+  }
+
+  if (club === "loading") return <Note>Cargando…</Note>;
+  if (club === "none") return <Note>No encontramos tu club. Contacta a soporte.</Note>;
+  if (club.approval_status === "pending") return <Note>Tu club está <strong>pendiente de aprobación</strong>.</Note>;
+  if (club.approval_status === "rejected") {
+    return (
+      <Note>
+        <p className="mb-3">Tu solicitud de club fue rechazada.</p>
+        <Button size="sm" onClick={retry} disabled={retrying}>{retrying ? "Enviando..." : "Volver a solicitar"}</Button>
+      </Note>
+    );
+  }
+  return <Note>Tu club ya fue aprobado. Esta vista todavía no está lista.</Note>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
