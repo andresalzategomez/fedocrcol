@@ -1107,3 +1107,34 @@ create policy "checkpoint_judges_manage" on public.checkpoint_judges for all to 
 -- =====================================================================
 
 alter table public.profiles add column if not exists password_set_at timestamptz;
+
+-- =====================================================================
+-- 0017 — Fase A: esquema base para Liga/Club con aprobación,
+-- rol race_manager, y visibilidad pública/privada de carreras.
+-- Idempotente. Solo esquema — sin UI ni flujos todavía (fases B-E).
+-- =====================================================================
+
+alter type public.app_role add value if not exists 'club';
+alter type public.app_role add value if not exists 'race_manager';
+alter type public.tenant_status add value if not exists 'pending';
+
+alter table public.tenants add column if not exists created_by uuid references public.profiles(id) on delete set null;
+
+alter table public.clubs alter column tenant_id drop not null;
+alter table public.clubs add column if not exists owner_id uuid references public.profiles(id) on delete set null;
+alter table public.clubs add column if not exists approval_status public.affiliation_status not null default 'pending';
+alter table public.clubs add column if not exists approved_by uuid references public.profiles(id) on delete set null;
+alter table public.clubs add column if not exists approved_at timestamptz;
+
+update public.clubs set approval_status = 'active' where approval_status = 'pending';
+
+drop policy if exists "clubs_owner_manage" on public.clubs;
+create policy "clubs_owner_manage" on public.clubs for update to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
+
+do $$ begin
+  create type public.event_visibility as enum ('public', 'private');
+exception when duplicate_object then null; end $$;
+
+alter table public.events add column if not exists visibility public.event_visibility not null default 'private';
