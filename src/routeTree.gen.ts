@@ -21,6 +21,7 @@ import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
 import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
+import { Route as ApiPublicRegisterAthleteRouteImport } from './routes/api/public/register-athlete'
 import { Route as ApiPublicRegisterClubRouteImport } from './routes/api/public/register-club'
 import { Route as ApiPublicRegisterLeagueRouteImport } from './routes/api/public/register-league'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
@@ -94,6 +95,12 @@ const ApiAdminRecalculatePositionsRoute =
   ApiAdminRecalculatePositionsRouteImport.update({
     id: '/api/admin/recalculate-positions',
     path: '/api/admin/recalculate-positions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRegisterAthleteRoute =
+  ApiPublicRegisterAthleteRouteImport.update({
+    id: '/api/public/register-athlete',
+    path: '/api/public/register-athlete',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicRegisterClubRoute = ApiPublicRegisterClubRouteImport.update({
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -203,6 +211,7 @@ export interface FileRoutesByTo {
   '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -231,6 +240,7 @@ export interface FileRoutesById {
   '/api/admin/judges': typeof ApiAdminJudgesRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/api/admin/judges'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/v1/health'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/api/admin/judges'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/v1/health'
@@ -314,6 +326,7 @@ export interface FileRouteTypes {
     | '/api/admin/judges'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/v1/health'
@@ -342,6 +355,7 @@ export interface RootRouteChildren {
   ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
   ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
+  ApiPublicRegisterAthleteRoute: typeof ApiPublicRegisterAthleteRoute
   ApiPublicRegisterClubRoute: typeof ApiPublicRegisterClubRoute
   ApiPublicRegisterLeagueRoute: typeof ApiPublicRegisterLeagueRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
@@ -436,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/recalculate-positions'
       fullPath: '/api/admin/recalculate-positions'
       preLoaderRoute: typeof ApiAdminRecalculatePositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/register-athlete': {
+      id: '/api/public/register-athlete'
+      path: '/api/public/register-athlete'
+      fullPath: '/api/public/register-athlete'
+      preLoaderRoute: typeof ApiPublicRegisterAthleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/register-club': {
@@ -565,6 +586,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminJudgesRoute: ApiAdminJudgesRoute,
   ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
+  ApiPublicRegisterAthleteRoute: ApiPublicRegisterAthleteRoute,
   ApiPublicRegisterClubRoute: ApiPublicRegisterClubRoute,
   ApiPublicRegisterLeagueRoute: ApiPublicRegisterLeagueRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,

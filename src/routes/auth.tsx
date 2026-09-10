@@ -114,6 +114,7 @@ function AuthPage() {
 
 function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -129,21 +130,30 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
 
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) { toast.info("Conecta tu proyecto de Supabase externo para crear cuentas reales."); return; }
     if (!tenant) { toast.error("Selecciona tu liga"); return; }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: {
-        data: {
-          full_name: fullName, tenant_id: tenant, role: "athlete",
+    try {
+      const res = await fetch("/api/public/register-athlete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email, password, full_name: fullName, tenant_id: tenant,
           club_id: club === INDEPENDIENTE ? undefined : club,
-        },
-      },
-    });
-    setLoading(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Cuenta creada. Revisa tu correo para confirmar.");
+        }),
+      });
+      const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+      if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo crear la cuenta");
+      setDone(true);
+    } catch (err) { toast.error((err as Error).message); } finally { setLoading(false); }
+  }
+
+  if (done) {
+    return (
+      <div className="flex items-start gap-3 text-sm">
+        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+        <p>Cuenta creada. Ya puedes iniciar sesión.</p>
+      </div>
+    );
   }
 
   return (
