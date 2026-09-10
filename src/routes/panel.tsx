@@ -760,7 +760,7 @@ function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRo
 // ---------------- Maestro de categorías por carrera ------------------
 function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
   const [rows, setRows] = useState<api.EventCategory[]>([]);
-  const [form, setForm] = useState({ name: "", gender: "", min_age: "", max_age: "" });
+  const [form, setForm] = useState({ name: "", gender: "", min_age: "", max_age: "", price: "", slots_available: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const load = useCallback(async () => setRows(await api.listEventCategories(eventId)), [eventId]);
   useEffect(() => { load(); }, [load]);
@@ -772,16 +772,25 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
       await api.createEventCategory(eventId, {
         name: form.name, gender: form.gender || null,
         min_age: form.min_age ? Number(form.min_age) : null, max_age: form.max_age ? Number(form.max_age) : null,
+        price: form.price ? Number(form.price) : 0, slots_available: form.slots_available ? Number(form.slots_available) : 0,
       });
-      toast.success("Categoría agregada"); setForm({ name: "", gender: "", min_age: "", max_age: "" }); setErrors({}); load();
+      toast.success("Categoría agregada"); setForm({ name: "", gender: "", min_age: "", max_age: "", price: "", slots_available: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); }
   }
-  async function seed() { try { await api.seedStandardCategories(eventId); toast.success("Categorías estándar agregadas"); load(); } catch (e) { toast.error((e as Error).message); } }
+  async function seed() { try { await api.seedStandardCategories(eventId); toast.success("Categorías estándar agregadas — recuerda ponerles precio y cupos"); load(); } catch (e) { toast.error((e as Error).message); } }
+  async function setPrice(id: string, value: string) {
+    const price = Number(value.replace(/\D/g, "")) || 0;
+    try { await api.updateEventCategory(id, { price }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
+  async function setSlots(id: string, value: string) {
+    const slots_available = Number(value.replace(/\D/g, "")) || 0;
+    try { await api.updateEventCategory(id, { slots_available }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
 
   return (
     <div className="grid gap-4">
       {!locked ? (
-        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
+        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
           <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Elite Masculino" /></Field>
           <Field label="Género">
             <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
@@ -791,20 +800,30 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
           </Field>
           <Field label="Edad mín."><Input inputMode="numeric" value={form.min_age} onChange={(e) => setForm({ ...form, min_age: e.target.value.replace(/\D/g, "") })} /></Field>
           <Field label="Edad máx."><Input inputMode="numeric" value={form.max_age} onChange={(e) => setForm({ ...form, max_age: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="Precio (COP)"><Input inputMode="numeric" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })} placeholder="120000" /></Field>
+          <Field label="Cupos"><Input inputMode="numeric" value={form.slots_available} onChange={(e) => setForm({ ...form, slots_available: e.target.value.replace(/\D/g, "") })} placeholder="100" /></Field>
           <div className="flex items-end gap-2"><Button onClick={add}><Plus className="mr-1 size-4" />Agregar</Button></div>
-          <div className="sm:col-span-5"><Button variant="outline" size="sm" onClick={seed}><Layers className="mr-1 size-4" />Sembrar categorías estándar</Button></div>
+          <div className="sm:col-span-4"><Button variant="outline" size="sm" onClick={seed}><Layers className="mr-1 size-4" />Sembrar categorías estándar</Button></div>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Categoría", "Género", "Edad", ""]}>
+      <SimpleTable head={["Categoría", "Género", "Edad", "Precio (COP)", "Cupos", ""]}>
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.name}</TableCell>
             <TableCell>{c.gender ?? "Todos"}</TableCell>
             <TableCell>{c.min_age ?? "—"}{c.max_age ? `–${c.max_age}` : c.min_age ? "+" : ""}</TableCell>
+            <TableCell>
+              <Input className="h-8 w-28" inputMode="numeric" disabled={locked} defaultValue={c.price} key={c.price}
+                onBlur={(e) => { if (Number(e.target.value) !== c.price) setPrice(c.id, e.target.value); }} />
+            </TableCell>
+            <TableCell>
+              <Input className="h-8 w-20" inputMode="numeric" disabled={locked} defaultValue={c.slots_available} key={c.slots_available}
+                onBlur={(e) => { if (Number(e.target.value) !== c.slots_available) setSlots(c.id, e.target.value); }} />
+            </TableCell>
             <TableCell className="text-right">{!locked ? <Button size="sm" variant="ghost" onClick={async () => { try { await api.deleteEventCategory(c.id); load(); } catch (e) { toast.error((e as Error).message); } }}><Trash2 className="size-4" /></Button> : null}</TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin categorías. Usa “Sembrar categorías estándar”.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

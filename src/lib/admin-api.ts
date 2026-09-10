@@ -291,11 +291,19 @@ export async function listEventCategories(eventId: string): Promise<EventCategor
 }
 export async function createEventCategory(eventId: string, input: {
   name: string; gender?: string | null; min_age?: number | null; max_age?: number | null;
+  price?: number; slots_available?: number;
 }) {
   const { error } = await db().from("event_categories").insert({
     event_id: eventId, name: input.name, gender: input.gender ?? null,
-    min_age: input.min_age ?? null, max_age: input.max_age ?? null, price: 0, slots_available: 0,
+    min_age: input.min_age ?? null, max_age: input.max_age ?? null,
+    price: input.price ?? 0, slots_available: input.slots_available ?? 0,
   });
+  if (error) throw error;
+}
+
+/** Precio y cupos de una categoría -- sin esto quedan en 0 y el formulario público nunca la deja seleccionar. */
+export async function updateEventCategory(id: string, patch: { price?: number; slots_available?: number }) {
+  const { error } = await db().from("event_categories").update(patch).eq("id", id);
   if (error) throw error;
 }
 
