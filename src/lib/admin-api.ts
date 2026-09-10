@@ -42,6 +42,7 @@ export interface EventRow {
   federation_approved: boolean;
   is_official: boolean | null;
   created_by: string | null;
+  visibility: "public" | "private";
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
@@ -196,7 +197,7 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
 
 export async function createEvent(input: {
   tenant_id: string; title: string; date: string; location: string; is_official: boolean;
-  distance_km?: number; obstacles?: number; max_capacity?: number;
+  distance_km?: number; obstacles?: number; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<EventRow> {
   const { data, error } = await db().from("events").insert({
     tenant_id: input.tenant_id,
@@ -204,6 +205,7 @@ export async function createEvent(input: {
     date: input.date,
     location: input.location,
     is_official: input.is_official,
+    visibility: input.visibility ?? "private",
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
     max_capacity: input.max_capacity ?? 0,
@@ -220,7 +222,7 @@ export async function createEvent(input: {
 /** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
 export async function updateEvent(id: string, patch: {
   title?: string; date?: string; location?: string; is_official?: boolean;
-  distance_km?: number | null; obstacles?: number | null; max_capacity?: number;
+  distance_km?: number | null; obstacles?: number | null; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<void> {
   const { error } = await db().from("events").update(patch).eq("id", id);
   if (error) throw error;

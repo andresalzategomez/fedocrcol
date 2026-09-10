@@ -13,10 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEMO_EVENTS, formatCOP, formatDate, leagueById } from "@/data/demo";
-import { dynamicPrice, qrUrl } from "@/lib/ocr-data";
+import { formatCOP, formatDate } from "@/data/demo";
+import { dynamicPrice, fetchEvents, fetchLeagues, qrUrl } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
 import { useTenantTheme } from "@/lib/tenant-theme";
+import { LiveResults } from "@/components/live-results";
 
 const schema = z.object({
   full_name: z.string().min(5, "Escribe tu nombre completo"),
@@ -30,10 +31,12 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export const Route = createFileRoute("/eventos/$eventId")({
-  loader: ({ params }) => {
-    const event = DEMO_EVENTS.find((e) => e.id === params.eventId);
+  loader: async ({ params }) => {
+    const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
+    const event = events.find((e) => e.id === params.eventId);
     if (!event) throw notFound();
-    return { event };
+    const league = leagues.find((l) => l.id === event.tenant_id) ?? null;
+    return { event, league };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Carrera no encontrada — FEDOCR" }, { name: "robots", content: "noindex" }] };
@@ -54,8 +57,7 @@ export const Route = createFileRoute("/eventos/$eventId")({
 });
 
 function EventDetail() {
-  const { event } = Route.useLoaderData();
-  const league = leagueById(event.tenant_id);
+  const { event, league } = Route.useLoaderData();
   useTenantTheme(league ? { primary_color: league.primary_color, secondary_color: league.secondary_color } : null);
 
   const [ticket, setTicket] = useState<{ code: string; amount: number; category: string } | null>(null);
@@ -259,6 +261,12 @@ function EventDetail() {
           ) : null}
         </div>
       </div>
+
+      {event.visibility === "public" ? (
+        <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
+          <LiveResults eventId={event.id} />
+        </div>
+      ) : null}
 
       <SiteFooter />
     </div>

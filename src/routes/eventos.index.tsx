@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEMO_EVENTS, DEMO_LEAGUES, formatCOP, formatDate, leagueById } from "@/data/demo";
-import { dynamicPrice } from "@/lib/ocr-data";
+import { formatCOP, formatDate } from "@/data/demo";
+import { dynamicPrice, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
 
 export const Route = createFileRoute("/eventos/")({
+  loader: async () => {
+    const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
+    return { events, leagues };
+  },
   head: () => ({
     meta: [
       { title: "Calendario de carreras OCR 2026 — FEDOCR Colombia" },
@@ -27,8 +31,10 @@ export const Route = createFileRoute("/eventos/")({
 });
 
 function EventsPage() {
+  const { events: allEvents, leagues } = Route.useLoaderData();
   const [tenant, setTenant] = useState("all");
-  const events = DEMO_EVENTS.filter((e) => tenant === "all" || e.tenant_id === tenant);
+  const events = allEvents.filter((e) => tenant === "all" || e.tenant_id === tenant);
+  const leagueById = (id: string) => leagues.find((l) => l.id === id);
 
   return (
     <div className="min-h-screen">
@@ -46,7 +52,7 @@ function EventsPage() {
               <SelectTrigger aria-label="Filtrar por liga"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las ligas</SelectItem>
-                {DEMO_LEAGUES.map((l) => (
+                {leagues.map((l) => (
                   <SelectItem key={l.id} value={l.id}>{l.department}</SelectItem>
                 ))}
               </SelectContent>

@@ -19,6 +19,7 @@ import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
 import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg } from "@/lib/validate";
 import { exportExcel, exportPDF, type Column } from "@/lib/export";
+import { RESULT_STATUS_LABEL, formatDuration, rankResults } from "@/lib/results";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({ meta: [{ title: "Panel de administración — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
@@ -411,7 +412,7 @@ function AprobacionesClubesIndependientes() {
 function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSuper: boolean; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -430,12 +431,13 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
       await api.createEvent({
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
+        visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
@@ -473,6 +475,12 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
           <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        <Field label="Visibilidad">
+          <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
           </Select>
         </Field>
         <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
@@ -592,7 +600,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 function GestorConsole({ tenantId }: { tenantId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -611,12 +619,13 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
       await api.createEvent({
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
+        visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
@@ -634,6 +643,12 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
           <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        <Field label="Visibilidad">
+          <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
           </Select>
         </Field>
         <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
@@ -663,6 +678,7 @@ function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRo
   const [form, setForm] = useState({
     title: event.title, date: event.date, location: event.location,
     is_official: event.is_official == null ? "" : String(event.is_official),
+    visibility: event.visibility ?? "private",
     distance_km: event.distance_km != null ? String(event.distance_km) : "",
     obstacles: event.obstacles != null ? String(event.obstacles) : "",
     max_capacity: String(event.max_capacity ?? ""),
@@ -681,6 +697,7 @@ function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRo
     const patch = {
       title: form.title, date: form.date, location: form.location,
       is_official: form.is_official === "true",
+      visibility: (form.visibility === "public" ? "public" : "private") as "public" | "private",
       distance_km: form.distance_km ? Number(form.distance_km) : null,
       obstacles: form.obstacles ? Number(form.obstacles) : null,
       max_capacity: form.max_capacity ? Number(form.max_capacity) : 0,
@@ -720,6 +737,12 @@ function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRo
           <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        <Field label="Visibilidad">
+          <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
           </Select>
         </Field>
         <Field label="Distancia (km)" error={errors.distance_km}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
@@ -1238,21 +1261,6 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
 }
 
 // --------------------------- Resultados en vivo -----------------------
-const RESULT_STATUS_LABEL: Record<api.EventResult["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  finished: { label: "OK", variant: "default" },
-  dnf: { label: "DNF", variant: "destructive" },
-  dsq: { label: "DSQ", variant: "destructive" },
-  dns: { label: "DNS", variant: "secondary" },
-};
-function formatDuration(ms: number | null) {
-  if (ms == null) return "—";
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
 /** HH:MM:SS,mmm — formato largo para exportar (Excel/PDF), igual al de las planillas de liga. */
 function formatDurationLong(ms: number | null) {
   if (ms == null) return "";
@@ -1272,19 +1280,6 @@ function formatClockTime(iso: string | null) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())},${pad(d.getMilliseconds(), 3)}`;
 }
 type ResultScope = "general" | "wave" | "category";
-
-/** Ordena por tiempo (OK primero) y numera solo a los que terminaron con tiempo — igual que hace recalculate_event_positions, pero recalculado en el navegador para poder aplicarlo a cualquier subconjunto (oleada/categoría). */
-function rankResults(list: api.EventResult[]): (api.EventResult & { rank: number | null })[] {
-  const finished = list
-    .filter((r) => r.status === "finished" && r.duration_ms != null)
-    .sort((a, b) => (a.duration_ms as number) - (b.duration_ms as number));
-  const rankById = new Map(finished.map((r, i) => [r.id, i + 1]));
-  const others = list.filter((r) => !rankById.has(r.id));
-  return [
-    ...finished.map((r) => ({ ...r, rank: rankById.get(r.id) as number })),
-    ...others.map((r) => ({ ...r, rank: null })),
-  ];
-}
 
 function Resultados({ event }: { event: EventRow }) {
   const eventId = event.id;
