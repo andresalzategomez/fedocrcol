@@ -19,7 +19,11 @@ import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
+import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
+import { Route as ApiPublicRegisterAthleteRouteImport } from './routes/api/public/register-athlete'
+import { Route as ApiPublicRegisterClubRouteImport } from './routes/api/public/register-club'
+import { Route as ApiPublicRegisterLeagueRouteImport } from './routes/api/public/register-league'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
@@ -82,12 +86,33 @@ const ApiAdminJudgesRoute = ApiAdminJudgesRouteImport.update({
   path: '/api/admin/judges',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminRaceManagersRoute = ApiAdminRaceManagersRouteImport.update({
+  id: '/api/admin/race-managers',
+  path: '/api/admin/race-managers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminRecalculatePositionsRoute =
   ApiAdminRecalculatePositionsRouteImport.update({
     id: '/api/admin/recalculate-positions',
     path: '/api/admin/recalculate-positions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRegisterAthleteRoute =
+  ApiPublicRegisterAthleteRouteImport.update({
+    id: '/api/public/register-athlete',
+    path: '/api/public/register-athlete',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRegisterClubRoute = ApiPublicRegisterClubRouteImport.update({
+  id: '/api/public/register-club',
+  path: '/api/public/register-club',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRegisterLeagueRoute = ApiPublicRegisterLeagueRouteImport.update({
+  id: '/api/public/register-league',
+  path: '/api/public/register-league',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
@@ -156,7 +181,11 @@ export interface FileRoutesByFullPath {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
+  '/api/public/register-club': typeof ApiPublicRegisterClubRoute
+  '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -180,7 +209,11 @@ export interface FileRoutesByTo {
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
+  '/api/public/register-club': typeof ApiPublicRegisterClubRoute
+  '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -205,7 +238,11 @@ export interface FileRoutesById {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
+  '/api/public/register-club': typeof ApiPublicRegisterClubRoute
+  '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -231,7 +268,11 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
+    | '/api/public/register-club'
+    | '/api/public/register-league'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -255,7 +296,11 @@ export interface FileRouteTypes {
     | '/eventos'
     | '/ligas'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
+    | '/api/public/register-club'
+    | '/api/public/register-league'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -279,7 +324,11 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/public/register-athlete'
+    | '/api/public/register-club'
+    | '/api/public/register-league'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -304,7 +353,11 @@ export interface RootRouteChildren {
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
   ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
+  ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
+  ApiPublicRegisterAthleteRoute: typeof ApiPublicRegisterAthleteRoute
+  ApiPublicRegisterClubRoute: typeof ApiPublicRegisterClubRoute
+  ApiPublicRegisterLeagueRoute: typeof ApiPublicRegisterLeagueRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
@@ -385,11 +438,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminJudgesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/race-managers': {
+      id: '/api/admin/race-managers'
+      path: '/api/admin/race-managers'
+      fullPath: '/api/admin/race-managers'
+      preLoaderRoute: typeof ApiAdminRaceManagersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/recalculate-positions': {
       id: '/api/admin/recalculate-positions'
       path: '/api/admin/recalculate-positions'
       fullPath: '/api/admin/recalculate-positions'
       preLoaderRoute: typeof ApiAdminRecalculatePositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/register-athlete': {
+      id: '/api/public/register-athlete'
+      path: '/api/public/register-athlete'
+      fullPath: '/api/public/register-athlete'
+      preLoaderRoute: typeof ApiPublicRegisterAthleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/register-club': {
+      id: '/api/public/register-club'
+      path: '/api/public/register-club'
+      fullPath: '/api/public/register-club'
+      preLoaderRoute: typeof ApiPublicRegisterClubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/register-league': {
+      id: '/api/public/register-league'
+      path: '/api/public/register-league'
+      fullPath: '/api/public/register-league'
+      preLoaderRoute: typeof ApiPublicRegisterLeagueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/health': {
@@ -503,7 +584,11 @@ const rootRouteChildren: RootRouteChildren = {
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
   ApiAdminJudgesRoute: ApiAdminJudgesRoute,
+  ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
+  ApiPublicRegisterAthleteRoute: ApiPublicRegisterAthleteRoute,
+  ApiPublicRegisterClubRoute: ApiPublicRegisterClubRoute,
+  ApiPublicRegisterLeagueRoute: ApiPublicRegisterLeagueRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,

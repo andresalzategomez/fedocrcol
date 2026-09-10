@@ -19,7 +19,12 @@ export interface Tenant {
   city: string | null;
   primary_color: string;
   secondary_color: string;
-  status: "active" | "suspended";
+  status: "active" | "suspended" | "pending" | "rejected";
+}
+export interface PublicClub { id: string; name: string; tenant_id: string | null; }
+export interface AdminClub {
+  id: string; name: string; tenant_id: string | null; owner_id: string | null;
+  approval_status: string; contact_email: string | null; city: string | null; department: string | null;
 }
 export type EventStatus = "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 export interface EventRow {
@@ -41,6 +46,7 @@ export interface EventRow {
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
 export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
+export interface RaceManager { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
   id: string;
@@ -70,6 +76,93 @@ export async function listTenants(): Promise<Tenant[]> {
   const { data, error } = await db().from("tenants").select("*").order("name");
   if (error) throw error;
   return data as Tenant[];
+}
+
+/** Clubs aprobados y afiliados a una liga -- para el combo opcional del registro de atleta. */
+export async function listClubsForTenant(tenantId: string): Promise<PublicClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id")
+    .eq("tenant_id", tenantId).eq("approval_status", "active").eq("status", "active")
+    .order("name");
+  if (error) throw error;
+  return data as PublicClub[];
+}
+
+// ------------------- Aprobaciones: ligas y clubes --------------------
+export async function listPendingLeagues(): Promise<Tenant[]> {
+  const { data, error } = await db().from("tenants").select("*").eq("status", "pending").order("name");
+  if (error) throw error;
+  return data as Tenant[];
+}
+/** Solo superadmin: el trigger enforce_tenants_status_change rechaza cualquier otro caso. */
+export async function approveLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "active" }).eq("id", id);
+  if (error) throw error;
+}
+export async function rejectLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}
+/** El propio admin de una liga rechazada puede reintentar (única transición que el trigger le permite). */
+export async function retryLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "pending" }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Clubes sin liga (tenant_id null) pendientes de que el superadmin los apruebe. */
+export async function listPendingIndependentClubs(): Promise<AdminClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
+    .is("tenant_id", null).eq("approval_status", "pending").order("name");
+  if (error) throw error;
+  return data as AdminClub[];
+}
+/** Clubes que pidieron afiliarse a esta liga, pendientes de que su admin los apruebe. */
+export async function listPendingClubRequests(tenantId: string): Promise<AdminClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
+    .eq("tenant_id", tenantId).eq("approval_status", "pending").order("name");
+  if (error) throw error;
+  return data as AdminClub[];
+}
+export async function rejectClubRequest(id: string) {
+  const { error } = await db().from("clubs").update({ approval_status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}
+/** Aprobación por el admin de la liga a la que el club ya pertenece (tenant_id no cambia). */
+export async function approveClubRequest(id: string) {
+  const { data: userData } = await db().auth.getUser();
+  const { error } = await db().from("clubs")
+    .update({ approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+/** Aprobación por el superadmin de un club sin liga: se le crea su propio tenant ("club independiente"). */
+export async function approveIndependentClub(club: AdminClub): Promise<void> {
+  const base = club.name
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "club";
+  const { data: existingSlugs } = await db().from("tenants").select("slug").like("slug", `${base}%`);
+  const taken = new Set((existingSlugs ?? []).map((r) => r.slug as string));
+  let slug = base;
+  let n = 2;
+  while (taken.has(slug)) slug = `${base}-${n++}`;
+
+  const { data: tenant, error: tenantErr } = await db().from("tenants")
+    .insert({ name: club.name, slug, department: club.department ?? "Nacional", city: club.city ?? null, status: "active" })
+    .select("id").single();
+  if (tenantErr) throw tenantErr;
+
+  const { data: userData } = await db().auth.getUser();
+  const { error: clubErr } = await db().from("clubs")
+    .update({ tenant_id: tenant.id, approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
+    .eq("id", club.id);
+  if (clubErr) throw clubErr;
+
+  if (club.owner_id) {
+    const { error: ownerErr } = await db().from("profiles").update({ tenant_id: tenant.id }).eq("id", club.owner_id);
+    if (ownerErr) throw ownerErr;
+  }
 }
 
 export async function createTenant(input: {
@@ -122,6 +215,15 @@ export async function createEvent(input: {
   // Sembrar el maestro de categorías de la carrera con el catálogo nacional.
   await seedStandardCategories(ev.id);
   return ev;
+}
+
+/** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
+export async function updateEvent(id: string, patch: {
+  title?: string; date?: string; location?: string; is_official?: boolean;
+  distance_km?: number | null; obstacles?: number | null; max_capacity?: number;
+}): Promise<void> {
+  const { error } = await db().from("events").update(patch).eq("id", id);
+  if (error) throw error;
 }
 
 /** Copia el catálogo nacional de categorías al maestro de esta carrera. */
@@ -257,6 +359,28 @@ export async function inviteJudge(input: { full_name: string; email: string }): 
   const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
   if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al juez");
   return body as Judge;
+}
+
+export async function listRaceManagers(tenantId: string): Promise<RaceManager[]> {
+  const { data, error } = await db().from("profiles")
+    .select("id, email, full_name, password_set_at").eq("tenant_id", tenantId).eq("role", "race_manager").order("full_name");
+  if (error) throw error;
+  return data as RaceManager[];
+}
+
+/** Invita a un gestor de carreras por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
+export async function inviteRaceManager(input: { full_name: string; email: string }): Promise<RaceManager> {
+  const { data: sessionData } = await db().auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+  const res = await fetch("/api/admin/race-managers", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
+  });
+  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al gestor de carreras");
+  return body as RaceManager;
 }
 
 /** IDs de checkpoints asignados a cada juez, para una carrera puntual. */

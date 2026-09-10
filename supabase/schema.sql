@@ -1107,3 +1107,139 @@ create policy "checkpoint_judges_manage" on public.checkpoint_judges for all to 
 -- =====================================================================
 
 alter table public.profiles add column if not exists password_set_at timestamptz;
+
+-- =====================================================================
+-- 0017 — Fase A: esquema base para Liga/Club con aprobación,
+-- rol race_manager, y visibilidad pública/privada de carreras.
+-- Idempotente. Solo esquema — sin UI ni flujos todavía (fases B-E).
+-- =====================================================================
+
+alter type public.app_role add value if not exists 'club';
+alter type public.app_role add value if not exists 'race_manager';
+alter type public.tenant_status add value if not exists 'pending';
+
+alter table public.tenants add column if not exists created_by uuid references public.profiles(id) on delete set null;
+
+alter table public.clubs alter column tenant_id drop not null;
+alter table public.clubs add column if not exists owner_id uuid references public.profiles(id) on delete set null;
+alter table public.clubs add column if not exists approval_status public.affiliation_status not null default 'pending';
+alter table public.clubs add column if not exists approved_by uuid references public.profiles(id) on delete set null;
+alter table public.clubs add column if not exists approved_at timestamptz;
+
+update public.clubs set approval_status = 'active' where approval_status = 'pending';
+
+drop policy if exists "clubs_owner_manage" on public.clubs;
+create policy "clubs_owner_manage" on public.clubs for update to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
+
+do $$ begin
+  create type public.event_visibility as enum ('public', 'private');
+exception when duplicate_object then null; end $$;
+
+alter table public.events add column if not exists visibility public.event_visibility not null default 'private';
+
+-- =====================================================================
+-- 0018 — Fase B: permisos de events para el rol race_manager.
+-- Idempotente. Restringe events_tenant_manage a admin/superadmin (antes
+-- cualquier rol del mismo tenant podía escribir ahí) y agrega políticas
+-- propias para race_manager: crea carreras en su liga, las edita solo
+-- mientras no estén aprobadas/en curso/finalizadas/canceladas, y no
+-- puede mover el estado a esos valores (no se auto-aprueba).
+-- =====================================================================
+
+drop policy if exists "events_tenant_manage" on public.events;
+create policy "events_tenant_manage" on public.events for all to authenticated
+  using (
+    public.has_role(auth.uid(), 'superadmin')
+    or (tenant_id = public.current_tenant_id() and public.has_role(auth.uid(), 'admin'))
+  )
+  with check (
+    public.has_role(auth.uid(), 'superadmin')
+    or (tenant_id = public.current_tenant_id() and public.has_role(auth.uid(), 'admin'))
+  );
+
+drop policy if exists "events_race_manager_read" on public.events;
+create policy "events_race_manager_read" on public.events for select to authenticated
+  using (public.has_role(auth.uid(), 'race_manager') and tenant_id = public.current_tenant_id());
+
+drop policy if exists "events_race_manager_insert" on public.events;
+create policy "events_race_manager_insert" on public.events for insert to authenticated
+  with check (public.has_role(auth.uid(), 'race_manager') and tenant_id = public.current_tenant_id());
+
+drop policy if exists "events_race_manager_update" on public.events;
+create policy "events_race_manager_update" on public.events for update to authenticated
+  using (
+    public.has_role(auth.uid(), 'race_manager')
+    and tenant_id = public.current_tenant_id()
+    and status not in ('approved', 'in_progress', 'finished', 'cancelled')
+  )
+  with check (
+    public.has_role(auth.uid(), 'race_manager')
+    and tenant_id = public.current_tenant_id()
+    and status not in ('approved', 'in_progress', 'finished', 'cancelled')
+  );
+
+-- =====================================================================
+-- 0019 — Fase C: afiliación a club opcional en el registro de atleta.
+-- Idempotente. Ver migración para el porqué de extender el trigger en
+-- vez de dejar que el cliente inserte la afiliación directamente.
+-- =====================================================================
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_tenant_id uuid;
+  v_club_id uuid;
+begin
+  v_tenant_id := nullif(new.raw_user_meta_data->>'tenant_id','')::uuid;
+
+  insert into public.profiles (id, full_name, tenant_id, role)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    v_tenant_id,
+    'athlete'
+  )
+  on conflict (id) do nothing;
+
+  v_club_id := nullif(new.raw_user_meta_data->>'club_id','')::uuid;
+  if v_club_id is not null and v_tenant_id is not null then
+    insert into public.affiliations (tenant_id, athlete_id, club_id, season, type, status)
+    values (v_tenant_id, new.id, v_club_id, extract(year from now())::int, 'club', 'active')
+    on conflict (athlete_id, season, tenant_id) do nothing;
+  end if;
+
+  return new;
+end; $$;
+
+-- =====================================================================
+-- 0020 — Fase D: paneles de aprobación (superadmin y admin de liga).
+-- Idempotente. Ver migración para el detalle de por qué hace falta un
+-- trigger (RLS sola no distingue transiciones de estado old->new).
+-- =====================================================================
+
+alter type public.tenant_status add value if not exists 'rejected';
+
+create or replace function public.enforce_tenants_status_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if new.status is distinct from old.status then
+    if public.has_role(auth.uid(), 'superadmin') then
+      return new;
+    end if;
+    if public.has_role(auth.uid(), 'admin') and old.id = public.current_tenant_id()
+       and old.status = 'rejected' and new.status = 'pending' then
+      return new;
+    end if;
+    raise exception 'No tienes permiso para cambiar el estado de esta liga';
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_tenants_status_change on public.tenants;
+create trigger trg_tenants_status_change before update on public.tenants
+  for each row execute function public.enforce_tenants_status_change();
