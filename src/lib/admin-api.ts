@@ -25,6 +25,7 @@ export interface PublicClub { id: string; name: string; tenant_id: string | null
 export interface AdminClub {
   id: string; name: string; tenant_id: string | null; owner_id: string | null;
   approval_status: string; contact_email: string | null; city: string | null; department: string | null;
+  status?: string;
 }
 export type EventStatus = "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 export interface EventRow {
@@ -123,6 +124,14 @@ export async function listPendingClubRequests(tenantId: string): Promise<AdminCl
   const { data, error } = await db().from("clubs")
     .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
     .eq("tenant_id", tenantId).eq("approval_status", "pending").order("name");
+  if (error) throw error;
+  return data as AdminClub[];
+}
+/** Todos los clubes de una liga, sin importar su estado -- para la sección "Clubes" del panel. */
+export async function listClubs(tenantId: string): Promise<AdminClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department, status")
+    .eq("tenant_id", tenantId).order("name");
   if (error) throw error;
   return data as AdminClub[];
 }
