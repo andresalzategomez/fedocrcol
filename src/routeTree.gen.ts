@@ -19,6 +19,7 @@ import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
+import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
@@ -80,6 +81,11 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
 const ApiAdminJudgesRoute = ApiAdminJudgesRouteImport.update({
   id: '/api/admin/judges',
   path: '/api/admin/judges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminRaceManagersRoute = ApiAdminRaceManagersRouteImport.update({
+  id: '/api/admin/race-managers',
+  path: '/api/admin/race-managers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminRecalculatePositionsRoute =
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/eventos'
     | '/ligas'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/v1/health'
     | '/api/v1/races'
@@ -304,6 +316,7 @@ export interface RootRouteChildren {
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
   ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
+  ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
@@ -383,6 +396,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/judges'
       fullPath: '/api/admin/judges'
       preLoaderRoute: typeof ApiAdminJudgesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/race-managers': {
+      id: '/api/admin/race-managers'
+      path: '/api/admin/race-managers'
+      fullPath: '/api/admin/race-managers'
+      preLoaderRoute: typeof ApiAdminRaceManagersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/recalculate-positions': {
@@ -503,6 +523,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
   ApiAdminJudgesRoute: ApiAdminJudgesRoute,
+  ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,

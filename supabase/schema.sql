@@ -1138,3 +1138,44 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 alter table public.events add column if not exists visibility public.event_visibility not null default 'private';
+
+-- =====================================================================
+-- 0018 — Fase B: permisos de events para el rol race_manager.
+-- Idempotente. Restringe events_tenant_manage a admin/superadmin (antes
+-- cualquier rol del mismo tenant podía escribir ahí) y agrega políticas
+-- propias para race_manager: crea carreras en su liga, las edita solo
+-- mientras no estén aprobadas/en curso/finalizadas/canceladas, y no
+-- puede mover el estado a esos valores (no se auto-aprueba).
+-- =====================================================================
+
+drop policy if exists "events_tenant_manage" on public.events;
+create policy "events_tenant_manage" on public.events for all to authenticated
+  using (
+    public.has_role(auth.uid(), 'superadmin')
+    or (tenant_id = public.current_tenant_id() and public.has_role(auth.uid(), 'admin'))
+  )
+  with check (
+    public.has_role(auth.uid(), 'superadmin')
+    or (tenant_id = public.current_tenant_id() and public.has_role(auth.uid(), 'admin'))
+  );
+
+drop policy if exists "events_race_manager_read" on public.events;
+create policy "events_race_manager_read" on public.events for select to authenticated
+  using (public.has_role(auth.uid(), 'race_manager') and tenant_id = public.current_tenant_id());
+
+drop policy if exists "events_race_manager_insert" on public.events;
+create policy "events_race_manager_insert" on public.events for insert to authenticated
+  with check (public.has_role(auth.uid(), 'race_manager') and tenant_id = public.current_tenant_id());
+
+drop policy if exists "events_race_manager_update" on public.events;
+create policy "events_race_manager_update" on public.events for update to authenticated
+  using (
+    public.has_role(auth.uid(), 'race_manager')
+    and tenant_id = public.current_tenant_id()
+    and status not in ('approved', 'in_progress', 'finished', 'cancelled')
+  )
+  with check (
+    public.has_role(auth.uid(), 'race_manager')
+    and tenant_id = public.current_tenant_id()
+    and status not in ('approved', 'in_progress', 'finished', 'cancelled')
+  );

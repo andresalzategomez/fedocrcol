@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Children, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,23 @@ function PanelPage() {
   if (!profile) return <Shell><Note>Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.</Note></Shell>;
   if (profile.role === "athlete") return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
   if (profile.role === "judge") return <Shell><Note>Tu cuenta es de juez. Usa FedOCR Timer para cronometrar — este panel es para administradores de liga.</Note></Shell>;
+  if (profile.role === "club") return <Shell><Note>Tu cuenta es de club. Esta vista todavía no está lista.</Note></Shell>;
+
+  if (profile.role === "race_manager") {
+    if (!profile.tenant_id) return <Shell><Note>Tu cuenta no tiene una liga asignada.</Note></Shell>;
+    return (
+      <Shell>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-4xl">Panel de administración</h1>
+            <p className="text-sm text-muted-foreground">{email} · Gestor de carreras</p>
+          </div>
+          <Button variant="outline" onClick={signOut}>Salir</Button>
+        </div>
+        <GestorConsole tenantId={profile.tenant_id} />
+      </Shell>
+    );
+  }
 
   return (
     <Shell>
@@ -355,6 +372,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
           <TabsTrigger value="checkpoints">Checkpoints</TabsTrigger>
           <TabsTrigger value="jueces"><Gavel className="mr-1 size-4" />Jueces</TabsTrigger>
+          <TabsTrigger value="gestores"><UserCog className="mr-1 size-4" />Gestores</TabsTrigger>
           <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
@@ -362,8 +380,162 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
+        <TabsContent value="gestores" className="mt-4"><Gestores tenantId={tenantId} locked={!canManage} /></TabsContent>
         <TabsContent value="resultados" className="mt-4"><Resultados event={event} /></TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ------------------- Panel restringido: race_manager ------------------
+/**
+ * Vista completa para el rol race_manager: crea carreras y edita sus
+ * datos propios mientras siguen en borrador, y las envía a aprobación —
+ * nada más. A propósito NO reutiliza EventoDetalle (que trae categorías,
+ * inscritos, oleadas, checkpoints, jueces, gestores y control de
+ * estado in_progress/finished): ese es terreno de admin/superadmin.
+ */
+function GestorConsole({ tenantId }: { tenantId: string }) {
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [selected, setSelected] = useState<EventRow | null>(null);
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => { try { setEvents(await api.listEvents(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  useEffect(() => { setSelected(null); load(); }, [load]);
+
+  async function create() {
+    const { ok, errors } = validateForm(form, {
+      title: [required("El nombre")], date: [required("La fecha")], location: [required("El lugar")],
+      is_official: [required("Indica si es oficial")], distance_km: [decimalNonNeg("La distancia")],
+    });
+    setErrors(errors as Record<string, string>);
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await api.createEvent({
+        tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
+        is_official: form.is_official === "true",
+        distance_km: form.distance_km ? Number(form.distance_km) : undefined,
+        obstacles: form.obstacles ? Number(form.obstacles) : undefined,
+        max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
+      });
+      toast.success("Carrera creada (en borrador)");
+      setForm({ title: "", date: "", location: "", is_official: "", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  if (selected) return (
+    <GestorEventoDetalle event={selected} onBack={() => setSelected(null)} onEventChanged={(updated) => { setSelected(updated); load(); }} />
+  );
+
+  return (
+    <div className="grid gap-6">
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+        <Field label="Nombre *" error={errors.title}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
+        <Field label="Fecha *" error={errors.date}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+        <Field label="Lugar *" error={errors.location}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
+        <Field label="¿Es oficial? *" error={errors.is_official}>
+          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+            <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
+        <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
+        <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
+        <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
+      </CardContent></Card>
+
+      <SimpleTable head={["Carrera", "Fecha", "Estado", "Oficial", "Acciones"]}>
+        {events.map((e) => (
+          <TableRow key={e.id}>
+            <TableCell className="font-medium">{e.title}</TableCell>
+            <TableCell className="text-muted-foreground">{e.date}</TableCell>
+            <TableCell><StatusBadge status={e.status} /></TableCell>
+            <TableCell><OficialBadge value={e.is_official} /></TableCell>
+            <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button></TableCell>
+          </TableRow>
+        ))}
+        {events.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Aún no has creado carreras.</TableCell></TableRow> : null}
+      </SimpleTable>
+    </div>
+  );
+}
+
+function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRow; onBack: () => void; onEventChanged: (e: EventRow) => void }) {
+  const locked = event.status !== "draft";
+  const [form, setForm] = useState({
+    title: event.title, date: event.date, location: event.location,
+    is_official: event.is_official == null ? "" : String(event.is_official),
+    distance_km: event.distance_km != null ? String(event.distance_km) : "",
+    obstacles: event.obstacles != null ? String(event.obstacles) : "",
+    max_capacity: String(event.max_capacity ?? ""),
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    const { ok, errors } = validateForm(form, {
+      title: [required("El nombre")], date: [required("La fecha")], location: [required("El lugar")],
+      is_official: [required("Indica si es oficial")], distance_km: [decimalNonNeg("La distancia")],
+    });
+    setErrors(errors as Record<string, string>);
+    if (!ok) return;
+    setBusy(true);
+    const patch = {
+      title: form.title, date: form.date, location: form.location,
+      is_official: form.is_official === "true",
+      distance_km: form.distance_km ? Number(form.distance_km) : null,
+      obstacles: form.obstacles ? Number(form.obstacles) : null,
+      max_capacity: form.max_capacity ? Number(form.max_capacity) : 0,
+    };
+    try {
+      await api.updateEvent(event.id, patch);
+      toast.success("Carrera actualizada");
+      onEventChanged({ ...event, ...patch });
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  async function submit() {
+    setBusy(true);
+    try {
+      await api.submitEvent(event.id);
+      toast.success("Enviada a aprobación");
+      onEventChanged({ ...event, status: "pending_federation" });
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <button onClick={onBack} className="text-left text-sm text-primary">← Volver a carreras</button>
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="font-display text-3xl">{event.title}</h2>
+        <StatusBadge status={event.status} />
+        <OficialBadge value={event.is_official} />
+      </div>
+      {locked ? (
+        <Note>Esta carrera ya se envió a revisión — no puedes seguir editando sus datos. Habla con el admin de tu liga si necesitas cambiar algo.</Note>
+      ) : null}
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+        <Field label="Nombre *" error={errors.title}><Input disabled={locked} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
+        <Field label="Fecha *" error={errors.date}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+        <Field label="Lugar *" error={errors.location}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
+        <Field label="¿Es oficial? *" error={errors.is_official}>
+          <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+            <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        <Field label="Distancia (km)" error={errors.distance_km}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
+        <Field label="Obstáculos"><Input disabled={locked} inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} /></Field>
+        <Field label="Cupos"><Input disabled={locked} inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} /></Field>
+        <div className="flex gap-2 sm:col-span-3">
+          {!locked ? <Button onClick={save} disabled={busy}>Guardar cambios</Button> : null}
+          {event.status === "draft" ? <Button variant="secondary" onClick={submit} disabled={busy}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
+        </div>
+      </CardContent></Card>
     </div>
   );
 }
@@ -801,6 +973,71 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           </TableRow>
         ))}
         {judges.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
+      </SimpleTable>
+    </div>
+  );
+}
+
+function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
+  const [managers, setManagers] = useState<api.RaceManager[]>([]);
+  const [form, setForm] = useState({ full_name: "", email: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [inviting, setInviting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => setManagers(await api.listRaceManagers(tenantId)), [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function invite() {
+    const { ok, errors } = validateForm(form, { full_name: [required("El nombre")], email: [required("El correo")] });
+    setErrors(errors as Record<string, string>); if (!ok) return;
+    setInviting(true);
+    try {
+      await api.inviteRaceManager(form);
+      toast.success("Invitación enviada — recibirá un correo para crear su contraseña");
+      setForm({ full_name: "", email: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); } finally { setInviting(false); }
+  }
+
+  async function resend(m: api.RaceManager) {
+    if (!m.email || !m.full_name) return;
+    setResendingId(m.id);
+    try {
+      await api.inviteRaceManager({ full_name: m.full_name, email: m.email });
+      toast.success(`Invitación reenviada a ${m.email}`);
+    } catch (e) { toast.error((e as Error).message); } finally { setResendingId(null); }
+  }
+
+  return (
+    <div className="grid gap-4">
+      {!locked ? (
+        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
+          <Field label="Nombre *" error={errors.full_name}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
+          <Field label="Correo *" error={errors.email}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar gestor</Button></div>
+          <p className="sm:col-span-4 text-xs text-muted-foreground">
+            Un gestor de carreras solo puede crear y editar carreras de tu liga (oficiales o no) — no puede aprobar
+            eventos, ni gestionar categorías, inscritos, checkpoints, jueces u otros usuarios.
+          </p>
+        </CardContent></Card>
+      ) : null}
+      <SimpleTable head={["Nombre", "Correo", "Estado"]}>
+        {managers.map((m) => (
+          <TableRow key={m.id}>
+            <TableCell className="font-medium">{m.full_name ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
+            <TableCell className="text-right">
+              {m.password_set_at ? (
+                <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
+              ) : (
+                <Button size="sm" variant="outline" disabled={locked || resendingId === m.id} onClick={() => resend(m)}>
+                  <Mail className="mr-1 size-4" />{resendingId === m.id ? "Enviando..." : "Reenviar invitación"}
+                </Button>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+        {managers.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin gestores de carreras aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

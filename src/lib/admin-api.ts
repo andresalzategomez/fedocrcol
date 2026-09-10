@@ -41,6 +41,7 @@ export interface EventRow {
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
 export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
+export interface RaceManager { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
   id: string;
@@ -122,6 +123,15 @@ export async function createEvent(input: {
   // Sembrar el maestro de categorías de la carrera con el catálogo nacional.
   await seedStandardCategories(ev.id);
   return ev;
+}
+
+/** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
+export async function updateEvent(id: string, patch: {
+  title?: string; date?: string; location?: string; is_official?: boolean;
+  distance_km?: number | null; obstacles?: number | null; max_capacity?: number;
+}): Promise<void> {
+  const { error } = await db().from("events").update(patch).eq("id", id);
+  if (error) throw error;
 }
 
 /** Copia el catálogo nacional de categorías al maestro de esta carrera. */
@@ -257,6 +267,28 @@ export async function inviteJudge(input: { full_name: string; email: string }): 
   const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
   if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al juez");
   return body as Judge;
+}
+
+export async function listRaceManagers(tenantId: string): Promise<RaceManager[]> {
+  const { data, error } = await db().from("profiles")
+    .select("id, email, full_name, password_set_at").eq("tenant_id", tenantId).eq("role", "race_manager").order("full_name");
+  if (error) throw error;
+  return data as RaceManager[];
+}
+
+/** Invita a un gestor de carreras por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
+export async function inviteRaceManager(input: { full_name: string; email: string }): Promise<RaceManager> {
+  const { data: sessionData } = await db().auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+  const res = await fetch("/api/admin/race-managers", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
+  });
+  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al gestor de carreras");
+  return body as RaceManager;
 }
 
 /** IDs de checkpoints asignados a cada juez, para una carrera puntual. */
