@@ -42,6 +42,7 @@ export interface EventRow {
   federation_approved: boolean;
   is_official: boolean | null;
   created_by: string | null;
+  visibility: "public" | "private";
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
@@ -196,7 +197,7 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
 
 export async function createEvent(input: {
   tenant_id: string; title: string; date: string; location: string; is_official: boolean;
-  distance_km?: number; obstacles?: number; max_capacity?: number;
+  distance_km?: number; obstacles?: number; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<EventRow> {
   const { data, error } = await db().from("events").insert({
     tenant_id: input.tenant_id,
@@ -204,6 +205,7 @@ export async function createEvent(input: {
     date: input.date,
     location: input.location,
     is_official: input.is_official,
+    visibility: input.visibility ?? "private",
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
     max_capacity: input.max_capacity ?? 0,
@@ -220,7 +222,7 @@ export async function createEvent(input: {
 /** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
 export async function updateEvent(id: string, patch: {
   title?: string; date?: string; location?: string; is_official?: boolean;
-  distance_km?: number | null; obstacles?: number | null; max_capacity?: number;
+  distance_km?: number | null; obstacles?: number | null; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<void> {
   const { error } = await db().from("events").update(patch).eq("id", id);
   if (error) throw error;
@@ -289,11 +291,19 @@ export async function listEventCategories(eventId: string): Promise<EventCategor
 }
 export async function createEventCategory(eventId: string, input: {
   name: string; gender?: string | null; min_age?: number | null; max_age?: number | null;
+  price?: number; slots_available?: number;
 }) {
   const { error } = await db().from("event_categories").insert({
     event_id: eventId, name: input.name, gender: input.gender ?? null,
-    min_age: input.min_age ?? null, max_age: input.max_age ?? null, price: 0, slots_available: 0,
+    min_age: input.min_age ?? null, max_age: input.max_age ?? null,
+    price: input.price ?? 0, slots_available: input.slots_available ?? 0,
   });
+  if (error) throw error;
+}
+
+/** Precio y cupos de una categoría -- sin esto quedan en 0 y el formulario público nunca la deja seleccionar. */
+export async function updateEventCategory(id: string, patch: { price?: number; slots_available?: number }) {
+  const { error } = await db().from("event_categories").update(patch).eq("id", id);
   if (error) throw error;
 }
 

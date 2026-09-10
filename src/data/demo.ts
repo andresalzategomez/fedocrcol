@@ -33,6 +33,7 @@ export type OcrEvent = {
   obstacles: number;
   image_hint: string;
   categories: EventCategory[];
+  visibility?: "public" | "private";
 };
 
 export type RankingRow = {
