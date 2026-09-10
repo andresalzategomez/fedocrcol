@@ -14,7 +14,7 @@ import {
  */
 export async function fetchLeagues(): Promise<League[]> {
   if (!supabase) return DEMO_LEAGUES;
-  const { data, error } = await supabase.from("tenants").select("*").order("name");
+  const { data, error } = await supabase.from("tenants").select("*").eq("status", "active").order("name");
   if (error || !data?.length) return DEMO_LEAGUES;
   return data as unknown as League[];
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -85,7 +86,7 @@ function AuthPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Contraseña</Label>
-                    <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <PasswordInput id="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   <Button type="submit" disabled={loading}>{loading ? "Ingresando..." : "Ingresar"}</Button>
                 </form>
@@ -168,7 +169,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="a-pass">Contraseña</Label>
-        <Input id="a-pass" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="a-pass" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <div className="grid gap-2">
         <Label>Liga departamental</Label>
@@ -246,7 +247,7 @@ function ClubSignupForm({ tenants }: { tenants: Tenant[] }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="c-pass">Contraseña</Label>
-        <Input id="c-pass" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="c-pass" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="c-club">Nombre del club</Label>
@@ -316,7 +317,7 @@ function LeagueSignupForm() {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="l-pass">Contraseña</Label>
-        <Input id="l-pass" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="l-pass" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="l-league">Nombre de la liga</Label>

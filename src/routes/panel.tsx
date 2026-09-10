@@ -207,16 +207,19 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
     try {
       const t = await api.listTenants();
       setTenants(t);
-      if (isSuper && !activeTenant && t[0]) setActiveTenant(t[0].id);
+      const active = t.filter((x) => x.status === "active");
+      if (isSuper && !activeTenant && active[0]) setActiveTenant(active[0].id);
     } catch (e) { toast.error((e as Error).message); }
   }, [isSuper, activeTenant]);
   useEffect(() => { loadTenants(); }, [loadTenants]);
+  const selectableTenants = tenants.filter((t) => t.status === "active");
 
   return (
     <Tabs defaultValue={isSuper ? "ligas" : "carreras"}>
       <TabsList>
         {isSuper ? <TabsTrigger value="ligas"><Building2 className="mr-1 size-4" />Ligas</TabsTrigger> : null}
         <TabsTrigger value="carreras"><Flag className="mr-1 size-4" />Carreras</TabsTrigger>
+        <TabsTrigger value="clubes"><Users className="mr-1 size-4" />Clubes</TabsTrigger>
         {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="solicitudes"><ClipboardCheck className="mr-1 size-4" />Solicitudes</TabsTrigger> : null}
       </TabsList>
@@ -229,11 +232,26 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
             <Label>Liga activa</Label>
             <Select value={activeTenant ?? ""} onValueChange={setActiveTenant}>
               <SelectTrigger><SelectValue placeholder="Selecciona una liga" /></SelectTrigger>
-              <SelectContent>{tenants.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{selectableTenants.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         ) : null}
         {activeTenant ? <CarrerasSection tenantId={activeTenant} isSuper={isSuper} userId={userId} /> : <Note>Selecciona o crea una liga primero.</Note>}
+      </TabsContent>
+
+      <TabsContent value="clubes" className="mt-6">
+        {isSuper ? (
+          <div className="mb-4 grid max-w-sm gap-2">
+            <Label>Liga</Label>
+            <Select value={activeTenant ?? ""} onValueChange={setActiveTenant}>
+              <SelectTrigger><SelectValue placeholder="Selecciona una liga" /></SelectTrigger>
+              <SelectContent>{selectableTenants.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        ) : null}
+        {isSuper
+          ? (activeTenant ? <ClubesSection tenantId={activeTenant} /> : <Note>Selecciona o crea una liga primero.</Note>)
+          : (fixedTenant ? <ClubesSection tenantId={fixedTenant} /> : <Note>Tu cuenta no tiene una liga asignada.</Note>)}
       </TabsContent>
 
       {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
@@ -270,11 +288,81 @@ function SolicitudesClub({ tenantId }: { tenantId: string }) {
   );
 }
 
+// ------------------------------- Clubes (vista) ------------------------
+const CLUB_APPROVAL_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  active: { label: "Aprobado", variant: "default" },
+  pending: { label: "Pendiente", variant: "outline" },
+  rejected: { label: "Rechazado", variant: "destructive" },
+};
+const CLUB_STATUS_LABEL: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  active: { label: "Activo", variant: "default" },
+  inactive: { label: "Inactivo", variant: "secondary" },
+  suspended: { label: "Suspendido", variant: "destructive" },
+};
+function ClubStatusBadge({ map, value }: { map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }>; value: string }) {
+  const meta = map[value];
+  return <Badge variant={meta?.variant ?? "outline"}>{meta?.label ?? value}</Badge>;
+}
+
+function ClubesSection({ tenantId }: { tenantId: string }) {
+  const [rows, setRows] = useState<api.AdminClub[]>([]);
+  const [filters, setFilters] = useState({ name: "", city: "", approval: "all" });
+  const load = useCallback(async () => { try { setRows(await api.listClubs(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rows.filter((c) => {
+    if (filters.name && !c.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
+    if (filters.city && !(c.city ?? "").toLowerCase().includes(filters.city.toLowerCase())) return false;
+    if (filters.approval !== "all" && c.approval_status !== filters.approval) return false;
+    return true;
+  });
+
+  return (
+    <div className="grid gap-6">
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+        <Field label="Club"><Input value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Buscar por nombre" /></Field>
+        <Field label="Ciudad"><Input value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} placeholder="Buscar por ciudad" /></Field>
+        <Field label="Estado">
+          <Select value={filters.approval} onValueChange={(v) => setFilters({ ...filters, approval: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(CLUB_APPROVAL_LABEL).map(([value, { label }]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </CardContent></Card>
+      <SimpleTable head={["Club", "Ciudad", "Departamento", "Correo", "Estado", "Habilitado"]}>
+        {filtered.map((c) => (
+          <TableRow key={c.id}>
+            <TableCell className="font-medium">{c.name}</TableCell>
+            <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{c.department ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+            <TableCell><ClubStatusBadge map={CLUB_APPROVAL_LABEL} value={c.approval_status} /></TableCell>
+            <TableCell>{c.status ? <ClubStatusBadge map={CLUB_STATUS_LABEL} value={c.status} /> : "—"}</TableCell>
+          </TableRow>
+        ))}
+        {filtered.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center text-muted-foreground">
+              {rows.length === 0 ? "Esta liga aún no tiene clubes." : "Ningún club coincide con los filtros."}
+            </TableCell>
+          </TableRow>
+        ) : null}
+      </SimpleTable>
+    </div>
+  );
+}
+
 // ------------------------------- Ligas -------------------------------
 function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () => void }) {
   const [form, setForm] = useState({ name: "", slug: "", department: "", city: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [filters, setFilters] = useState({ name: "", department: "", status: "all", enabled: "all" });
 
   async function create() {
     const { ok, errors } = validateForm(form, { name: [required("El nombre")], slug: [slugRule()], department: [required("El departamento")] });
@@ -285,6 +373,15 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
+  const filtered = tenants.filter((t) => {
+    if (filters.name && !t.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
+    if (filters.department && !t.department.toLowerCase().includes(filters.department.toLowerCase())) return false;
+    if (filters.status !== "all" && t.status !== filters.status) return false;
+    if (filters.enabled === "yes" && t.status !== "active") return false;
+    if (filters.enabled === "no" && t.status === "active") return false;
+    return true;
+  });
+
   return (
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
@@ -294,18 +391,43 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
         <Field label="Ciudad"><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Cali" /></Field>
         <div className="sm:col-span-4"><Button onClick={create} disabled={busy}><Plus className="mr-1 size-4" />Crear liga</Button></div>
       </CardContent></Card>
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
+        <Field label="Liga"><Input value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Buscar por nombre" /></Field>
+        <Field label="Depto"><Input value={filters.department} onChange={(e) => setFilters({ ...filters, department: e.target.value })} placeholder="Buscar por departamento" /></Field>
+        <Field label="Estado">
+          <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(TENANT_STATUS_LABEL).map(([value, { label }]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Habilitada">
+          <Select value={filters.enabled} onValueChange={(v) => setFilters({ ...filters, enabled: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="yes">Sí</SelectItem>
+              <SelectItem value="no">No</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+      </CardContent></Card>
       <SimpleTable head={["Liga", "Depto", "Estado", "Habilitada"]}>
-        {tenants.map((t) => (
+        {filtered.map((t) => (
           <TableRow key={t.id}>
             <TableCell className="font-medium">{t.name}</TableCell>
             <TableCell className="text-muted-foreground">{t.department}</TableCell>
             <TableCell><Badge variant={TENANT_STATUS_LABEL[t.status].variant}>{TENANT_STATUS_LABEL[t.status].label}</Badge></TableCell>
-            <TableCell className="text-right"><Switch defaultChecked={t.status === "active"} onCheckedChange={async (v) => {
+            <TableCell className="text-right"><Switch checked={t.status === "active"} onCheckedChange={async (v) => {
               try { await api.setTenantStatus(t.id, v ? "active" : "suspended"); toast.success("Actualizada"); onChange(); } catch (e) { toast.error((e as Error).message); }
             }} /></TableCell>
           </TableRow>
         ))}
-        {tenants.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Aún no hay ligas.</TableCell></TableRow> : null}
+        {filtered.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">{tenants.length === 0 ? "Aún no hay ligas." : "Ninguna liga coincide con los filtros."}</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
