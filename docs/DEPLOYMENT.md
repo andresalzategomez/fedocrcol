@@ -9,9 +9,12 @@ producción. **Nunca** subas `.env` al repo.
 |----------|--------|-------------|
 | `VITE_SUPABASE_URL` | Cliente | URL del proyecto Supabase externo. |
 | `VITE_SUPABASE_ANON_KEY` | Cliente | Anon key (pública, protegida por RLS). |
-| `SUPABASE_URL` | Servidor | URL del proyecto (para el webhook). |
-| `SUPABASE_SERVICE_ROLE_KEY` | Servidor | Service role (omite RLS). **Solo servidor.** |
+| `EXT_SUPABASE_URL` | Servidor | URL del proyecto (para el webhook y la API /api/v1). |
+| `EXT_SUPABASE_ANON_KEY` | Servidor | Anon key (cliente por-usuario con RLS en la API /api/v1). |
+| `EXT_SUPABASE_SERVICE_ROLE_KEY` | Servidor | Service role (omite RLS). **Solo servidor.** |
 | `PAYMENT_WEBHOOK_SECRET` | Servidor | Secreto HMAC de la pasarela (Bold/PayU). |
+| `RESEND_API_KEY` | Servidor | API key de Resend para correos transaccionales. |
+| `RESEND_FROM_EMAIL` | Servidor | Remitente verificado en Resend. |
 
 > Si `VITE_SUPABASE_URL`/`ANON_KEY` no están, la app corre en **modo demo** con
 > datos de ejemplo (ver `src/lib/supabase.ts`).

@@ -9,7 +9,8 @@ import { createClient } from "@supabase/supabase-js";
  *
  * Variables de entorno requeridas (servidor):
  *   PAYMENT_WEBHOOK_SECRET  (llave secreta de Bold/PayU para firmar)
- *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (proyecto externo de la Federación)
+ *   EXT_SUPABASE_URL, EXT_SUPABASE_SERVICE_ROLE_KEY  (proyecto externo de la Federación)
+ *   (El prefijo SUPABASE_ está reservado por Lovable; se usa EXT_SUPABASE_.)
  */
 export const Route = createFileRoute("/api/public/pagos/webhook")({
   server: {
@@ -51,8 +52,8 @@ export const Route = createFileRoute("/api/public/pagos/webhook")({
           payload.status ?? "",
         );
 
-        const url = process.env["SUPABASE_URL"];
-        const serviceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+        const url = process.env["EXT_SUPABASE_URL"];
+        const serviceKey = process.env["EXT_SUPABASE_SERVICE_ROLE_KEY"];
         if (!url || !serviceKey) {
           return new Response("Supabase externo no configurado", { status: 503 });
         }

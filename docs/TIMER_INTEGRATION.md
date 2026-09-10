@@ -172,8 +172,9 @@ si falta `started_at`.
 > `recalculate_event_positions`).
 
 ## 4. Variables de entorno del servidor
-`SUPABASE_URL`, `SUPABASE_ANON_KEY` (cliente por-usuario con RLS),
-`SUPABASE_SERVICE_ROLE_KEY` (solo operaciones administrativas). Ver `.env.example`.
+`EXT_SUPABASE_URL`, `EXT_SUPABASE_ANON_KEY` (cliente por-usuario con RLS),
+`EXT_SUPABASE_SERVICE_ROLE_KEY` (solo operaciones administrativas). Ver `.env.example`.
+(El prefijo `SUPABASE_` está reservado por Lovable; se usa `EXT_SUPABASE_`.)
 
 ## 5. Requisitos previos por evento (para que el Timer tenga qué descargar)
 - Evento (`events`) publicado en la liga.
