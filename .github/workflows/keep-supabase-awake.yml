@@ -1,0 +1,30 @@
+name: Keep Supabase awake
+
+# Supabase pausa los proyectos del plan gratuito tras ~7 días sin actividad.
+# Este workflow hace una lectura mínima contra PostgREST todos los días para
+# que el proyecto nunca llegue a ese umbral. Requiere los secrets del repo
+# SUPABASE_URL y SUPABASE_ANON_KEY (ver README del workflow más abajo).
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC = 8:00 am hora Colombia, todos los días
+  workflow_dispatch: {} # permite dispararlo a mano desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping a Supabase (PostgREST)
+        run: |
+          status=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/tenants?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+          echo "Supabase respondió HTTP $status"
+          cat /tmp/body.txt
+          if [ "$status" -ge 400 ]; then
+            echo "::error::Supabase respondió con un error ($status) -- revisa los secrets SUPABASE_URL/SUPABASE_ANON_KEY"
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
