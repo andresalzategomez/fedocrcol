@@ -1212,3 +1212,34 @@ begin
 
   return new;
 end; $$;
+
+-- =====================================================================
+-- 0020 — Fase D: paneles de aprobación (superadmin y admin de liga).
+-- Idempotente. Ver migración para el detalle de por qué hace falta un
+-- trigger (RLS sola no distingue transiciones de estado old->new).
+-- =====================================================================
+
+alter type public.tenant_status add value if not exists 'rejected';
+
+create or replace function public.enforce_tenants_status_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if new.status is distinct from old.status then
+    if public.has_role(auth.uid(), 'superadmin') then
+      return new;
+    end if;
+    if public.has_role(auth.uid(), 'admin') and old.id = public.current_tenant_id()
+       and old.status = 'rejected' and new.status = 'pending' then
+      return new;
+    end if;
+    raise exception 'No tienes permiso para cambiar el estado de esta liga';
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_tenants_status_change on public.tenants;
+create trigger trg_tenants_status_change before update on public.tenants
+  for each row execute function public.enforce_tenants_status_change();

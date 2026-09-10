@@ -84,16 +84,36 @@ function PanelPage() {
 /** Para un admin de liga: bloquea el panel si su liga sigue pendiente de aprobación (o suspendida). */
 function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: string }) {
   const [status, setStatus] = useState<Tenant["status"] | "loading" | "none">("loading");
+  const [retrying, setRetrying] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!tenantId) { setStatus("none"); return; }
-    api.listTenants().then((all) => setStatus(all.find((t) => t.id === tenantId)?.status ?? "none")).catch(() => setStatus("none"));
+    try {
+      const all = await api.listTenants();
+      setStatus(all.find((t) => t.id === tenantId)?.status ?? "none");
+    } catch { setStatus("none"); }
   }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function retry() {
+    if (!tenantId) return;
+    setRetrying(true);
+    try { await api.retryLeague(tenantId); toast.success("Solicitud reenviada"); load(); }
+    catch (e) { toast.error((e as Error).message); } finally { setRetrying(false); }
+  }
 
   if (status === "loading") return <Note>Cargando…</Note>;
   if (status === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
   if (status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
   if (status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
+  if (status === "rejected") {
+    return (
+      <Note>
+        <p className="mb-3">La solicitud de tu liga fue rechazada.</p>
+        <Button size="sm" onClick={retry} disabled={retrying}>{retrying ? "Enviando..." : "Volver a solicitar"}</Button>
+      </Note>
+    );
+  }
   return <AdminConsole role="admin" userId={userId} fixedTenant={tenantId} />;
 }
 
@@ -165,6 +185,12 @@ function canManageEvent(event: EventRow, isSuper: boolean, userId: string): bool
   if (isSuper) return event.created_by === userId;
   return true;
 }
+const TENANT_STATUS_LABEL: Record<Tenant["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  active: { label: "Activa", variant: "default" },
+  pending: { label: "Pendiente", variant: "outline" },
+  rejected: { label: "Rechazada", variant: "destructive" },
+  suspended: { label: "Suspendida", variant: "destructive" },
+};
 function OficialBadge({ value }: { value: boolean | null }) {
   if (value == null) return <Badge variant="outline">Sin definir</Badge>;
   return <Badge variant={value ? "default" : "secondary"}>{value ? "Oficial" : "No oficial"}</Badge>;
@@ -191,6 +217,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
         {isSuper ? <TabsTrigger value="ligas"><Building2 className="mr-1 size-4" />Ligas</TabsTrigger> : null}
         <TabsTrigger value="carreras"><Flag className="mr-1 size-4" />Carreras</TabsTrigger>
         {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
+        {!isSuper && fixedTenant ? <TabsTrigger value="solicitudes"><ClipboardCheck className="mr-1 size-4" />Solicitudes</TabsTrigger> : null}
       </TabsList>
 
       {isSuper ? <TabsContent value="ligas" className="mt-6"><LigasSection tenants={tenants} onChange={loadTenants} /></TabsContent> : null}
@@ -209,7 +236,36 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
       </TabsContent>
 
       {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
+      {!isSuper && fixedTenant ? <TabsContent value="solicitudes" className="mt-6"><SolicitudesClub tenantId={fixedTenant} /></TabsContent> : null}
     </Tabs>
+  );
+}
+
+// ------------------- Solicitudes de club (admin de liga) --------------
+function SolicitudesClub({ tenantId }: { tenantId: string }) {
+  const [rows, setRows] = useState<api.AdminClub[]>([]);
+  const load = useCallback(async () => { try { setRows(await api.listPendingClubRequests(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
+    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+
+  return (
+    <SimpleTable head={["Club", "Ciudad", "Correo", "Acciones"]}>
+      {rows.map((c) => (
+        <TableRow key={c.id}>
+          <TableCell className="font-medium">{c.name}</TableCell>
+          <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
+          <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+          <TableCell className="text-right"><div className="flex justify-end gap-2">
+            <Button size="sm" onClick={() => act(c.id, api.approveClubRequest, "Club aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+            <Button size="sm" variant="outline" onClick={() => act(c.id, api.rejectClubRequest, "Club rechazado")}><XCircle className="mr-1 size-4" />Rechazar</Button>
+          </div></TableCell>
+        </TableRow>
+      ))}
+      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes pidiendo afiliarse a tu liga.</TableCell></TableRow> : null}
+    </SimpleTable>
   );
 }
 
@@ -242,7 +298,7 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
           <TableRow key={t.id}>
             <TableCell className="font-medium">{t.name}</TableCell>
             <TableCell className="text-muted-foreground">{t.department}</TableCell>
-            <TableCell><Badge variant={t.status === "active" ? "default" : "destructive"}>{t.status === "active" ? "Activa" : "Suspendida"}</Badge></TableCell>
+            <TableCell><Badge variant={TENANT_STATUS_LABEL[t.status].variant}>{TENANT_STATUS_LABEL[t.status].label}</Badge></TableCell>
             <TableCell className="text-right"><Switch defaultChecked={t.status === "active"} onCheckedChange={async (v) => {
               try { await api.setTenantStatus(t.id, v ? "active" : "suspended"); toast.success("Actualizada"); onChange(); } catch (e) { toast.error((e as Error).message); }
             }} /></TableCell>
@@ -256,6 +312,21 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
 
 // ---------------------------- Aprobaciones ---------------------------
 function Aprobaciones({ tenants }: { tenants: Tenant[] }) {
+  return (
+    <Tabs defaultValue="carreras">
+      <TabsList>
+        <TabsTrigger value="carreras">Carreras</TabsTrigger>
+        <TabsTrigger value="ligas">Ligas</TabsTrigger>
+        <TabsTrigger value="clubes">Clubes independientes</TabsTrigger>
+      </TabsList>
+      <TabsContent value="carreras" className="mt-4"><AprobacionesCarreras tenants={tenants} /></TabsContent>
+      <TabsContent value="ligas" className="mt-4"><AprobacionesLigas /></TabsContent>
+      <TabsContent value="clubes" className="mt-4"><AprobacionesClubesIndependientes /></TabsContent>
+    </Tabs>
+  );
+}
+
+function AprobacionesCarreras({ tenants }: { tenants: Tenant[] }) {
   const [rows, setRows] = useState<EventRow[]>([]);
   const load = useCallback(async () => { try { setRows(await api.listPendingFederation()); } catch (e) { toast.error((e as Error).message); } }, []);
   useEffect(() => { load(); }, [load]);
@@ -279,6 +350,59 @@ function Aprobaciones({ tenants }: { tenants: Tenant[] }) {
         </TableRow>
       ))}
       {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay carreras pendientes de aprobación.</TableCell></TableRow> : null}
+    </SimpleTable>
+  );
+}
+
+function AprobacionesLigas() {
+  const [rows, setRows] = useState<Tenant[]>([]);
+  const load = useCallback(async () => { try { setRows(await api.listPendingLeagues()); } catch (e) { toast.error((e as Error).message); } }, []);
+  useEffect(() => { load(); }, [load]);
+  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
+    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+  return (
+    <SimpleTable head={["Liga", "Departamento", "Ciudad", "Acciones"]}>
+      {rows.map((t) => (
+        <TableRow key={t.id}>
+          <TableCell className="font-medium">{t.name}</TableCell>
+          <TableCell className="text-muted-foreground">{t.department}</TableCell>
+          <TableCell className="text-muted-foreground">{t.city ?? "—"}</TableCell>
+          <TableCell className="text-right"><div className="flex justify-end gap-2">
+            <Button size="sm" onClick={() => act(t.id, api.approveLeague, "Liga aprobada")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+            <Button size="sm" variant="outline" onClick={() => act(t.id, api.rejectLeague, "Liga rechazada")}><XCircle className="mr-1 size-4" />Rechazar</Button>
+          </div></TableCell>
+        </TableRow>
+      ))}
+      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay ligas pendientes de aprobación.</TableCell></TableRow> : null}
+    </SimpleTable>
+  );
+}
+
+function AprobacionesClubesIndependientes() {
+  const [rows, setRows] = useState<api.AdminClub[]>([]);
+  const load = useCallback(async () => { try { setRows(await api.listPendingIndependentClubs()); } catch (e) { toast.error((e as Error).message); } }, []);
+  useEffect(() => { load(); }, [load]);
+  async function approve(club: api.AdminClub) {
+    try { await api.approveIndependentClub(club); toast.success("Club aprobado — se creó como club independiente"); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+  async function reject(id: string) {
+    try { await api.rejectClubRequest(id); toast.success("Club rechazado"); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+  return (
+    <SimpleTable head={["Club", "Ciudad", "Correo", "Acciones"]}>
+      {rows.map((c) => (
+        <TableRow key={c.id}>
+          <TableCell className="font-medium">{c.name}</TableCell>
+          <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
+          <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+          <TableCell className="text-right"><div className="flex justify-end gap-2">
+            <Button size="sm" onClick={() => approve(c)}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+            <Button size="sm" variant="outline" onClick={() => reject(c.id)}><XCircle className="mr-1 size-4" />Rechazar</Button>
+          </div></TableCell>
+        </TableRow>
+      ))}
+      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes independientes pendientes de aprobación.</TableCell></TableRow> : null}
     </SimpleTable>
   );
 }

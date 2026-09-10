@@ -19,9 +19,13 @@ export interface Tenant {
   city: string | null;
   primary_color: string;
   secondary_color: string;
-  status: "active" | "suspended" | "pending";
+  status: "active" | "suspended" | "pending" | "rejected";
 }
 export interface PublicClub { id: string; name: string; tenant_id: string | null; }
+export interface AdminClub {
+  id: string; name: string; tenant_id: string | null; owner_id: string | null;
+  approval_status: string; contact_email: string | null; city: string | null; department: string | null;
+}
 export type EventStatus = "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 export interface EventRow {
   id: string;
@@ -82,6 +86,83 @@ export async function listClubsForTenant(tenantId: string): Promise<PublicClub[]
     .order("name");
   if (error) throw error;
   return data as PublicClub[];
+}
+
+// ------------------- Aprobaciones: ligas y clubes --------------------
+export async function listPendingLeagues(): Promise<Tenant[]> {
+  const { data, error } = await db().from("tenants").select("*").eq("status", "pending").order("name");
+  if (error) throw error;
+  return data as Tenant[];
+}
+/** Solo superadmin: el trigger enforce_tenants_status_change rechaza cualquier otro caso. */
+export async function approveLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "active" }).eq("id", id);
+  if (error) throw error;
+}
+export async function rejectLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}
+/** El propio admin de una liga rechazada puede reintentar (única transición que el trigger le permite). */
+export async function retryLeague(id: string) {
+  const { error } = await db().from("tenants").update({ status: "pending" }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Clubes sin liga (tenant_id null) pendientes de que el superadmin los apruebe. */
+export async function listPendingIndependentClubs(): Promise<AdminClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
+    .is("tenant_id", null).eq("approval_status", "pending").order("name");
+  if (error) throw error;
+  return data as AdminClub[];
+}
+/** Clubes que pidieron afiliarse a esta liga, pendientes de que su admin los apruebe. */
+export async function listPendingClubRequests(tenantId: string): Promise<AdminClub[]> {
+  const { data, error } = await db().from("clubs")
+    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
+    .eq("tenant_id", tenantId).eq("approval_status", "pending").order("name");
+  if (error) throw error;
+  return data as AdminClub[];
+}
+export async function rejectClubRequest(id: string) {
+  const { error } = await db().from("clubs").update({ approval_status: "rejected" }).eq("id", id);
+  if (error) throw error;
+}
+/** Aprobación por el admin de la liga a la que el club ya pertenece (tenant_id no cambia). */
+export async function approveClubRequest(id: string) {
+  const { data: userData } = await db().auth.getUser();
+  const { error } = await db().from("clubs")
+    .update({ approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+/** Aprobación por el superadmin de un club sin liga: se le crea su propio tenant ("club independiente"). */
+export async function approveIndependentClub(club: AdminClub): Promise<void> {
+  const base = club.name
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "club";
+  const { data: existingSlugs } = await db().from("tenants").select("slug").like("slug", `${base}%`);
+  const taken = new Set((existingSlugs ?? []).map((r) => r.slug as string));
+  let slug = base;
+  let n = 2;
+  while (taken.has(slug)) slug = `${base}-${n++}`;
+
+  const { data: tenant, error: tenantErr } = await db().from("tenants")
+    .insert({ name: club.name, slug, department: club.department ?? "Nacional", city: club.city ?? null, status: "active" })
+    .select("id").single();
+  if (tenantErr) throw tenantErr;
+
+  const { data: userData } = await db().auth.getUser();
+  const { error: clubErr } = await db().from("clubs")
+    .update({ tenant_id: tenant.id, approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
+    .eq("id", club.id);
+  if (clubErr) throw clubErr;
+
+  if (club.owner_id) {
+    const { error: ownerErr } = await db().from("profiles").update({ tenant_id: tenant.id }).eq("id", club.owner_id);
+    if (ownerErr) throw ownerErr;
+  }
 }
 
 export async function createTenant(input: {
