@@ -3,11 +3,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 /**
  * Clientes de Supabase para uso EXCLUSIVO en el servidor (server routes /api/v1).
  * Requiere variables de entorno de servidor (ver .env.example):
- *   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+ *   EXT_SUPABASE_URL, EXT_SUPABASE_ANON_KEY, EXT_SUPABASE_SERVICE_ROLE_KEY
+ * (El prefijo SUPABASE_ está reservado por Lovable; se usa EXT_SUPABASE_.)
  */
-const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"];
-const anonKey = process.env["SUPABASE_ANON_KEY"] ?? process.env["VITE_SUPABASE_ANON_KEY"];
-const serviceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+const url = process.env["EXT_SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"];
+const anonKey = process.env["EXT_SUPABASE_ANON_KEY"] ?? process.env["VITE_SUPABASE_ANON_KEY"];
+const serviceKey = process.env["EXT_SUPABASE_SERVICE_ROLE_KEY"];
 
 export const isServerSupabaseConfigured = Boolean(url && anonKey);
 
