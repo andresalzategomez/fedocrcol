@@ -32,6 +32,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -47,6 +51,21 @@ function AuthPage() {
     if (error) { toast.error(error.message); return; }
     toast.success("Bienvenido de vuelta");
     navigate({ to: "/panel" });
+  }
+
+  async function submitForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      const res = await fetch("/api/public/forgot-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
+      if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo enviar el enlace");
+      setForgotSent(true);
+    } catch (err) { toast.error((err as Error).message); } finally { setForgotLoading(false); }
   }
 
   const activeTenants = tenants.filter((l) => l.status === "active");
@@ -79,17 +98,58 @@ function AuthPage() {
               </TabsList>
 
               <TabsContent value="login" className="mt-5">
-                <form onSubmit={signIn} className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Correo</Label>
-                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <PasswordInput id="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                  <Button type="submit" disabled={loading}>{loading ? "Ingresando..." : "Ingresar"}</Button>
-                </form>
+                {forgotMode ? (
+                  forgotSent ? (
+                    <div className="flex items-start gap-3 text-sm">
+                      <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <p>
+                        Si ese correo tiene una cuenta, te enviamos un enlace para restablecer tu
+                        contraseña. Revisa tu bandeja de entrada (y spam).
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={submitForgot} className="grid gap-4">
+                      <p className="text-sm text-muted-foreground">
+                        Escribe tu correo y te enviamos un enlace para crear una nueva contraseña.
+                      </p>
+                      <div className="grid gap-2">
+                        <Label htmlFor="forgot-email">Correo</Label>
+                        <Input id="forgot-email" type="email" required value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+                      </div>
+                      <Button type="submit" disabled={forgotLoading}>
+                        {forgotLoading ? "Enviando..." : "Enviar enlace de recuperación"}
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setForgotMode(false)}
+                        className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      >
+                        Volver a ingresar
+                      </button>
+                    </form>
+                  )
+                ) : (
+                  <form onSubmit={signIn} className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Correo</Label>
+                      <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password">Contraseña</Label>
+                        <button
+                          type="button"
+                          onClick={() => { setForgotEmail(email); setForgotSent(false); setForgotMode(true); }}
+                          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                        >
+                          ¿Olvidaste tu contraseña?
+                        </button>
+                      </div>
+                      <PasswordInput id="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </div>
+                    <Button type="submit" disabled={loading}>{loading ? "Ingresando..." : "Ingresar"}</Button>
+                  </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup" className="mt-5">
