@@ -70,7 +70,8 @@ function SetPasswordPage() {
         <div>
           <h1 className="font-display text-4xl">Crear contraseña</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Define la contraseña de tu cuenta. La usarás para iniciar sesión en FedOCR Timer.
+            Define la contraseña de tu cuenta. La usarás para iniciar sesión en FedOCR
+            Colombia (o en FedOCR Timer, si eres juez o gestor de carreras).
           </p>
         </div>
         <Card className="border-border/70">
@@ -78,7 +79,7 @@ function SetPasswordPage() {
             {done ? (
               <div className="flex items-start gap-3 text-sm">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
-                <p>Contraseña creada. Ya puedes iniciar sesión en FedOCR Timer con tu correo y esta contraseña.</p>
+                <p>Contraseña creada. Ya puedes iniciar sesión con tu correo y esta contraseña.</p>
               </div>
             ) : !checked ? (
               <p className="text-sm text-muted-foreground">Verificando el enlace…</p>
