@@ -10,6 +10,60 @@ function db() {
   return supabase;
 }
 
+/**
+ * Token de acceso vigente para llamar los endpoints /api/admin/*. Si el que
+ * hay guardado ya venció (o está por vencer en los próximos 60s), fuerza un
+ * refresh antes de usarlo -- evita el caso típico de una pestaña que llevaba
+ * rato abierta y cuyo access_token quedó vencido sin que el refresh
+ * automático de supabase-js alcanzara a renovarlo a tiempo.
+ */
+async function getFreshToken(forceRefresh: boolean): Promise<string | null> {
+  if (forceRefresh) {
+    const { data, error } = await db().auth.refreshSession();
+    return error ? null : (data.session?.access_token ?? null);
+  }
+  const { data } = await db().auth.getSession();
+  const session = data.session;
+  if (!session) return null;
+  const expiresInMs = (session.expires_at ?? 0) * 1000 - Date.now();
+  if (expiresInMs > 60_000) return session.access_token;
+  const { data: refreshed, error } = await db().auth.refreshSession();
+  return error ? session.access_token : (refreshed.session?.access_token ?? session.access_token);
+}
+
+/**
+ * Petición autenticada a un endpoint /api/admin/*: arma el Bearer con un
+ * token fresco y, si el servidor igual responde "token inválido o expirado"
+ * (pudo vencer justo entre el chequeo y la llamada), reintenta una vez tras
+ * forzar un refresh antes de rendirse.
+ */
+async function authFetch(path: string, body: unknown, method: "POST" | "DELETE" = "POST"): Promise<unknown> {
+  let token = await getFreshToken(false);
+  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+
+  async function call(bearer: string) {
+    const res = await fetch(path, {
+      method,
+      headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` },
+      body: JSON.stringify(body),
+    });
+    const parsed = await res.json().catch(() => ({}) as { error?: { code?: string; message?: string } });
+    return { res, parsed: parsed as { error?: { code?: string; message?: string } } };
+  }
+
+  let { res, parsed } = await call(token);
+
+  if (!res.ok && parsed.error?.code === "UNAUTHORIZED") {
+    const fresh = await getFreshToken(true);
+    if (fresh) ({ res, parsed } = await call(fresh));
+  }
+
+  if (!res.ok) {
+    throw new Error(parsed.error?.message ?? "No se pudo completar la solicitud");
+  }
+  return parsed;
+}
+
 // ----------------------------- Tipos ---------------------------------
 export interface Tenant {
   id: string;
@@ -367,17 +421,12 @@ export async function listJudges(tenantId: string): Promise<Judge[]> {
 
 /** Invita a un juez por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
 export async function inviteJudge(input: { full_name: string; email: string }): Promise<Judge> {
-  const { data: sessionData } = await db().auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
-  const res = await fetch("/api/admin/judges", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(input),
-  });
-  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
-  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al juez");
-  return body as Judge;
+  return (await authFetch("/api/admin/judges", input)) as Judge;
+}
+
+/** Elimina la cuenta de un juez (invitación pendiente o ya aceptada). Requiere sesión activa. */
+export async function removeJudge(id: string): Promise<void> {
+  await authFetch("/api/admin/judges", { id }, "DELETE");
 }
 
 export async function listRaceManagers(tenantId: string): Promise<RaceManager[]> {
@@ -389,17 +438,12 @@ export async function listRaceManagers(tenantId: string): Promise<RaceManager[]>
 
 /** Invita a un gestor de carreras por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
 export async function inviteRaceManager(input: { full_name: string; email: string }): Promise<RaceManager> {
-  const { data: sessionData } = await db().auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
-  const res = await fetch("/api/admin/race-managers", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(input),
-  });
-  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
-  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo invitar al gestor de carreras");
-  return body as RaceManager;
+  return (await authFetch("/api/admin/race-managers", input)) as RaceManager;
+}
+
+/** Elimina la cuenta de un gestor de carreras (invitación pendiente o ya aceptada). Requiere sesión activa. */
+export async function removeRaceManager(id: string): Promise<void> {
+  await authFetch("/api/admin/race-managers", { id }, "DELETE");
 }
 
 /** IDs de checkpoints asignados a cada juez, para una carrera puntual. */
@@ -661,14 +705,5 @@ export async function listResults(eventId: string): Promise<EventResult[]> {
 
 /** Pide al servidor (service role) que recalcule las posiciones del evento. */
 export async function recalculatePositions(eventId: string): Promise<void> {
-  const { data } = await db().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
-  const res = await fetch("/api/admin/recalculate-positions", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({ event_id: eventId }),
-  });
-  const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
-  if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo recalcular las posiciones");
+  await authFetch("/api/admin/recalculate-positions", { event_id: eventId });
 }

@@ -4,20 +4,22 @@ import { authenticate, json, apiError, preflight, handler, siteUrl } from "../..
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { judgeInviteHtml, judgeInviteSubject } from "../../../lib/server/email-templates/judge-invite";
-import { inviteOrResendAccount } from "../../../lib/server/invite-account";
+import { judgeRemovedHtml, judgeRemovedSubject } from "../../../lib/server/email-templates/judge-removed";
+import { inviteOrResendAccount, removeAccount } from "../../../lib/server/invite-account";
 
 const bodySchema = z.object({
   email: z.string().email(),
   full_name: z.string().min(1),
 });
+const removeSchema = z.object({ id: z.string().uuid() });
 
 /**
  * POST /api/admin/judges
- * El admin de liga (o superadmin) invita a un juez por correo, y también
- * REENVÍA la invitación (mismo endpoint) mientras el juez no la haya
- * aceptado. Crear un usuario de Supabase Auth requiere service_role (el
- * juez no se auto-registra), así que esto no se puede hacer desde el
- * cliente con RLS — de ahí este server route.
+ * El admin de liga, un gestor de carreras, o superadmin invita a un juez
+ * por correo, y también REENVÍA la invitación (mismo endpoint) mientras
+ * el juez no la haya aceptado. Crear un usuario de Supabase Auth requiere
+ * service_role (el juez no se auto-registra), así que esto no se puede
+ * hacer desde el cliente con RLS — de ahí este server route.
  *
  * La invitación/reenvío en sí (generateLink + borrar-y-recrear si
  * corresponde) vive en lib/server/invite-account.ts, compartida con
@@ -32,8 +34,8 @@ export const Route = createFileRoute("/api/admin/judges")({
       OPTIONS: () => preflight(),
       POST: handler(async ({ request }) => {
         const { role, leagueId } = await authenticate(request);
-        if (role !== "admin" && role !== "superadmin") {
-          return apiError("FORBIDDEN", "Solo un admin de liga o la federación puede crear jueces", 403);
+        if (role !== "admin" && role !== "superadmin" && role !== "race_manager") {
+          return apiError("FORBIDDEN", "Solo un admin de liga, un gestor de carreras o la federación puede crear jueces", 403);
         }
 
         const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -77,6 +79,32 @@ export const Route = createFileRoute("/api/admin/judges")({
         }
 
         return json({ id: result.userId, email, full_name, resent: result.resent });
+      }),
+      DELETE: handler(async ({ request }) => {
+        const { role, leagueId } = await authenticate(request);
+        if (role !== "admin" && role !== "superadmin" && role !== "race_manager") {
+          return apiError("FORBIDDEN", "Solo un admin de liga, un gestor de carreras o la federación puede eliminar jueces", 403);
+        }
+        const parsed = removeSchema.safeParse(await request.json().catch(() => null));
+        if (!parsed.success) return apiError("BAD_REQUEST", "Falta el id del juez", 400);
+
+        const admin = serviceClient();
+        const result = await removeAccount({ admin, id: parsed.data.id, role: "judge", leagueId, isSuperadmin: role === "superadmin" });
+        if (!result.ok) return apiError(result.code, result.message, result.status);
+
+        if (result.email && isResendConfigured) {
+          const { data: tenant } = await admin.from("tenants").select("name").eq("id", leagueId).maybeSingle();
+          const leagueName = tenant?.name ?? "tu liga";
+          const sent = await sendEmail({
+            to: result.email,
+            subject: judgeRemovedSubject(leagueName),
+            html: judgeRemovedHtml({ fullName: result.fullName, leagueName }),
+          });
+          if (!sent.ok) {
+            return apiError("EMAIL_FAILED", `El juez fue eliminado, pero no se pudo avisarle por correo: ${sent.error}`, 502);
+          }
+        }
+        return json({ ok: true });
       }),
     },
   },
