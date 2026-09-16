@@ -752,7 +752,7 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
   }
 
   if (selected) return (
-    <GestorEventoDetalle event={selected} onBack={() => setSelected(null)} onEventChanged={(updated) => { setSelected(updated); load(); }} />
+    <GestorEventoDetalle tenantId={tenantId} event={selected} onBack={() => setSelected(null)} onEventChanged={(updated) => { setSelected(updated); load(); }} />
   );
 
   return (
@@ -795,8 +795,11 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
   );
 }
 
-function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRow; onBack: () => void; onEventChanged: (e: EventRow) => void }) {
+function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tenantId: string; event: EventRow; onBack: () => void; onEventChanged: (e: EventRow) => void }) {
   const locked = event.status !== "draft";
+  /** Categorías, inscritos y oleadas siguen editables mientras la carrera no esté en curso ni
+   *  finalizada -- igual que un admin de liga (no superadmin), ver canManageEvent() arriba. */
+  const contentLocked = event.status === "in_progress" || event.status === "finished";
   const [form, setForm] = useState({
     title: event.title, date: event.date, location: event.location,
     is_official: event.is_official == null ? "" : String(event.is_official),
@@ -851,30 +854,43 @@ function GestorEventoDetalle({ event, onBack, onEventChanged }: { event: EventRo
       {locked ? (
         <Note>Esta carrera ya se envió a revisión — no puedes seguir editando sus datos. Habla con el admin de tu liga si necesitas cambiar algo.</Note>
       ) : null}
-      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-        <Field label="Nombre *" error={errors.title}><Input disabled={locked} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-        <Field label="Fecha *" error={errors.date}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-        <Field label="Lugar *" error={errors.location}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
-        <Field label="¿Es oficial? *" error={errors.is_official}>
-          <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-            <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
-          </Select>
-        </Field>
-        <Field label="Visibilidad">
-          <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
-          </Select>
-        </Field>
-        <Field label="Distancia (km)" error={errors.distance_km}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
-        <Field label="Obstáculos"><Input disabled={locked} inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} /></Field>
-        <Field label="Cupos"><Input disabled={locked} inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} /></Field>
-        <div className="flex gap-2 sm:col-span-3">
-          {!locked ? <Button onClick={save} disabled={busy}>Guardar cambios</Button> : null}
-          {event.status === "draft" ? <Button variant="secondary" onClick={submit} disabled={busy}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
-        </div>
-      </CardContent></Card>
+      <Tabs defaultValue="datos">
+        <TabsList>
+          <TabsTrigger value="datos">Datos</TabsTrigger>
+          <TabsTrigger value="categorias">Categorías</TabsTrigger>
+          <TabsTrigger value="inscritos">Inscritos</TabsTrigger>
+          <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="datos" className="mt-4">
+          <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+            <Field label="Nombre *" error={errors.title}><Input disabled={locked} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
+            <Field label="Fecha *" error={errors.date}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+            <Field label="Lugar *" error={errors.location}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
+            <Field label="¿Es oficial? *" error={errors.is_official}>
+              <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
+              </Select>
+            </Field>
+            <Field label="Visibilidad">
+              <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
+              </Select>
+            </Field>
+            <Field label="Distancia (km)" error={errors.distance_km}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
+            <Field label="Obstáculos"><Input disabled={locked} inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} /></Field>
+            <Field label="Cupos"><Input disabled={locked} inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} /></Field>
+            <div className="flex gap-2 sm:col-span-3">
+              {!locked ? <Button onClick={save} disabled={busy}>Guardar cambios</Button> : null}
+              {event.status === "draft" ? <Button variant="secondary" onClick={submit} disabled={busy}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
+            </div>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={contentLocked} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
+        <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={contentLocked} /></TabsContent>
+      </Tabs>
     </div>
   );
 }
