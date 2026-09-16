@@ -24,6 +24,19 @@ export function preflight(): Response {
   return new Response(null, { status: 204, headers: CORS });
 }
 
+/**
+ * Origen público del sitio, para armar enlaces de correo (invitación,
+ * recuperación de contraseña). NO se puede confiar en `new URL(request.url).origin`
+ * en producción: detrás del proxy de Lovable, `request.url` refleja el
+ * listener interno del contenedor (visto en la práctica como
+ * "http://localhost:3000"), no el dominio público -- por eso hay que fijarlo
+ * explícitamente con SITE_URL. En desarrollo local, sin esa variable, cae de
+ * vuelta al origin de la petición (funciona para cualquier puerto local).
+ */
+export function siteUrl(request: Request): string {
+  return process.env["SITE_URL"] ?? new URL(request.url).origin;
+}
+
 export interface AuthContext {
   supa: ReturnType<typeof userClient>;
   userId: string;

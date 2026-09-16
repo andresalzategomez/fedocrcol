@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { authenticate, json, apiError, preflight, handler } from "../../../lib/server/api";
+import { authenticate, json, apiError, preflight, handler, siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { raceManagerInviteHtml, raceManagerInviteSubject } from "../../../lib/server/email-templates/race-manager-invite";
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/admin/race-managers")({
           return apiError("EMAIL_NOT_CONFIGURED", "RESEND_API_KEY no está configurada en el servidor: no se puede enviar el correo de invitación", 503);
         }
 
-        const redirectTo = `${new URL(request.url).origin}/set-password`;
+        const redirectTo = `${siteUrl(request)}/set-password`;
         const admin = serviceClient();
 
         const result = await inviteOrResendAccount({ admin, role: "race_manager", email, fullName: full_name, leagueId, redirectTo });

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { authenticate, json, apiError, preflight, handler } from "../../../lib/server/api";
+import { authenticate, json, apiError, preflight, handler, siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { judgeInviteHtml, judgeInviteSubject } from "../../../lib/server/email-templates/judge-invite";
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/api/admin/judges")({
           return apiError("EMAIL_NOT_CONFIGURED", "RESEND_API_KEY no está configurada en el servidor: no se puede enviar el correo de invitación", 503);
         }
 
-        const redirectTo = `${new URL(request.url).origin}/set-password`;
+        const redirectTo = `${siteUrl(request)}/set-password`;
         const admin = serviceClient();
 
         const { data: existing } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();

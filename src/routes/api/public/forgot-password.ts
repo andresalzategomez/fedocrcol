@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { json, apiError, preflight, handler } from "../../../lib/server/api";
+import { json, apiError, preflight, handler, siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { forgotPasswordHtml, forgotPasswordSubject } from "../../../lib/server/email-templates/forgot-password";
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/forgot-password")({
         }
 
         const admin = serviceClient();
-        const redirectTo = `${new URL(request.url).origin}/set-password`;
+        const redirectTo = `${siteUrl(request)}/set-password`;
 
         const { data: profile } = await admin.from("profiles").select("full_name").eq("email", email).maybeSingle();
         const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo } });
