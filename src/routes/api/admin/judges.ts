@@ -15,11 +15,11 @@ const removeSchema = z.object({ id: z.string().uuid() });
 
 /**
  * POST /api/admin/judges
- * El admin de liga (o superadmin) invita a un juez por correo, y también
- * REENVÍA la invitación (mismo endpoint) mientras el juez no la haya
- * aceptado. Crear un usuario de Supabase Auth requiere service_role (el
- * juez no se auto-registra), así que esto no se puede hacer desde el
- * cliente con RLS — de ahí este server route.
+ * El admin de liga, un gestor de carreras, o superadmin invita a un juez
+ * por correo, y también REENVÍA la invitación (mismo endpoint) mientras
+ * el juez no la haya aceptado. Crear un usuario de Supabase Auth requiere
+ * service_role (el juez no se auto-registra), así que esto no se puede
+ * hacer desde el cliente con RLS — de ahí este server route.
  *
  * La invitación/reenvío en sí (generateLink + borrar-y-recrear si
  * corresponde) vive en lib/server/invite-account.ts, compartida con
@@ -34,8 +34,8 @@ export const Route = createFileRoute("/api/admin/judges")({
       OPTIONS: () => preflight(),
       POST: handler(async ({ request }) => {
         const { role, leagueId } = await authenticate(request);
-        if (role !== "admin" && role !== "superadmin") {
-          return apiError("FORBIDDEN", "Solo un admin de liga o la federación puede crear jueces", 403);
+        if (role !== "admin" && role !== "superadmin" && role !== "race_manager") {
+          return apiError("FORBIDDEN", "Solo un admin de liga, un gestor de carreras o la federación puede crear jueces", 403);
         }
 
         const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -82,8 +82,8 @@ export const Route = createFileRoute("/api/admin/judges")({
       }),
       DELETE: handler(async ({ request }) => {
         const { role, leagueId } = await authenticate(request);
-        if (role !== "admin" && role !== "superadmin") {
-          return apiError("FORBIDDEN", "Solo un admin de liga o la federación puede eliminar jueces", 403);
+        if (role !== "admin" && role !== "superadmin" && role !== "race_manager") {
+          return apiError("FORBIDDEN", "Solo un admin de liga, un gestor de carreras o la federación puede eliminar jueces", 403);
         }
         const parsed = removeSchema.safeParse(await request.json().catch(() => null));
         if (!parsed.success) return apiError("BAD_REQUEST", "Falta el id del juez", 400);

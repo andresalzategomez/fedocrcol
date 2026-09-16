@@ -713,11 +713,13 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 
 // ------------------- Panel restringido: race_manager ------------------
 /**
- * Vista completa para el rol race_manager: crea carreras y edita sus
- * datos propios mientras siguen en borrador, y las envía a aprobación —
- * nada más. A propósito NO reutiliza EventoDetalle (que trae categorías,
- * inscritos, oleadas, checkpoints, jueces, gestores y control de
- * estado in_progress/finished): ese es terreno de admin/superadmin.
+ * Vista para el rol race_manager: crea carreras, edita sus datos básicos
+ * mientras siguen en borrador, y las envía a aprobación. También administra
+ * categorías, inscritos, oleadas, checkpoints y jueces de sus propias
+ * carreras (mismos componentes que usa el admin de liga). A propósito NO
+ * incluye la pestaña de Gestores ni el control de estado in_progress/
+ * finished: crear otros gestores y esas transiciones siguen siendo
+ * terreno exclusivo de admin/superadmin.
  */
 function GestorConsole({ tenantId }: { tenantId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -860,6 +862,8 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
           <TabsTrigger value="categorias">Categorías</TabsTrigger>
           <TabsTrigger value="inscritos">Inscritos</TabsTrigger>
           <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
+          <TabsTrigger value="checkpoints">Checkpoints</TabsTrigger>
+          <TabsTrigger value="jueces"><Gavel className="mr-1 size-4" />Jueces</TabsTrigger>
         </TabsList>
         <TabsContent value="datos" className="mt-4">
           <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
@@ -890,6 +894,8 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={contentLocked} /></TabsContent>
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={contentLocked} /></TabsContent>
+        <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
+        <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={contentLocked} /></TabsContent>
       </Tabs>
     </div>
   );
