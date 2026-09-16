@@ -4,12 +4,14 @@ import { authenticate, json, apiError, preflight, handler, siteUrl } from "../..
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { raceManagerInviteHtml, raceManagerInviteSubject } from "../../../lib/server/email-templates/race-manager-invite";
-import { inviteOrResendAccount } from "../../../lib/server/invite-account";
+import { raceManagerRemovedHtml, raceManagerRemovedSubject } from "../../../lib/server/email-templates/race-manager-removed";
+import { inviteOrResendAccount, removeAccount } from "../../../lib/server/invite-account";
 
 const bodySchema = z.object({
   email: z.string().email(),
   full_name: z.string().min(1),
 });
+const removeSchema = z.object({ id: z.string().uuid() });
 
 /**
  * POST /api/admin/race-managers
@@ -59,6 +61,32 @@ export const Route = createFileRoute("/api/admin/race-managers")({
         }
 
         return json({ id: result.userId, email, full_name, resent: result.resent });
+      }),
+      DELETE: handler(async ({ request }) => {
+        const { role, leagueId } = await authenticate(request);
+        if (role !== "admin" && role !== "superadmin") {
+          return apiError("FORBIDDEN", "Solo un admin de liga o la federación puede eliminar gestores de carreras", 403);
+        }
+        const parsed = removeSchema.safeParse(await request.json().catch(() => null));
+        if (!parsed.success) return apiError("BAD_REQUEST", "Falta el id del gestor", 400);
+
+        const admin = serviceClient();
+        const result = await removeAccount({ admin, id: parsed.data.id, role: "race_manager", leagueId, isSuperadmin: role === "superadmin" });
+        if (!result.ok) return apiError(result.code, result.message, result.status);
+
+        if (result.email && isResendConfigured) {
+          const { data: tenant } = await admin.from("tenants").select("name").eq("id", leagueId).maybeSingle();
+          const leagueName = tenant?.name ?? "tu liga";
+          const sent = await sendEmail({
+            to: result.email,
+            subject: raceManagerRemovedSubject(leagueName),
+            html: raceManagerRemovedHtml({ fullName: result.fullName, leagueName }),
+          });
+          if (!sent.ok) {
+            return apiError("EMAIL_FAILED", `El gestor fue eliminado, pero no se pudo avisarle por correo: ${sent.error}`, 502);
+          }
+        }
+        return json({ ok: true });
       }),
     },
   },

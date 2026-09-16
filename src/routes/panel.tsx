@@ -1277,6 +1277,7 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => setJudges(await api.listJudges(tenantId)), [tenantId]);
   useEffect(() => { load(); }, [load]);
@@ -1301,6 +1302,19 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
     } catch (e) { toast.error((e as Error).message); } finally { setResendingId(null); }
   }
 
+  async function remove(j: api.Judge) {
+    const msg = j.password_set_at
+      ? `¿Eliminar a ${j.full_name ?? j.email} como juez? Pierde acceso a FedOCR Timer y sus checkpoints asignados.`
+      : `¿Cancelar la invitación a ${j.full_name ?? j.email}?`;
+    if (!confirm(msg)) return;
+    setRemovingId(j.id);
+    try {
+      await api.removeJudge(j.id);
+      toast.success(j.password_set_at ? "Juez eliminado" : "Invitación cancelada");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setRemovingId(null); }
+  }
+
   return (
     <div className="grid gap-4">
       {!locked ? (
@@ -1314,12 +1328,12 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           </p>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Nombre", "Correo", "Estado"]}>
+      <SimpleTable head={["Nombre", "Correo", "Estado", "Acciones"]}>
         {judges.map((j) => (
           <TableRow key={j.id}>
             <TableCell className="font-medium">{j.full_name ?? "—"}</TableCell>
             <TableCell className="text-muted-foreground">{j.email ?? "—"}</TableCell>
-            <TableCell className="text-right">
+            <TableCell>
               {j.password_set_at ? (
                 <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
               ) : (
@@ -1328,9 +1342,15 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
                 </Button>
               )}
             </TableCell>
+            <TableCell className="text-right">
+              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={locked || removingId === j.id} onClick={() => remove(j)}>
+                <Trash2 className="mr-1 size-4" />
+                {removingId === j.id ? "Eliminando..." : j.password_set_at ? "Eliminar" : "Cancelar invitación"}
+              </Button>
+            </TableCell>
           </TableRow>
         ))}
-        {judges.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
+        {judges.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin jueces aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -1342,6 +1362,7 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => setManagers(await api.listRaceManagers(tenantId)), [tenantId]);
   useEffect(() => { load(); }, [load]);
@@ -1366,6 +1387,19 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
     } catch (e) { toast.error((e as Error).message); } finally { setResendingId(null); }
   }
 
+  async function remove(m: api.RaceManager) {
+    const msg = m.password_set_at
+      ? `¿Eliminar a ${m.full_name ?? m.email} como gestor de carreras?`
+      : `¿Cancelar la invitación a ${m.full_name ?? m.email}?`;
+    if (!confirm(msg)) return;
+    setRemovingId(m.id);
+    try {
+      await api.removeRaceManager(m.id);
+      toast.success(m.password_set_at ? "Gestor eliminado" : "Invitación cancelada");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setRemovingId(null); }
+  }
+
   return (
     <div className="grid gap-4">
       {!locked ? (
@@ -1379,12 +1413,12 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           </p>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Nombre", "Correo", "Estado"]}>
+      <SimpleTable head={["Nombre", "Correo", "Estado", "Acciones"]}>
         {managers.map((m) => (
           <TableRow key={m.id}>
             <TableCell className="font-medium">{m.full_name ?? "—"}</TableCell>
             <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
-            <TableCell className="text-right">
+            <TableCell>
               {m.password_set_at ? (
                 <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
               ) : (
@@ -1393,9 +1427,15 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
                 </Button>
               )}
             </TableCell>
+            <TableCell className="text-right">
+              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={locked || removingId === m.id} onClick={() => remove(m)}>
+                <Trash2 className="mr-1 size-4" />
+                {removingId === m.id ? "Eliminando..." : m.password_set_at ? "Eliminar" : "Cancelar invitación"}
+              </Button>
+            </TableCell>
           </TableRow>
         ))}
-        {managers.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin gestores de carreras aún. Invita al primero arriba.</TableCell></TableRow> : null}
+        {managers.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin gestores de carreras aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

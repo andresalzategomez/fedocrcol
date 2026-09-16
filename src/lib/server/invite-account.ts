@@ -73,3 +73,41 @@ export async function inviteOrResendAccount(params: InviteAccountParams): Promis
 
   return { ok: true, userId, actionLink, resent: Boolean(existing), previousId };
 }
+
+export interface RemoveAccountParams {
+  admin: SupabaseClient;
+  id: string;
+  role: string;
+  leagueId: string;
+  isSuperadmin: boolean;
+}
+
+export type RemoveAccountResult =
+  | { ok: true; email: string | null; fullName: string | null }
+  | { ok: false; code: string; message: string; status: number };
+
+/**
+ * Elimina una cuenta "ligada a una liga" (judge, race_manager, ...): borra
+ * el usuario de Supabase Auth vía service_role, lo que en cascada borra su
+ * profile y (para jueces) sus asignaciones en checkpoint_judges. Sirve
+ * tanto para "cancelar invitación" (cuenta sin password_set_at) como para
+ * remover del todo a alguien que ya la había aceptado -- es la misma acción.
+ * Devuelve el correo/nombre de la cuenta borrada para que el endpoint que
+ * llama pueda avisarle por correo, si corresponde.
+ */
+export async function removeAccount(params: RemoveAccountParams): Promise<RemoveAccountResult> {
+  const { admin, id, role, leagueId, isSuperadmin } = params;
+
+  const { data: profile, error } = await admin.from("profiles").select("id, role, tenant_id, email, full_name").eq("id", id).maybeSingle();
+  if (error) return { ok: false, code: "DB_ERROR", message: error.message, status: 500 };
+  if (!profile || profile.role !== role) {
+    return { ok: false, code: "NOT_FOUND", message: "No se encontró esa cuenta", status: 404 };
+  }
+  if (!isSuperadmin && profile.tenant_id !== leagueId) {
+    return { ok: false, code: "FORBIDDEN", message: "Esa cuenta no pertenece a tu liga", status: 403 };
+  }
+
+  const { error: delErr } = await admin.auth.admin.deleteUser(id);
+  if (delErr) return { ok: false, code: "DELETE_FAILED", message: delErr.message, status: 500 };
+  return { ok: true, email: (profile.email as string | null) ?? null, fullName: (profile.full_name as string | null) ?? null };
+}
