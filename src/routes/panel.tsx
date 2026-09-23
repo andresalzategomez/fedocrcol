@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/use-session";
+import { useColombiaLocation } from "@/lib/use-colombia-location";
 import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
 import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg } from "@/lib/validate";
@@ -363,14 +364,19 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [filters, setFilters] = useState({ name: "", department: "", status: "all", enabled: "all" });
+  const geo = useColombiaLocation();
 
   async function create() {
-    const { ok, errors } = validateForm(form, { name: [required("El nombre")], slug: [slugRule()], department: [required("El departamento")] });
+    const payload = { ...form, department: geo.departmentName, city: geo.cityName };
+    const { ok, errors } = validateForm(payload, { name: [required("El nombre")], slug: [slugRule()], department: [required("El departamento")] });
     setErrors(errors as Record<string, string>);
     if (!ok) return;
     setBusy(true);
-    try { await api.createTenant(form); toast.success("Liga creada"); setForm({ name: "", slug: "", department: "", city: "" }); setErrors({}); onChange(); }
-    catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    try {
+      await api.createTenant(payload);
+      toast.success("Liga creada");
+      setForm({ name: "", slug: "", department: "", city: "" }); setErrors({}); geo.setDepartmentId(""); onChange();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
   const filtered = tenants.filter((t) => {
@@ -387,8 +393,18 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
         <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Liga Valle OCR" /></Field>
         <Field label="Slug *" error={errors.slug}><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} placeholder="valle" /></Field>
-        <Field label="Departamento *" error={errors.department}><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Valle del Cauca" /></Field>
-        <Field label="Ciudad"><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Cali" /></Field>
+        <Field label="Departamento *" error={errors.department}>
+          <Select value={geo.departmentId} onValueChange={geo.setDepartmentId} disabled={geo.loadingDepartments}>
+            <SelectTrigger><SelectValue placeholder={geo.loadingDepartments ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Ciudad">
+          <Select value={geo.cityName} onValueChange={geo.setCityName} disabled={!geo.departmentId || geo.loadingCities}>
+            <SelectTrigger><SelectValue placeholder={!geo.departmentId ? "Elige el depto." : geo.loadingCities ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.cities.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
         <div className="sm:col-span-4"><Button onClick={create} disabled={busy}><Plus className="mr-1 size-4" />Crear liga</Button></div>
       </CardContent></Card>
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
