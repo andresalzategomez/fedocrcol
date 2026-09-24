@@ -25,7 +25,7 @@ const schema = z.object({
   email: z.string().email("Correo inválido"),
   phone: z.string().min(7, "Teléfono inválido"),
   birth_date: z.string().min(4, "Fecha requerida"),
-  gender: z.enum(["F", "M", "X"], { message: "Selecciona una opción" }),
+  gender: z.enum(["F", "M"], { message: "Selecciona una opción" }),
   category_id: z.string().min(1, "Selecciona una categoría"),
 });
 type FormValues = z.infer<typeof schema>;
@@ -166,7 +166,6 @@ function EventDetail() {
                       <SelectContent>
                         <SelectItem value="F">Femenino</SelectItem>
                         <SelectItem value="M">Masculino</SelectItem>
-                        <SelectItem value="X">Otro</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
