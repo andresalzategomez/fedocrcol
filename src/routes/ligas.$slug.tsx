@@ -5,7 +5,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { SimpleTable } from "@/components/simple-table";
 import { formatDate } from "@/data/demo";
 import { fetchEvents, fetchLeagues, fetchPublicRegistrations, fetchRanking } from "@/lib/ocr-data";
 import { useTenantTheme } from "@/lib/tenant-theme";
@@ -102,35 +103,24 @@ function LeaguePage() {
           {ranking.length === 0 ? (
             <p className="mt-4 text-muted-foreground">Esta liga aún no tiene resultados registrados.</p>
           ) : (
-            <Card className="mt-6 border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Atleta</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Carreras</TableHead>
-                    <TableHead className="text-right">Puntos</TableHead>
+            <div className="mt-6">
+              <SimpleTable head={["#", "Atleta", "Categoría", "Carreras", "Puntos"]}>
+                {ranking.map((row, i) => (
+                  <TableRow key={row.athlete}>
+                    <TableCell className="font-display text-xl">{i + 1}</TableCell>
+                    <TableCell className="font-medium">
+                      {row.athlete}
+                      {row.qualified ? (
+                        <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.category}</TableCell>
+                    <TableCell className="text-right">{row.races}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ranking.map((row, i) => (
-                    <TableRow key={row.athlete}>
-                      <TableCell className="font-display text-xl">{i + 1}</TableCell>
-                      <TableCell className="font-medium">
-                        {row.athlete}
-                        {row.qualified ? (
-                          <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{row.category}</TableCell>
-                      <TableCell className="text-right">{row.races}</TableCell>
-                      <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+                ))}
+              </SimpleTable>
+            </div>
           )}
         </div>
       </section>

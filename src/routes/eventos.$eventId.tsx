@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { SimpleTable } from "@/components/simple-table";
 import { formatCOP, formatDate } from "@/data/demo";
 import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl, type PublicRegistration } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
@@ -653,32 +654,22 @@ function EventDetail() {
         {registrations.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">Todavía no hay inscritos en esta carrera.</p>
         ) : (
-          <Card className="mt-5 border-border/70">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Dorsal</TableHead>
-                  <TableHead>Atleta</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead className="text-right">Estado</TableHead>
+          <div className="mt-5">
+            <SimpleTable head={["Dorsal", "Atleta", "Categoría", "Estado"]}>
+              {registrations.map((r: PublicRegistration) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
+                  <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={r.status === "paid" ? "default" : "outline"}>
+                      {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {registrations.map((r: PublicRegistration) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
-                    <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={r.status === "paid" ? "default" : "outline"}>
-                        {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+              ))}
+            </SimpleTable>
+          </div>
         )}
       </div>
 
