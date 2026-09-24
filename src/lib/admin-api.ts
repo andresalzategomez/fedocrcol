@@ -102,7 +102,7 @@ export interface EventRow {
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
-export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
+export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; role?: string; }
 export interface RaceManager { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
@@ -421,12 +421,26 @@ export async function deleteCheckpoint(id: string) {
 }
 
 // ------------------------------- Jueces -------------------------------
-/** Jueces de la liga (rol `judge`), para asignarlos a checkpoints de cualquiera de sus carreras. */
+/**
+ * Jueces de la liga, para asignarlos a checkpoints de cualquiera de sus
+ * carreras: cuentas dedicadas (rol `judge`) más los admins de la liga
+ * marcados en tenant_judges como "también disponibles como juez" --
+ * estos conservan su rol de admin, ver migración 0026.
+ */
 export async function listJudges(tenantId: string): Promise<Judge[]> {
-  const { data, error } = await db().from("profiles")
-    .select("id, email, full_name, password_set_at").eq("tenant_id", tenantId).eq("role", "judge").order("full_name");
-  if (error) throw error;
-  return data as Judge[];
+  const [{ data: dedicated, error: dedicatedErr }, { data: extra, error: extraErr }] = await Promise.all([
+    db().from("profiles").select("id, email, full_name, password_set_at, role").eq("tenant_id", tenantId).eq("role", "judge"),
+    db().from("tenant_judges").select("profiles(id, email, full_name, password_set_at, role)").eq("tenant_id", tenantId),
+  ]);
+  if (dedicatedErr) throw dedicatedErr;
+  if (extraErr) throw extraErr;
+  const extraJudges = (extra ?? [])
+    .map((r) => {
+      const p = (r as { profiles: Judge | Judge[] }).profiles;
+      return Array.isArray(p) ? p[0] : p;
+    })
+    .filter((j): j is Judge => Boolean(j));
+  return [...(dedicated as Judge[]), ...extraJudges].sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""));
 }
 
 /** Invita a un juez por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
