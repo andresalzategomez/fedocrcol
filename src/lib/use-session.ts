@@ -11,6 +11,13 @@ export interface Profile {
   birth_date: string | null;
   phone: string | null;
   gender: string | null;
+  social_media: string | null;
+  eps: string | null;
+  blood_type: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  shirt_name: string | null;
+  shirt_size: string | null;
 }
 
 interface SessionState {
@@ -41,7 +48,7 @@ export function useSession() {
       }
       const { data: profile } = await supabase!
         .from("profiles")
-        .select("id, role, tenant_id, full_name, document_type, document_id, birth_date, phone, gender")
+        .select("id, role, tenant_id, full_name, document_type, document_id, birth_date, phone, gender, social_media, eps, blood_type, emergency_contact_name, emergency_contact_phone, shirt_name, shirt_size")
         .eq("id", user.id)
         .maybeSingle();
       if (active) setState({ loading: false, email: user.email ?? null, profile: (profile as Profile) ?? null });

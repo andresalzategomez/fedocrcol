@@ -51,6 +51,14 @@ create table if not exists public.profiles (
   gender text check (gender in ('F','M','X')),
   birth_date date,
   phone text,
+  document_type text check (document_type is null or document_type in ('CC', 'TI', 'CE', 'PA')),
+  social_media text,
+  eps text,
+  blood_type text check (blood_type is null or blood_type in ('O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-')),
+  emergency_contact_name text,
+  emergency_contact_phone text,
+  shirt_name text,
+  shirt_size text check (shirt_size is null or shirt_size in ('XS', 'S', 'M', 'L', 'XL', 'XXL')),
   created_at timestamptz not null default now()
 );
 
@@ -116,6 +124,13 @@ create table if not exists public.registrations (
   athlete_phone text,
   athlete_birth_date date,
   athlete_gender text check (athlete_gender in ('F','M','X')),
+  athlete_social_media text,
+  athlete_eps text,
+  athlete_blood_type text,
+  athlete_emergency_contact_name text,
+  athlete_emergency_contact_phone text,
+  athlete_shirt_name text,
+  athlete_shirt_size text,
   amount numeric(12,2) not null default 0,
   status public.registration_status not null default 'pending',
   qr_code text not null unique,
@@ -1255,3 +1270,34 @@ alter table public.profiles add column if not exists document_type text;
 alter table public.profiles drop constraint if exists profiles_document_type_check;
 alter table public.profiles add constraint profiles_document_type_check
   check (document_type is null or document_type in ('CC', 'TI', 'CE', 'PA'));
+
+-- =====================================================================
+-- 0022 — Datos de seguridad y camiseta del atleta
+-- Idempotente. El formulario de inscripción a carrera ahora pide
+-- también redes sociales (opcional), EPS, RH, contacto de emergencia
+-- (nombre y celular) y nombre/talla para camiseta.
+-- =====================================================================
+
+alter table public.profiles add column if not exists social_media text;
+alter table public.profiles add column if not exists eps text;
+alter table public.profiles add column if not exists blood_type text;
+alter table public.profiles add column if not exists emergency_contact_name text;
+alter table public.profiles add column if not exists emergency_contact_phone text;
+alter table public.profiles add column if not exists shirt_name text;
+alter table public.profiles add column if not exists shirt_size text;
+
+alter table public.profiles drop constraint if exists profiles_blood_type_check;
+alter table public.profiles add constraint profiles_blood_type_check
+  check (blood_type is null or blood_type in ('O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'));
+
+alter table public.profiles drop constraint if exists profiles_shirt_size_check;
+alter table public.profiles add constraint profiles_shirt_size_check
+  check (shirt_size is null or shirt_size in ('XS', 'S', 'M', 'L', 'XL', 'XXL'));
+
+alter table public.registrations add column if not exists athlete_social_media text;
+alter table public.registrations add column if not exists athlete_eps text;
+alter table public.registrations add column if not exists athlete_blood_type text;
+alter table public.registrations add column if not exists athlete_emergency_contact_name text;
+alter table public.registrations add column if not exists athlete_emergency_contact_phone text;
+alter table public.registrations add column if not exists athlete_shirt_name text;
+alter table public.registrations add column if not exists athlete_shirt_size text;
