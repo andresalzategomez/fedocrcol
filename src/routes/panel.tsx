@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { useSession } from "@/lib/use-session";
+import { useSession, type Profile } from "@/lib/use-session";
 import { useColombiaLocation } from "@/lib/use-colombia-location";
 import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
@@ -32,7 +32,13 @@ function PanelPage() {
   if (!isSupabaseConfigured) return <Shell><Note>Configura las variables de Supabase para usar el panel real.</Note></Shell>;
   if (loading) return <Shell><Note>Cargando…</Note></Shell>;
   if (!profile) return <Shell><Note>Debes iniciar sesión para administrar. <Link className="text-primary underline" to="/auth">Ir a ingresar</Link>.</Note></Shell>;
-  if (profile.role === "athlete") return <Shell><Note>Tu cuenta es de atleta. El panel de administración es para ligas y la federación.</Note></Shell>;
+  if (profile.role === "athlete") {
+    return (
+      <Shell>
+        <AthleteProfilePanel profile={profile} email={email} onSignOut={signOut} />
+      </Shell>
+    );
+  }
   if (profile.role === "judge") return <Shell><Note>Tu cuenta es de juez. Usa FedOCR Timer para cronometrar — este panel es para administradores de liga.</Note></Shell>;
   if (profile.role === "club") {
     return (
@@ -154,6 +160,132 @@ function ClubStatusNote({ userId }: { userId: string }) {
     );
   }
   return <Note>Tu club ya fue aprobado. Esta vista todavía no está lista.</Note>;
+}
+
+const PROFILE_DOCUMENT_TYPES = [
+  { value: "CC", label: "Cédula de ciudadanía" },
+  { value: "TI", label: "Tarjeta de identidad" },
+  { value: "CE", label: "Cédula de extranjería" },
+  { value: "PA", label: "Pasaporte" },
+] as const;
+const PROFILE_BLOOD_TYPES = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
+const PROFILE_SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
+function AthleteProfilePanel({ profile, email, onSignOut }: { profile: Profile; email: string | null; onSignOut: () => void }) {
+  const [form, setForm] = useState({
+    full_name: profile.full_name ?? "",
+    document_type: profile.document_type ?? "",
+    document_id: profile.document_id ?? "",
+    birth_date: profile.birth_date ?? "",
+    phone: profile.phone ?? "",
+    gender: profile.gender ?? "",
+    social_media: profile.social_media ?? "",
+    eps: profile.eps ?? "",
+    blood_type: profile.blood_type ?? "",
+    emergency_contact_name: profile.emergency_contact_name ?? "",
+    emergency_contact_phone: profile.emergency_contact_phone ?? "",
+    shirt_name: profile.shirt_name ?? "",
+    shirt_size: profile.shirt_size ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function save() {
+    if (!supabase) return;
+    if (!form.full_name.trim()) { toast.error("Escribe tu nombre completo"); return; }
+    if (!form.document_type) { toast.error("Selecciona el tipo de documento"); return; }
+    if (!form.document_id.trim()) { toast.error("Escribe tu número de documento"); return; }
+    if (!form.birth_date) { toast.error("Selecciona tu fecha de nacimiento"); return; }
+    if (!form.phone.trim()) { toast.error("Escribe tu celular"); return; }
+    if (!form.gender) { toast.error("Selecciona tu género"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: form.full_name,
+          document_type: form.document_type,
+          document_id: form.document_id,
+          birth_date: form.birth_date,
+          phone: form.phone,
+          gender: form.gender,
+          social_media: form.social_media || null,
+          eps: form.eps || null,
+          blood_type: form.blood_type || null,
+          emergency_contact_name: form.emergency_contact_name || null,
+          emergency_contact_phone: form.emergency_contact_phone || null,
+          shirt_name: form.shirt_name || null,
+          shirt_size: form.shirt_size || null,
+        })
+        .eq("id", profile.id);
+      if (error) throw error;
+      toast.success("Perfil actualizado");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-4xl">Mi perfil</h1>
+          <p className="text-sm text-muted-foreground">{email} · Atleta</p>
+        </div>
+        <Button variant="outline" onClick={onSignOut}>Salir</Button>
+      </div>
+      <Card className="border-border/70">
+        <CardContent className="grid gap-5 p-6 sm:grid-cols-2">
+          <Field label="Nombre completo"><Input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} /></Field>
+          <div className="grid grid-cols-[auto_1fr] gap-3">
+            <Field label="Tipo doc.">
+              <Select value={form.document_type} onValueChange={(v) => set("document_type", v)}>
+                <SelectTrigger className="w-28"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>{PROFILE_DOCUMENT_TYPES.map((d) => <SelectItem key={d.value} value={d.value}>{d.value}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+            <Field label="Número de documento"><Input value={form.document_id} onChange={(e) => set("document_id", e.target.value)} /></Field>
+          </div>
+          <Field label="Fecha de nacimiento"><Input type="date" value={form.birth_date} onChange={(e) => set("birth_date", e.target.value)} /></Field>
+          <Field label="Celular"><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+          <Field label="Género">
+            <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="F">Femenino</SelectItem>
+                <SelectItem value="M">Masculino</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Redes sociales (opcional)"><Input value={form.social_media} onChange={(e) => set("social_media", e.target.value)} placeholder="@usuario" /></Field>
+          <Field label="EPS"><Input value={form.eps} onChange={(e) => set("eps", e.target.value)} /></Field>
+          <Field label="RH">
+            <Select value={form.blood_type} onValueChange={(v) => set("blood_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+              <SelectContent>{PROFILE_BLOOD_TYPES.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="Contacto de emergencia"><Input value={form.emergency_contact_name} onChange={(e) => set("emergency_contact_name", e.target.value)} /></Field>
+          <Field label="Celular contacto de emergencia"><Input value={form.emergency_contact_phone} onChange={(e) => set("emergency_contact_phone", e.target.value)} /></Field>
+          <Field label="Nombre para camiseta"><Input value={form.shirt_name} onChange={(e) => set("shirt_name", e.target.value)} /></Field>
+          <Field label="Talla para camiseta">
+            <Select value={form.shirt_size} onValueChange={(v) => set("shirt_size", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+              <SelectContent>{PROFILE_SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Button onClick={save} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
