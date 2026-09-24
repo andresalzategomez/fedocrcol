@@ -1301,3 +1301,14 @@ alter table public.registrations add column if not exists athlete_emergency_cont
 alter table public.registrations add column if not exists athlete_emergency_contact_phone text;
 alter table public.registrations add column if not exists athlete_shirt_name text;
 alter table public.registrations add column if not exists athlete_shirt_size text;
+
+-- =====================================================================
+-- 0023 — Evitar que un mismo atleta se inscriba varias veces al
+-- mismo evento. Índice único parcial: ignora inscripciones canceladas,
+-- para permitir reinscribirse si la anterior fue cancelada.
+-- =====================================================================
+
+drop index if exists public.registrations_event_athlete_unique;
+create unique index registrations_event_athlete_unique
+  on public.registrations (event_id, athlete_document)
+  where status <> 'cancelled' and athlete_document is not null;
