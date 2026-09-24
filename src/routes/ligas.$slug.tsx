@@ -6,14 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DEMO_EVENTS, DEMO_RANKING, formatDate, leagueBySlug } from "@/data/demo";
+import { formatDate } from "@/data/demo";
+import { fetchEvents, fetchLeagues, fetchPublicRegistrations, fetchRanking } from "@/lib/ocr-data";
 import { useTenantTheme } from "@/lib/tenant-theme";
 
+const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "Pendiente", paid: "Pagada" };
+
 export const Route = createFileRoute("/ligas/$slug")({
-  loader: ({ params }) => {
-    const league = leagueBySlug(params.slug);
+  loader: async ({ params }) => {
+    const [leagues, events, ranking] = await Promise.all([fetchLeagues(), fetchEvents(), fetchRanking()]);
+    const league = leagues.find((l) => l.slug === params.slug);
     if (!league) throw notFound();
-    return { league };
+    const leagueEvents = events.filter((e) => e.tenant_id === league.id);
+    const leagueRanking = ranking.filter((r) => r.tenant_id === league.id);
+    const registrations = await fetchPublicRegistrations(leagueEvents.map((e) => e.id));
+    return { league, events: leagueEvents, ranking: leagueRanking, registrations };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -35,11 +42,10 @@ export const Route = createFileRoute("/ligas/$slug")({
 });
 
 function LeaguePage() {
-  const { league } = Route.useLoaderData();
+  const { league, events, ranking, registrations } = Route.useLoaderData();
   useTenantTheme({ primary_color: league.primary_color, secondary_color: league.secondary_color });
 
-  const events = DEMO_EVENTS.filter((e) => e.tenant_id === league.id);
-  const ranking = DEMO_RANKING.filter((r) => r.tenant_id === league.id);
+  const eventTitleById = new Map(events.map((e) => [e.id, e.title]));
 
   return (
     <div className="min-h-screen">
@@ -59,7 +65,7 @@ function LeaguePage() {
           <p className="mt-3 max-w-2xl text-muted-foreground">{league.description}</p>
           <div className="mt-6 flex flex-wrap gap-6 text-sm">
             <span className="flex items-center gap-2"><MapPin className="size-4 text-primary" /> {league.city}</span>
-            <span className="flex items-center gap-2"><Users className="size-4 text-primary" /> {league.athletes} atletas</span>
+            <span className="flex items-center gap-2"><Users className="size-4 text-primary" /> {registrations.length} inscritos</span>
             <span className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" /> {events.length} carreras</span>
           </div>
         </div>
@@ -95,37 +101,83 @@ function LeaguePage() {
       <section className="border-t border-border bg-card/40">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <h2 className="flex items-center gap-3 font-display text-4xl">
+            <Users className="size-7 text-primary" /> Inscritos
+          </h2>
+          {registrations.length === 0 ? (
+            <p className="mt-4 text-muted-foreground">Todavía no hay inscritos en las carreras de esta liga.</p>
+          ) : (
+            <Card className="mt-6 border-border/70">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Dorsal</TableHead>
+                    <TableHead>Atleta</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    {events.length > 1 ? <TableHead>Carrera</TableHead> : null}
+                    <TableHead className="text-right">Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {registrations.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
+                      <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
+                      {events.length > 1 ? (
+                        <TableCell className="text-muted-foreground">{eventTitleById.get(r.event_id) ?? "—"}</TableCell>
+                      ) : null}
+                      <TableCell className="text-right">
+                        <Badge variant={r.status === "paid" ? "default" : "outline"}>
+                          {REGISTRATION_STATUS_LABEL[r.status] ?? r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-card/40">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+          <h2 className="flex items-center gap-3 font-display text-4xl">
             <Trophy className="size-7 text-primary" /> Ranking de la liga
           </h2>
-          <Card className="mt-6 border-border/70">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">#</TableHead>
-                  <TableHead>Atleta</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead className="text-right">Carreras</TableHead>
-                  <TableHead className="text-right">Puntos</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ranking.map((row, i) => (
-                  <TableRow key={row.athlete}>
-                    <TableCell className="font-display text-xl">{i + 1}</TableCell>
-                    <TableCell className="font-medium">
-                      {row.athlete}
-                      {row.qualified ? (
-                        <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{row.category}</TableCell>
-                    <TableCell className="text-right">{row.races}</TableCell>
-                    <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
+          {ranking.length === 0 ? (
+            <p className="mt-4 text-muted-foreground">Esta liga aún no tiene resultados registrados.</p>
+          ) : (
+            <Card className="mt-6 border-border/70">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">#</TableHead>
+                    <TableHead>Atleta</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead className="text-right">Carreras</TableHead>
+                    <TableHead className="text-right">Puntos</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+                </TableHeader>
+                <TableBody>
+                  {ranking.map((row, i) => (
+                    <TableRow key={row.athlete}>
+                      <TableCell className="font-display text-xl">{i + 1}</TableCell>
+                      <TableCell className="font-medium">
+                        {row.athlete}
+                        {row.qualified ? (
+                          <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{row.category}</TableCell>
+                      <TableCell className="text-right">{row.races}</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
         </div>
       </section>
 

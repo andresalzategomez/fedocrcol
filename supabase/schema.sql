@@ -1312,3 +1312,25 @@ drop index if exists public.registrations_event_athlete_unique;
 create unique index registrations_event_athlete_unique
   on public.registrations (event_id, athlete_document)
   where status <> 'cancelled' and athlete_document is not null;
+
+-- =====================================================================
+-- 0024 — Vista pública de inscritos por carrera (sin datos sensibles).
+-- =====================================================================
+
+create or replace view public.registrations_public as
+select
+  r.id,
+  r.event_id,
+  r.tenant_id,
+  r.category_id,
+  ec.name as category_name,
+  r.athlete_name,
+  r.bib_number,
+  r.status,
+  r.created_at
+from public.registrations r
+join public.event_categories ec on ec.id = r.category_id
+where r.status <> 'cancelled';
+
+grant select on public.registrations_public to anon, authenticated;
+grant all on public.registrations_public to service_role;
