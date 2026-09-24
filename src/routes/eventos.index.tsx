@@ -9,12 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
-import { dynamicPrice, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
+import { dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations } from "@/lib/ocr-data";
 
 export const Route = createFileRoute("/eventos/")({
   loader: async () => {
     const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
-    return { events, leagues };
+    const registrations = await fetchPublicRegistrations(events.map((e) => e.id));
+    const countByEvent = new Map<string, number>();
+    for (const r of registrations) countByEvent.set(r.event_id, (countByEvent.get(r.event_id) ?? 0) + 1);
+    const eventsWithCounts = events.map((e) => ({ ...e, registered: countByEvent.get(e.id) ?? 0 }));
+    return { events: eventsWithCounts, leagues };
   },
   head: () => ({
     meta: [
