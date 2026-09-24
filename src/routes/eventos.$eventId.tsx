@@ -22,6 +22,9 @@ import { useSession } from "@/lib/use-session";
 import { supabase } from "@/lib/supabase";
 import { LiveResults } from "@/components/live-results";
 
+const BLOOD_TYPES = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
+const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
 const schema = z.object({
   full_name: z.string().min(5, "Escribe tu nombre completo"),
   document_id: z.string().min(6, "Documento inválido").max(15),
@@ -30,6 +33,13 @@ const schema = z.object({
   birth_date: z.string().min(4, "Fecha requerida"),
   gender: z.enum(["F", "M"], { message: "Selecciona una opción" }),
   category_id: z.string().min(1, "Selecciona una categoría"),
+  social_media: z.string().optional(),
+  eps: z.string().min(2, "Escribe tu EPS"),
+  blood_type: z.enum(BLOOD_TYPES, { message: "Selecciona tu RH" }),
+  emergency_contact_name: z.string().min(3, "Escribe el nombre de contacto"),
+  emergency_contact_phone: z.string().min(7, "Teléfono inválido"),
+  shirt_name: z.string().min(1, "Escribe el nombre para la camiseta"),
+  shirt_size: z.enum(SHIRT_SIZES, { message: "Selecciona la talla" }),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -70,6 +80,15 @@ function EventDetail() {
   const { profile, email: sessionEmail } = useSession();
   const [personalDataLocked, setPersonalDataLocked] = useState(false);
   const [quickCategoryId, setQuickCategoryId] = useState("");
+  const [quickExtra, setQuickExtra] = useState({
+    social_media: "",
+    eps: "",
+    blood_type: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    shirt_name: "",
+    shirt_size: "",
+  });
 
   /**
    * Si la cuenta ya tiene todos sus datos personales (los pide el registro
@@ -83,8 +102,40 @@ function EventDetail() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", document_id: "", email: "", phone: "", birth_date: "", category_id: "" },
+    defaultValues: {
+      full_name: "", document_id: "", email: "", phone: "", birth_date: "", category_id: "",
+      social_media: "", eps: "", emergency_contact_name: "", emergency_contact_phone: "", shirt_name: "",
+    },
   });
+
+  /**
+   * Estos 7 campos no bloquean el formulario rápido (a diferencia de los
+   * datos de identidad): se precargan de profiles si ya se guardaron en
+   * una inscripción anterior, pero siguen editables -- por ejemplo la
+   * talla de camiseta puede cambiar de una carrera a otra.
+   */
+  useEffect(() => {
+    if (!profile) return;
+    setQuickExtra({
+      social_media: profile.social_media ?? "",
+      eps: profile.eps ?? "",
+      blood_type: profile.blood_type ?? "",
+      emergency_contact_name: profile.emergency_contact_name ?? "",
+      emergency_contact_phone: profile.emergency_contact_phone ?? "",
+      shirt_name: profile.shirt_name ?? "",
+      shirt_size: profile.shirt_size ?? "",
+    });
+    if (!hasCompleteProfile) {
+      form.setValue("social_media", profile.social_media ?? "");
+      form.setValue("eps", profile.eps ?? "");
+      if (profile.blood_type) form.setValue("blood_type", profile.blood_type as FormValues["blood_type"]);
+      form.setValue("emergency_contact_name", profile.emergency_contact_name ?? "");
+      form.setValue("emergency_contact_phone", profile.emergency_contact_phone ?? "");
+      form.setValue("shirt_name", profile.shirt_name ?? "");
+      if (profile.shirt_size) form.setValue("shirt_size", profile.shirt_size as FormValues["shirt_size"]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   /**
    * Si el atleta ya inició sesión, su correo de cuenta se prellena y bloquea
@@ -102,7 +153,7 @@ function EventDetail() {
     let active = true;
     supabase
       .from("registrations")
-      .select("athlete_name, athlete_document, athlete_email, athlete_phone, athlete_birth_date, athlete_gender")
+      .select("athlete_name, athlete_document, athlete_email, athlete_phone, athlete_birth_date, athlete_gender, athlete_social_media, athlete_eps, athlete_blood_type, athlete_emergency_contact_name, athlete_emergency_contact_phone, athlete_shirt_name, athlete_shirt_size")
       .eq("athlete_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -117,6 +168,13 @@ function EventDetail() {
           phone: data.athlete_phone ?? "",
           birth_date: data.athlete_birth_date ?? "",
           gender: data.athlete_gender === "F" || data.athlete_gender === "M" ? data.athlete_gender : undefined,
+          social_media: data.athlete_social_media ?? "",
+          eps: data.athlete_eps ?? "",
+          blood_type: (data.athlete_blood_type as FormValues["blood_type"]) ?? undefined,
+          emergency_contact_name: data.athlete_emergency_contact_name ?? "",
+          emergency_contact_phone: data.athlete_emergency_contact_phone ?? "",
+          shirt_name: data.athlete_shirt_name ?? "",
+          shirt_size: (data.athlete_shirt_size as FormValues["shirt_size"]) ?? undefined,
         });
         setPersonalDataLocked(true);
       });
@@ -129,6 +187,8 @@ function EventDetail() {
 
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
+    social_media?: string | undefined; eps: string; blood_type: string; emergency_contact_name: string;
+    emergency_contact_phone: string; shirt_name: string; shirt_size: string;
   }) {
     const category = event.categories.find((c) => c.id === categoryId);
     if (!category) return;
@@ -180,6 +240,12 @@ function EventDetail() {
     e.preventDefault();
     if (!quickCategoryId) { toast.error("Selecciona una categoría"); return; }
     if (!profile || (profile.gender !== "F" && profile.gender !== "M")) return;
+    if (!quickExtra.eps.trim()) { toast.error("Escribe tu EPS"); return; }
+    if (!quickExtra.blood_type) { toast.error("Selecciona tu RH"); return; }
+    if (!quickExtra.emergency_contact_name.trim()) { toast.error("Escribe el contacto de emergencia"); return; }
+    if (!quickExtra.emergency_contact_phone.trim()) { toast.error("Escribe el celular del contacto de emergencia"); return; }
+    if (!quickExtra.shirt_name.trim()) { toast.error("Escribe el nombre para la camiseta"); return; }
+    if (!quickExtra.shirt_size) { toast.error("Selecciona la talla de camiseta"); return; }
     await registerForCategory(quickCategoryId, {
       full_name: profile.full_name ?? "",
       document_id: profile.document_id ?? "",
@@ -187,6 +253,13 @@ function EventDetail() {
       phone: profile.phone ?? "",
       birth_date: profile.birth_date ?? "",
       gender: profile.gender,
+      social_media: quickExtra.social_media,
+      eps: quickExtra.eps,
+      blood_type: quickExtra.blood_type,
+      emergency_contact_name: quickExtra.emergency_contact_name,
+      emergency_contact_phone: quickExtra.emergency_contact_phone,
+      shirt_name: quickExtra.shirt_name,
+      shirt_size: quickExtra.shirt_size,
     });
   }
 
@@ -232,6 +305,51 @@ function EventDetail() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     ¿Algo está mal? Actualízalo desde tu perfil, no se puede editar aquí.
                   </p>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="grid gap-2 sm:col-span-2">
+                    <Label htmlFor="quick-social">Redes sociales (opcional)</Label>
+                    <Input id="quick-social" placeholder="@usuario" value={quickExtra.social_media}
+                      onChange={(e) => setQuickExtra((v) => ({ ...v, social_media: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-eps">EPS</Label>
+                    <Input id="quick-eps" placeholder="Nombre de tu EPS" value={quickExtra.eps}
+                      onChange={(e) => setQuickExtra((v) => ({ ...v, eps: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-blood">RH</Label>
+                    <Select value={quickExtra.blood_type} onValueChange={(v) => setQuickExtra((s) => ({ ...s, blood_type: v }))}>
+                      <SelectTrigger id="quick-blood"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                      <SelectContent>
+                        {BLOOD_TYPES.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-ec-name">Contacto de emergencia</Label>
+                    <Input id="quick-ec-name" placeholder="Nombre completo" value={quickExtra.emergency_contact_name}
+                      onChange={(e) => setQuickExtra((v) => ({ ...v, emergency_contact_name: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-ec-phone">Celular contacto de emergencia</Label>
+                    <Input id="quick-ec-phone" placeholder="3001234567" value={quickExtra.emergency_contact_phone}
+                      onChange={(e) => setQuickExtra((v) => ({ ...v, emergency_contact_phone: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-shirt-name">Nombre para camiseta</Label>
+                    <Input id="quick-shirt-name" placeholder="Como quieres que salga" value={quickExtra.shirt_name}
+                      onChange={(e) => setQuickExtra((v) => ({ ...v, shirt_name: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quick-shirt-size">Talla para camiseta</Label>
+                    <Select value={quickExtra.shirt_size} onValueChange={(v) => setQuickExtra((s) => ({ ...s, shirt_size: v }))}>
+                      <SelectTrigger id="quick-shirt-size"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                      <SelectContent>
+                        {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="quick-category">Categoría</Label>
@@ -308,6 +426,65 @@ function EventDetail() {
                           <SelectContent>
                             <SelectItem value="F">Femenino</SelectItem>
                             <SelectItem value="M">Masculino</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="social_media" render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Redes sociales (opcional)</FormLabel>
+                        <FormControl><Input placeholder="@usuario" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="eps" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>EPS</FormLabel>
+                        <FormControl><Input placeholder="Nombre de tu EPS" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="blood_type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RH</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {BLOOD_TYPES.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="emergency_contact_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contacto de emergencia</FormLabel>
+                        <FormControl><Input placeholder="Nombre completo" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="emergency_contact_phone" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Celular contacto de emergencia</FormLabel>
+                        <FormControl><Input placeholder="3001234567" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="shirt_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre para camiseta</FormLabel>
+                        <FormControl><Input placeholder="Como quieres que salga" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="shirt_size" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Talla para camiseta</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <FormMessage />
