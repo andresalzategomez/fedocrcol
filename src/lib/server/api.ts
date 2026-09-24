@@ -28,30 +28,28 @@ export function preflight(): Response {
  * Origen público del sitio, para armar enlaces de correo (invitación,
  * recuperación de contraseña).
  *
- * Se probaron TRES formas de resolverlo dinámicamente y ninguna funciona en
- * este hosting de Lovable, confirmado con pruebas repetidas en producción:
- *   1. La variable de entorno SITE_URL -- nunca se leyó con un valor útil,
- *      ni siquiera después de borrarla y volverla a crear.
- *   2. Las cabeceras `x-forwarded-host`/`host` del proxy -- Lovable
+ * Se probaron CUATRO formas de resolverlo y ninguna funciona en este
+ * hosting de Lovable, confirmado con pruebas repetidas en producción:
+ *   1. La variable de entorno SITE_URL -- nunca se leyó con un valor útil.
+ *   2. Borrar esa misma variable por completo -- Lovable reportó "SITE_URL
+ *      eliminada", pero el secret sigue apareciendo en la lista del
+ *      proyecto y el valor viejo se sigue leyendo igual. No hay forma
+ *      confiable de hacer que ese secret desaparezca desde este proyecto.
+ *   3. Las cabeceras `x-forwarded-host`/`host` del proxy -- Lovable
  *      tampoco las reenvía.
- *   3. `new URL(request.url).origin` -- este es justamente el problema de
- *      fondo: en producción, `request.url` YA refleja el listener interno
- *      del contenedor ("http://localhost:3000"), idéntico a como luce una
- *      petición real de desarrollo local. No hay forma de distinguir
- *      "estamos en producción" de "estamos en localhost" mirando la
- *      petición misma -- cualquier chequeo basado en request.url/headers
- *      queda ciego ante el mismo bug que se supone debía evitar.
+ *   4. `new URL(request.url).origin` -- en producción `request.url` YA
+ *      refleja el listener interno del contenedor ("http://localhost:3000"),
+ *      idéntico a como luce una petición real de desarrollo local.
  *
- * Por eso el dominio de producción queda fijo en el código, y SITE_URL
- * solo sirve como override local (poniéndolo en tu .env, que sí se lee
- * de forma confiable porque es un archivo local, no un secret de
- * Lovable). Si el dominio de producción cambia algún día, hay que
- * actualizar PRODUCTION_SITE_URL aquí.
+ * Por eso el código YA NO lee `SITE_URL` en absoluto -- da igual qué
+ * tenga guardado ese secret zombie, nunca más se consulta. El dominio de
+ * producción queda fijo aquí. Si algún día cambia, hay que actualizar
+ * PRODUCTION_SITE_URL.
  */
 const PRODUCTION_SITE_URL = "https://fedocrcol.lovable.app";
 
 export function siteUrl(_request: Request): string {
-  return process.env["SITE_URL"] || PRODUCTION_SITE_URL;
+  return PRODUCTION_SITE_URL;
 }
 
 export interface AuthContext {
