@@ -6,12 +6,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * -- que NO envía el correo integrado de Supabase, ver resend-server.ts
  * para el porqué -- y deja el profile con el rol y la liga correctos.
  *
- * Reenvío: si ya existe un profile con ese correo, con el MISMO rol, la
- * MISMA liga y sin confirmar (password_set_at null), se borra la cuenta
- * pendiente y se recrea con el mismo correo (generateLink falla con
- * "already registered" si el correo ya existe, confirmado o no). Si el
- * correo pertenece a otro rol, otra liga, o ya está confirmado, se
- * rechaza como conflicto real: nunca se borra una cuenta activa ajena.
+ * Estos roles pueden ser CUALQUIER usuario existente (un atleta, un
+ * club, un gestor/juez de otra liga, ...), no solo correos nuevos:
+ * - Si el correo no existe: se crea una cuenta nueva vía invite link.
+ * - Si existe pero SIN confirmar (password_set_at null, cualquier rol o
+ *   liga): es una invitación pendiente de otra cosa -- se cancela y se
+ *   recrea con el rol/liga nuevos (generateLink falla con "already
+ *   registered" si el correo ya existe, confirmado o no).
+ * - Si existe y YA confirmada (tiene contraseña): se reutiliza la MISMA
+ *   cuenta, solo se le actualiza el rol y la liga -- ya puede iniciar
+ *   sesión con lo que tiene, no hace falta un link nuevo. `actionLink`
+ *   sale `null` en ese caso: quien llama debe enviar un correo distinto
+ *   (de aviso, no de "crea tu contraseña").
+ * - Excepción: una cuenta admin o superadmin nunca se reasigna así --
+ *   protege de que alguien pierda su acceso de administrador por error.
  */
 export interface InviteAccountParams {
   admin: SupabaseClient;
@@ -23,7 +31,7 @@ export interface InviteAccountParams {
 }
 
 export type InviteAccountResult =
-  | { ok: true; userId: string; actionLink: string; resent: boolean; previousId: string | null }
+  | { ok: true; userId: string; actionLink: string | null; resent: boolean; reused: boolean; previousId: string | null }
   | { ok: false; code: string; message: string; status: number };
 
 export async function inviteOrResendAccount(params: InviteAccountParams): Promise<InviteAccountResult> {
@@ -36,17 +44,26 @@ export async function inviteOrResendAccount(params: InviteAccountParams): Promis
     .maybeSingle();
   if (existingErr) return { ok: false, code: "DB_ERROR", message: existingErr.message, status: 500 };
 
+  if (existing && (existing.role === "superadmin" || existing.role === "admin")) {
+    return {
+      ok: false,
+      code: "PROTECTED_ROLE",
+      message: "Esa cuenta ya es administradora (de la federación o de una liga) -- no se puede reasignar a este rol desde aquí.",
+      status: 409,
+    };
+  }
+
+  if (existing && existing.password_set_at) {
+    const { error: profErr } = await admin
+      .from("profiles")
+      .update({ role, tenant_id: leagueId, full_name: fullName })
+      .eq("id", existing.id);
+    if (profErr) return { ok: false, code: "DB_ERROR", message: profErr.message, status: 500 };
+    return { ok: true, userId: existing.id, actionLink: null, resent: false, reused: true, previousId: null };
+  }
+
   let previousId: string | null = null;
   if (existing) {
-    const canResend = existing.role === role && existing.tenant_id === leagueId && !existing.password_set_at;
-    if (!canResend) {
-      return {
-        ok: false,
-        code: "EMAIL_TAKEN",
-        message: "Ya existe una cuenta con este correo (de otra liga, de otro rol, o ya confirmada)",
-        status: 409,
-      };
-    }
     previousId = existing.id;
     const { error: delErr } = await admin.auth.admin.deleteUser(existing.id);
     if (delErr) return { ok: false, code: "INVITE_FAILED", message: `No se pudo reenviar: ${delErr.message}`, status: 500 };
@@ -71,7 +88,7 @@ export async function inviteOrResendAccount(params: InviteAccountParams): Promis
     .eq("id", userId);
   if (profErr) return { ok: false, code: "DB_ERROR", message: profErr.message, status: 500 };
 
-  return { ok: true, userId, actionLink, resent: Boolean(existing), previousId };
+  return { ok: true, userId, actionLink, resent: Boolean(existing), reused: false, previousId };
 }
 
 export interface RemoveAccountParams {

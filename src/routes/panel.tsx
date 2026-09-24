@@ -1597,14 +1597,17 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
   }
 
   async function remove(j: api.Judge) {
-    const msg = j.password_set_at
-      ? `¿Eliminar a ${j.full_name ?? j.email} como juez? Pierde acceso a FedOCR Timer y sus checkpoints asignados.`
-      : `¿Cancelar la invitación a ${j.full_name ?? j.email}?`;
+    const isAdmin = j.role === "admin" || j.role === "superadmin";
+    const msg = isAdmin
+      ? `¿Quitar a ${j.full_name ?? j.email} de la lista de jueces? Sigue siendo administrador y conserva su cuenta, solo deja de aparecer para asignarlo a un checkpoint.`
+      : j.password_set_at
+        ? `¿Eliminar a ${j.full_name ?? j.email} como juez? Pierde acceso a FedOCR Timer y sus checkpoints asignados.`
+        : `¿Cancelar la invitación a ${j.full_name ?? j.email}?`;
     if (!confirm(msg)) return;
     setRemovingId(j.id);
     try {
       await api.removeJudge(j.id);
-      toast.success(j.password_set_at ? "Juez eliminado" : "Invitación cancelada");
+      toast.success(isAdmin ? "Quitado de la lista de jueces" : j.password_set_at ? "Juez eliminado" : "Invitación cancelada");
       load();
     } catch (e) { toast.error((e as Error).message); } finally { setRemovingId(null); }
   }
@@ -1625,10 +1628,13 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
       <SimpleTable head={["Nombre", "Correo", "Estado", "Acciones"]}>
         {judges.map((j) => (
           <TableRow key={j.id}>
-            <TableCell className="font-medium">{j.full_name ?? "—"}</TableCell>
+            <TableCell className="font-medium">
+              {j.full_name ?? "—"}
+              {j.role === "admin" || j.role === "superadmin" ? <Badge variant="outline" className="ml-2">Admin</Badge> : null}
+            </TableCell>
             <TableCell className="text-muted-foreground">{j.email ?? "—"}</TableCell>
             <TableCell>
-              {j.password_set_at ? (
+              {j.password_set_at || j.role === "admin" || j.role === "superadmin" ? (
                 <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
               ) : (
                 <Button size="sm" variant="outline" disabled={locked || resendingId === j.id} onClick={() => resend(j)}>
@@ -1639,7 +1645,7 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
             <TableCell className="text-right">
               <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={locked || removingId === j.id} onClick={() => remove(j)}>
                 <Trash2 className="mr-1 size-4" />
-                {removingId === j.id ? "Eliminando..." : j.password_set_at ? "Eliminar" : "Cancelar invitación"}
+                {removingId === j.id ? "Eliminando..." : (j.role === "admin" || j.role === "superadmin") ? "Quitar" : j.password_set_at ? "Eliminar" : "Cancelar invitación"}
               </Button>
             </TableCell>
           </TableRow>

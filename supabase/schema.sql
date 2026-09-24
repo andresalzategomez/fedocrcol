@@ -1209,14 +1209,15 @@ declare
 begin
   v_tenant_id := nullif(new.raw_user_meta_data->>'tenant_id','')::uuid;
 
-  insert into public.profiles (id, full_name, tenant_id, role)
+  insert into public.profiles (id, full_name, tenant_id, role, email)
   values (
     new.id,
     new.raw_user_meta_data->>'full_name',
     v_tenant_id,
-    'athlete'
+    'athlete',
+    new.email
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set email = coalesce(public.profiles.email, excluded.email);
 
   v_club_id := nullif(new.raw_user_meta_data->>'club_id','')::uuid;
   if v_club_id is not null and v_tenant_id is not null then
@@ -1347,3 +1348,37 @@ group by tenant_id;
 
 grant select on public.league_athlete_counts to anon, authenticated;
 grant all on public.league_athlete_counts to service_role;
+
+-- =====================================================================
+-- 0026 — Un admin de liga puede aparecer en la lista de jueces de su
+-- propia liga (asignable a checkpoints) sin dejar de ser admin.
+-- =====================================================================
+
+create table if not exists public.tenant_judges (
+  tenant_id  uuid not null references public.tenants(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (tenant_id, user_id)
+);
+
+grant select, insert, update, delete on public.tenant_judges to authenticated;
+grant all on public.tenant_judges to service_role;
+alter table public.tenant_judges enable row level security;
+
+drop policy if exists "tenant_judges_read_scoped" on public.tenant_judges;
+create policy "tenant_judges_read_scoped" on public.tenant_judges for select to authenticated
+  using (
+    public.has_role(auth.uid(), 'superadmin')
+    or tenant_id = public.current_tenant_id()
+    or user_id = auth.uid()
+  );
+
+-- =====================================================================
+-- 0027 — profiles.email siempre se guarda al crear la cuenta (antes
+-- dependía de que cada flujo de registro lo seteara a mano).
+-- =====================================================================
+
+update public.profiles p
+set email = u.email
+from auth.users u
+where p.id = u.id and p.email is null and u.email is not null;

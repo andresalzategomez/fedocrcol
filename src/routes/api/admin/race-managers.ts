@@ -4,6 +4,7 @@ import { authenticate, json, apiError, preflight, handler, siteUrl } from "../..
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
 import { raceManagerInviteHtml, raceManagerInviteSubject } from "../../../lib/server/email-templates/race-manager-invite";
+import { raceManagerRoleAddedHtml, raceManagerRoleAddedSubject } from "../../../lib/server/email-templates/race-manager-role-added";
 import { raceManagerRemovedHtml, raceManagerRemovedSubject } from "../../../lib/server/email-templates/race-manager-removed";
 import { inviteOrResendAccount, removeAccount } from "../../../lib/server/invite-account";
 
@@ -51,11 +52,17 @@ export const Route = createFileRoute("/api/admin/race-managers")({
         const { data: tenant } = await admin.from("tenants").select("name").eq("id", leagueId).maybeSingle();
         const leagueName = tenant?.name ?? "tu liga";
 
-        const sent = await sendEmail({
-          to: email,
-          subject: raceManagerInviteSubject(leagueName),
-          html: raceManagerInviteHtml({ fullName: full_name, leagueName, inviteUrl: result.actionLink }),
-        });
+        const sent = result.actionLink
+          ? await sendEmail({
+              to: email,
+              subject: raceManagerInviteSubject(leagueName),
+              html: raceManagerInviteHtml({ fullName: full_name, leagueName, inviteUrl: result.actionLink }),
+            })
+          : await sendEmail({
+              to: email,
+              subject: raceManagerRoleAddedSubject(leagueName),
+              html: raceManagerRoleAddedHtml({ fullName: full_name, leagueName }),
+            });
         if (!sent.ok) {
           return apiError("EMAIL_FAILED", `El usuario se creó, pero no se pudo enviar el correo: ${sent.error}`, 502);
         }
