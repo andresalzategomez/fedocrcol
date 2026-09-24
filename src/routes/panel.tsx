@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SimpleTable } from "@/components/simple-table";
@@ -17,6 +17,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useSession, type Profile } from "@/lib/use-session";
 import { useColombiaLocation } from "@/lib/use-colombia-location";
+import { useTenantTheme } from "@/lib/tenant-theme";
 import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
 import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg } from "@/lib/validate";
@@ -92,17 +93,25 @@ function PanelPage() {
 
 /** Para un admin de liga: bloquea el panel si su liga sigue pendiente de aprobación (o suspendida). */
 function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: string }) {
-  const [status, setStatus] = useState<Tenant["status"] | "loading" | "none">("loading");
+  const [tenant, setTenant] = useState<Tenant | "loading" | "none">("loading");
   const [retrying, setRetrying] = useState(false);
 
   const load = useCallback(async () => {
-    if (!tenantId) { setStatus("none"); return; }
+    if (!tenantId) { setTenant("none"); return; }
     try {
       const all = await api.listTenants();
-      setStatus(all.find((t) => t.id === tenantId)?.status ?? "none");
-    } catch { setStatus("none"); }
+      setTenant(all.find((t) => t.id === tenantId) ?? "none");
+    } catch { setTenant("none"); }
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
+
+  // El panel de un admin de liga es una página "de esa liga" -- se ve con
+  // sus colores, igual que /ligas/:slug y el detalle de sus carreras.
+  useTenantTheme(
+    tenant !== "loading" && tenant !== "none"
+      ? { primary_color: tenant.primary_color, secondary_color: tenant.secondary_color }
+      : null,
+  );
 
   async function retry() {
     if (!tenantId) return;
@@ -111,11 +120,11 @@ function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: stri
     catch (e) { toast.error((e as Error).message); } finally { setRetrying(false); }
   }
 
-  if (status === "loading") return <Note>Cargando…</Note>;
-  if (status === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
-  if (status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
-  if (status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
-  if (status === "rejected") {
+  if (tenant === "loading") return <Note>Cargando…</Note>;
+  if (tenant === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
+  if (tenant.status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
+  if (tenant.status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
+  if (tenant.status === "rejected") {
     return (
       <Note>
         <p className="mb-3">La solicitud de tu liga fue rechazada.</p>
@@ -356,6 +365,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
         <TabsTrigger value="clubes"><Users className="mr-1 size-4" />Clubes</TabsTrigger>
         {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="solicitudes"><ClipboardCheck className="mr-1 size-4" />Solicitudes</TabsTrigger> : null}
+        {!isSuper && fixedTenant ? <TabsTrigger value="mi-liga"><Palette className="mr-1 size-4" />Mi liga</TabsTrigger> : null}
       </TabsList>
 
       {isSuper ? <TabsContent value="ligas" className="mt-6"><LigasSection tenants={tenants} onChange={loadTenants} /></TabsContent> : null}
@@ -390,7 +400,120 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
 
       {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
       {!isSuper && fixedTenant ? <TabsContent value="solicitudes" className="mt-6"><SolicitudesClub tenantId={fixedTenant} /></TabsContent> : null}
+      {!isSuper && fixedTenant ? <TabsContent value="mi-liga" className="mt-6"><MiLigaSection tenantId={fixedTenant} /></TabsContent> : null}
     </Tabs>
+  );
+}
+
+// ------------------- Identidad de la liga (admin de liga) -------------
+function MiLigaSection({ tenantId }: { tenantId: string }) {
+  const [tenant, setTenant] = useState<Tenant | "loading" | "none">("loading");
+  const [form, setForm] = useState({ name: "", description: "", primary_color: "", secondary_color: "" });
+  const [saving, setSaving] = useState(false);
+  const geo = useColombiaLocation();
+  const departmentHydrated = useRef(false);
+  const cityHydrated = useRef(false);
+
+  const load = useCallback(async () => {
+    if (!supabase) { setTenant("none"); return; }
+    const { data } = await supabase.from("tenants").select("*").eq("id", tenantId).maybeSingle();
+    if (!data) { setTenant("none"); return; }
+    const t = data as Tenant;
+    setTenant(t);
+    setForm({ name: t.name, description: t.description ?? "", primary_color: t.primary_color, secondary_color: t.secondary_color });
+  }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  // Precarga el departamento/municipio guardados en el selector en cascada
+  // (mismo componente que usa el registro de liga y el de atleta).
+  useEffect(() => {
+    if (departmentHydrated.current || tenant === "loading" || tenant === "none") return;
+    if (geo.loadingDepartments || geo.departments.length === 0) return;
+    const match = geo.departments.find((d) => d.name === tenant.department);
+    if (match) geo.setDepartmentId(String(match.id));
+    departmentHydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant, geo.loadingDepartments, geo.departments]);
+
+  useEffect(() => {
+    if (cityHydrated.current || tenant === "loading" || tenant === "none") return;
+    if (geo.loadingCities || geo.cities.length === 0) return;
+    if (tenant.city) geo.setCityName(tenant.city);
+    cityHydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo.loadingCities, geo.cities]);
+
+  async function save() {
+    if (!form.name.trim()) { toast.error("Escribe el nombre de la liga"); return; }
+    if (!geo.departmentName) { toast.error("Selecciona el departamento"); return; }
+    setSaving(true);
+    try {
+      await api.updateTenant(tenantId, {
+        name: form.name, department: geo.departmentName, city: geo.cityName || null, description: form.description || null,
+        primary_color: form.primary_color, secondary_color: form.secondary_color,
+      });
+      toast.success("Liga actualizada");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setSaving(false); }
+  }
+
+  if (tenant === "loading") return <Note>Cargando…</Note>;
+  if (tenant === "none") return <Note>No encontramos tu liga.</Note>;
+
+  return (
+    <div className="grid gap-6">
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-2">
+        <Field label="Nombre de la liga *"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+        <Field label="Departamento *">
+          <Select value={geo.departmentId} onValueChange={geo.setDepartmentId} disabled={geo.loadingDepartments}>
+            <SelectTrigger><SelectValue placeholder={geo.loadingDepartments ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Ciudad">
+          <Select value={geo.cityName} onValueChange={geo.setCityName} disabled={!geo.departmentId || geo.loadingCities}>
+            <SelectTrigger><SelectValue placeholder={!geo.departmentId ? "Elige el depto." : geo.loadingCities ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.cities.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <div />
+        <div className="sm:col-span-2">
+          <Field label="Descripción">
+            <textarea
+              className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Texto que ven los atletas en la página de tu liga"
+            />
+          </Field>
+        </div>
+        <Field label="Color primario">
+          <div className="flex items-center gap-2">
+            <input type="color" className="h-9 w-12 shrink-0 rounded border border-input bg-transparent p-1" value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} />
+            <Input value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} />
+          </div>
+        </Field>
+        <Field label="Color secundario">
+          <div className="flex items-center gap-2">
+            <input type="color" className="h-9 w-12 shrink-0 rounded border border-input bg-transparent p-1" value={form.secondary_color} onChange={(e) => setForm({ ...form, secondary_color: e.target.value })} />
+            <Input value={form.secondary_color} onChange={(e) => setForm({ ...form, secondary_color: e.target.value })} />
+          </div>
+        </Field>
+        <div
+          className="h-16 rounded sm:col-span-2"
+          style={{ background: `linear-gradient(120deg, ${form.primary_color}, ${form.secondary_color})` }}
+        />
+        <div className="sm:col-span-2">
+          <Button onClick={save} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
+        </div>
+      </CardContent></Card>
+      <Note>
+        Estos datos son los que identifican tu liga en el sitio público: nombre, departamento, ciudad,
+        descripción y colores (se usan en las tarjetas de liga, el encabezado de tus carreras y el tema visual
+        de tus páginas). El slug (<code>/ligas/{tenant.slug}</code>) no se puede editar aquí porque cambiarlo
+        rompería los enlaces ya compartidos.
+      </Note>
+    </div>
   );
 }
 
