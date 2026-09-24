@@ -5,9 +5,17 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DEMO_EVENTS, DEMO_LEAGUES, formatDate, leagueById } from "@/data/demo";
+import { formatDate } from "@/data/demo";
+import { fetchAthleteCountsByTenant, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    const [leagues, events, athleteCounts] = await Promise.all([fetchLeagues(), fetchEvents(), fetchAthleteCountsByTenant()]);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const upcoming = events.filter((e) => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+    const active = leagues.filter((l) => l.status === "active");
+    return { leagues, upcoming, active, athleteCounts };
+  },
   head: () => ({
     meta: [
       { title: "FEDOCR Colombia — Federación de Carreras de Obstáculos" },
@@ -27,8 +35,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const upcoming = DEMO_EVENTS.slice(0, 3);
-  const active = DEMO_LEAGUES.filter((l) => l.status === "active");
+  const { leagues, upcoming, active, athleteCounts } = Route.useLoaderData();
+  const leagueById = (id: string) => leagues.find((l) => l.id === id);
 
   return (
     <div className="min-h-screen">
@@ -149,7 +157,7 @@ function Home() {
                   </p>
                   <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{league.description}</p>
                   <p className="mt-4 flex items-center gap-1.5 text-sm font-medium">
-                    <Users className="size-4 text-primary" /> {league.athletes} atletas
+                    <Users className="size-4 text-primary" /> {athleteCounts.get(league.id) ?? 0} atletas
                   </p>
                 </CardContent>
               </Card>
@@ -161,6 +169,9 @@ function Home() {
       <section className="border-y border-border bg-card/40">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
           <h2 className="font-display text-4xl">Próximas carreras</h2>
+          {upcoming.length === 0 ? (
+            <p className="mt-4 text-muted-foreground">No hay carreras próximas publicadas por el momento.</p>
+          ) : (
           <div className="mt-8 grid gap-5 lg:grid-cols-3">
             {upcoming.map((event) => {
               const league = leagueById(event.tenant_id);
@@ -186,6 +197,7 @@ function Home() {
               );
             })}
           </div>
+          )}
         </div>
       </section>
 

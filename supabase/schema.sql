@@ -1334,3 +1334,16 @@ where r.status <> 'cancelled';
 
 grant select on public.registrations_public to anon, authenticated;
 grant all on public.registrations_public to service_role;
+
+-- =====================================================================
+-- 0025 — Conteo público de atletas por liga (sin PII).
+-- =====================================================================
+
+create or replace view public.league_athlete_counts as
+select tenant_id, count(*) as athlete_count
+from public.profiles
+where role = 'athlete' and tenant_id is not null
+group by tenant_id;
+
+grant select on public.league_athlete_counts to anon, authenticated;
+grant all on public.league_athlete_counts to service_role;
