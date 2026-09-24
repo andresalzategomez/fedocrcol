@@ -225,8 +225,11 @@ function EventDetail() {
       })
         .then((res) => { if (!res.ok) console.error("No se pudo enviar el correo de confirmación de inscripción:", res.status); })
         .catch((e) => console.error("No se pudo enviar el correo de confirmación de inscripción:", e));
-    } catch {
-      toast.error("No pudimos crear la inscripción. Intenta de nuevo.");
+    } catch (e) {
+      const message = e instanceof Error && e.message.includes("Ya existe una inscripción")
+        ? e.message
+        : "No pudimos crear la inscripción. Intenta de nuevo.";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

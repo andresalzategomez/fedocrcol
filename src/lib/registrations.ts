@@ -59,7 +59,12 @@ export async function createRegistration(input: RegistrationInput) {
       athlete_shirt_name: input.athlete.shirt_name,
       athlete_shirt_size: input.athlete.shirt_size,
     });
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("Ya existe una inscripción con este documento para esta carrera.");
+      }
+      throw error;
+    }
 
     if (userData.user) {
       await supabase.from("profiles").update({
