@@ -36,6 +36,30 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   return data as unknown as RankingRow[];
 }
 
+export type PublicRegistration = {
+  id: string;
+  event_id: string;
+  tenant_id: string;
+  category_id: string;
+  category_name: string;
+  athlete_name: string | null;
+  bib_number: string | null;
+  status: "pending" | "paid" | "cancelled";
+  created_at: string;
+};
+
+/** Lista pública de inscritos (sin datos sensibles) para uno o varios eventos. */
+export async function fetchPublicRegistrations(eventIds: string[]): Promise<PublicRegistration[]> {
+  if (!supabase || eventIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("registrations_public")
+    .select("*")
+    .in("event_id", eventIds)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  return data as unknown as PublicRegistration[];
+}
+
 export function computeLeagueStandings(ranking: RankingRow[], leagues: League[]) {
   return leagues
     .map((league) => {

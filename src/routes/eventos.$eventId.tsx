@@ -44,6 +44,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const DOCUMENT_TYPE_LABEL: Record<string, string> = { CC: "C.C.", TI: "T.I.", CE: "C.E.", PA: "Pasaporte" };
+const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "pendiente de pago", paid: "pagada", cancelled: "cancelada" };
 
 export const Route = createFileRoute("/eventos/$eventId")({
   loader: async ({ params }) => {
@@ -75,7 +76,7 @@ function EventDetail() {
   const { event, league } = Route.useLoaderData();
   useTenantTheme(league ? { primary_color: league.primary_color, secondary_color: league.secondary_color } : null);
 
-  const [ticket, setTicket] = useState<{ code: string; amount: number; category: string } | null>(null);
+  const [ticket, setTicket] = useState<{ code: string; amount: number; category: string; status: string; preexisting: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { profile, email: sessionEmail } = useSession();
   const [personalDataLocked, setPersonalDataLocked] = useState(false);
@@ -182,6 +183,39 @@ function EventDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, sessionEmail]);
 
+  /**
+   * Si el atleta ya tiene una inscripción (no cancelada) para ESTA carrera,
+   * se carga esa inscripción en vez de mostrar el formulario -- evita que
+   * intente inscribirse dos veces (el índice único en base de datos ya lo
+   * bloquea, pero esto lo evita desde la UI directamente).
+   */
+  useEffect(() => {
+    if (!profile || !supabase) return;
+    let active = true;
+    supabase
+      .from("registrations")
+      .select("qr_code, amount, category_id, status")
+      .eq("event_id", event.id)
+      .eq("athlete_id", profile.id)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active || !data) return;
+        const category = event.categories.find((c) => c.id === data.category_id);
+        setTicket({
+          code: data.qr_code,
+          amount: data.amount,
+          category: category?.name ?? "—",
+          status: data.status,
+          preexisting: true,
+        });
+      });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, event.id]);
+
   const selected = event.categories.find((c) => c.id === form.watch("category_id"));
   const pricing = selected ? dynamicPrice(selected.price, event.date) : null;
 
@@ -205,7 +239,7 @@ function EventDetail() {
         athlete,
         amount: dynamicPrice(category.price, event.date).price,
       });
-      setTicket({ code: result.qr_code, amount: result.amount, category: category.name });
+      setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false });
       toast.success("Inscripción creada. Continúa con el pago.");
 
       // Best-effort: la inscripción ya quedó creada, así que un correo que
@@ -291,7 +325,21 @@ function EventDetail() {
             <p className="mt-1 text-sm text-muted-foreground">
               Los datos quedan asociados a tu perfil de atleta en la liga de {league?.department}.
             </p>
-            {hasCompleteProfile ? (
+            {ticket ? (
+              <div className="mt-6 rounded-lg border border-secondary/60 bg-secondary/10 p-5 text-sm">
+                <p className="flex items-center gap-1.5 font-medium text-secondary">
+                  <CheckCircle2 className="size-4" />
+                  {ticket.preexisting ? "Ya estás inscrito en esta carrera" : "¡Tu inscripción quedó registrada!"}
+                </p>
+                <p className="mt-2 text-muted-foreground">
+                  Categoría <strong>{ticket.category}</strong> · estado: {REGISTRATION_STATUS_LABEL[ticket.status] ?? ticket.status}
+                </p>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">{ticket.code}</p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Revisa el comprobante y el código QR a la derecha.
+                </p>
+              </div>
+            ) : hasCompleteProfile ? (
               <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
                 <div className="rounded-lg border border-border/70 bg-accent/40 p-4 text-sm">
                   <p className="flex items-center gap-1.5 font-medium">
@@ -563,7 +611,7 @@ function EventDetail() {
                 <CheckCircle2 className="mx-auto size-8 text-secondary" />
                 <h3 className="mt-2 font-display text-2xl">Inscripción registrada</h3>
                 <p className="text-sm text-muted-foreground">
-                  {ticket.category} · {formatCOP(ticket.amount)} · estado: pendiente de pago
+                  {ticket.category} · {formatCOP(ticket.amount)} · estado: {REGISTRATION_STATUS_LABEL[ticket.status] ?? ticket.status}
                 </p>
                 <img
                   src={qrUrl(ticket.code)}
@@ -574,11 +622,13 @@ function EventDetail() {
                   loading="lazy"
                 />
                 <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
-                <Button className="mt-4 w-full" asChild>
-                  <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
-                    Ir a la pasarela de pago
-                  </a>
-                </Button>
+                {ticket.status === "pending" ? (
+                  <Button className="mt-4 w-full" asChild>
+                    <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
+                      Ir a la pasarela de pago
+                    </a>
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}
