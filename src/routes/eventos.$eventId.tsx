@@ -50,7 +50,44 @@ type FormValues = z.infer<typeof schema>;
 const DOCUMENT_TYPE_LABEL: Record<string, string> = { CC: "C.C.", TI: "T.I.", CE: "C.E.", PA: "Pasaporte" };
 const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "pendiente de pago", paid: "pagada", cancelled: "cancelada" };
 
+type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean };
+
+/** Confirmación con QR -- se muestra igual en el layout completo (barra lateral) y en el minimal (bajo el formulario). */
+function TicketCard({ ticket }: { ticket: Ticket }) {
+  return (
+    <Card className="border-secondary/60">
+      <CardContent className="p-6 text-center">
+        <CheckCircle2 className="mx-auto size-8 text-secondary" />
+        <h3 className="mt-2 font-display text-2xl">Inscripción registrada</h3>
+        <p className="text-sm text-muted-foreground">
+          {ticket.category} · {formatCOP(ticket.amount)} · estado: {REGISTRATION_STATUS_LABEL[ticket.status] ?? ticket.status}
+        </p>
+        <img
+          src={qrUrl(ticket.code)}
+          alt={`Código QR del comprobante ${ticket.code}`}
+          className="mx-auto mt-4 rounded bg-white p-2"
+          width={220}
+          height={220}
+          loading="lazy"
+        />
+        <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
+        {ticket.status === "pending" ? (
+          <Button className="mt-4 w-full" asChild>
+            <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
+              Ir a la pasarela de pago
+            </a>
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export const Route = createFileRoute("/eventos/$eventId")({
+  validateSearch: (search: Record<string, unknown>): { minimal?: true } => {
+    const minimal = search.minimal === "1" || search.minimal === 1 || search.minimal === true || search.minimal === "true";
+    return minimal ? { minimal: true } : {};
+  },
   loader: async ({ params }) => {
     const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
     const rawEvent = events.find((e) => e.id === params.eventId);
@@ -88,9 +125,10 @@ export const Route = createFileRoute("/eventos/$eventId")({
 
 function EventDetail() {
   const { event, league, registrations } = Route.useLoaderData();
+  const { minimal } = Route.useSearch();
   useTenantTheme(league ? { primary_color: league.primary_color, secondary_color: league.secondary_color } : null);
 
-  const [ticket, setTicket] = useState<{ code: string; amount: number; category: string; status: string; preexisting: boolean } | null>(null);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { profile, email: sessionEmail } = useSession();
   const [personalDataLocked, setPersonalDataLocked] = useState(false);
@@ -325,23 +363,30 @@ function EventDetail() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader activeLeagueSlug={league?.slug} />
+      <SiteHeader activeLeagueSlug={league?.slug} minimalNav={minimal} />
 
-      <section className="surface-grit border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <Link to="/ligas/$slug" params={{ slug: league?.slug ?? "" }}>
-            <Badge variant="outline" className="mb-3">{league?.department}</Badge>
-          </Link>
-          <h1 className="font-display text-5xl sm:text-6xl">{event.title}</h1>
-          <div className="mt-4 flex flex-wrap gap-5 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><CalendarDays className="size-4" />{formatDate(event.date)}</span>
-            <span className="flex items-center gap-1.5"><MapPin className="size-4" />{event.location}</span>
-            <span>{event.distance_km} km · {event.obstacles} obstáculos</span>
+      {!minimal ? (
+        <section className="surface-grit border-b border-border">
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+            <Link to="/ligas/$slug" params={{ slug: league?.slug ?? "" }}>
+              <Badge variant="outline" className="mb-3">{league?.department}</Badge>
+            </Link>
+            <h1 className="font-display text-5xl sm:text-6xl">{event.title}</h1>
+            <div className="mt-4 flex flex-wrap gap-5 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><CalendarDays className="size-4" />{formatDate(event.date)}</span>
+              <span className="flex items-center gap-1.5"><MapPin className="size-4" />{event.location}</span>
+              <span>{event.distance_km} km · {event.obstacles} obstáculos</span>
+            </div>
           </div>
+        </section>
+      ) : (
+        <div className="mx-auto max-w-2xl px-4 pt-10 sm:px-6">
+          <h1 className="font-display text-3xl">{event.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{formatDate(event.date)} · {event.location}</p>
         </div>
-      </section>
+      )}
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.3fr_1fr]">
+      <div className={minimal ? "mx-auto max-w-2xl px-4 py-8 sm:px-6" : "mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1.3fr_1fr]"}>
         <Card className="border-border/70">
           <CardContent className="p-6 sm:p-8">
             <h2 className="font-display text-3xl">Formulario de inscripción</h2>
@@ -600,99 +645,81 @@ function EventDetail() {
           </CardContent>
         </Card>
 
-        <div className="space-y-5">
-          <Card className="border-border/70">
-            <CardContent className="p-6">
-              <h3 className="font-display text-2xl">Resumen</h3>
-              <div className="mt-4 space-y-3 text-sm">
-                {event.categories.map((c) => {
-                  const p = dynamicPrice(c.price, event.date);
-                  return (
-                    <div key={c.id} className="flex items-center justify-between border-b border-border/60 pb-2">
-                      <div>
-                        <p className="font-medium">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{p.stage} · {c.slots_available} cupos</p>
+        {minimal ? (
+          ticket ? <div className="mt-6"><TicketCard ticket={ticket} /></div> : null
+        ) : (
+          <div className="space-y-5">
+            <Card className="border-border/70">
+              <CardContent className="p-6">
+                <h3 className="font-display text-2xl">Resumen</h3>
+                <div className="mt-4 space-y-3 text-sm">
+                  {event.categories.map((c) => {
+                    const p = dynamicPrice(c.price, event.date);
+                    return (
+                      <div key={c.id} className="flex items-center justify-between border-b border-border/60 pb-2">
+                        <div>
+                          <p className="font-medium">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.stage} · {c.slots_available} cupos</p>
+                        </div>
+                        <p className="font-semibold text-primary">{formatCOP(p.price)}</p>
                       </div>
-                      <p className="font-semibold text-primary">{formatCOP(p.price)}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              {pricing ? (
-                <div className="mt-5 rounded bg-accent p-4">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Total a pagar</p>
-                  <p className="font-display text-4xl text-primary">{formatCOP(pricing.price)}</p>
-                  <p className="text-xs text-muted-foreground">{pricing.stage}</p>
+                    );
+                  })}
                 </div>
-              ) : null}
-              <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-                El cupo se reserva como “Pendiente” y se confirma automáticamente con el webhook de la pasarela.
-              </p>
-            </CardContent>
-          </Card>
-
-          {ticket ? (
-            <Card className="border-secondary/60">
-              <CardContent className="p-6 text-center">
-                <CheckCircle2 className="mx-auto size-8 text-secondary" />
-                <h3 className="mt-2 font-display text-2xl">Inscripción registrada</h3>
-                <p className="text-sm text-muted-foreground">
-                  {ticket.category} · {formatCOP(ticket.amount)} · estado: {REGISTRATION_STATUS_LABEL[ticket.status] ?? ticket.status}
-                </p>
-                <img
-                  src={qrUrl(ticket.code)}
-                  alt={`Código QR del comprobante ${ticket.code}`}
-                  className="mx-auto mt-4 rounded bg-white p-2"
-                  width={220}
-                  height={220}
-                  loading="lazy"
-                />
-                <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
-                {ticket.status === "pending" ? (
-                  <Button className="mt-4 w-full" asChild>
-                    <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
-                      Ir a la pasarela de pago
-                    </a>
-                  </Button>
+                {pricing ? (
+                  <div className="mt-5 rounded bg-accent p-4">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Total a pagar</p>
+                    <p className="font-display text-4xl text-primary">{formatCOP(pricing.price)}</p>
+                    <p className="text-xs text-muted-foreground">{pricing.stage}</p>
+                  </div>
                 ) : null}
+                <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                  El cupo se reserva como “Pendiente” y se confirma automáticamente con el webhook de la pasarela.
+                </p>
               </CardContent>
             </Card>
-          ) : null}
-        </div>
-      </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
-        <h2 className="font-display text-3xl">Inscritos</h2>
-        {registrations.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">Todavía no hay inscritos en esta carrera.</p>
-        ) : (
-          <div className="mt-5">
-            <SimpleTable head={["Dorsal", "Atleta", "Categoría", "Estado"]}>
-              {registrations.map((r: PublicRegistration) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
-                  <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant={r.status === "paid" ? "default" : "outline"}>
-                      {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </SimpleTable>
+            {ticket ? <TicketCard ticket={ticket} /> : null}
           </div>
         )}
       </div>
 
-      {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
-        <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
-          <LiveResults eventId={event.id} />
-        </div>
-      ) : null}
+      {!minimal ? (
+        <>
+          <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
+            <h2 className="font-display text-3xl">Inscritos</h2>
+            {registrations.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Todavía no hay inscritos en esta carrera.</p>
+            ) : (
+              <div className="mt-5">
+                <SimpleTable head={["Dorsal", "Atleta", "Categoría", "Estado"]}>
+                  {registrations.map((r: PublicRegistration) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
+                      <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={r.status === "paid" ? "default" : "outline"}>
+                          {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </SimpleTable>
+              </div>
+            )}
+          </div>
 
-      <SiteFooter />
+          {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
+            <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
+              <LiveResults eventId={event.id} />
+            </div>
+          ) : null}
+
+          <SiteFooter />
+        </>
+      ) : null}
     </div>
   );
 }
