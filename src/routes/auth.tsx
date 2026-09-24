@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { listTenants, listClubsForTenant, type Tenant, type PublicClub } from "@/lib/admin-api";
+import { useColombiaLocation } from "@/lib/use-colombia-location";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -338,17 +339,17 @@ function LeagueSignupForm() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [leagueName, setLeagueName] = useState("");
-  const [department, setDepartment] = useState("");
-  const [city, setCity] = useState("");
+  const geo = useColombiaLocation();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!geo.departmentName) { toast.error("Selecciona el departamento"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/public/register-league", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName, league_name: leagueName, department, city: city || undefined }),
+        body: JSON.stringify({ email, password, full_name: fullName, league_name: leagueName, department: geo.departmentName, city: geo.cityName || undefined }),
       });
       const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
       if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo registrar la liga");
@@ -385,11 +386,23 @@ function LeagueSignupForm() {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="l-dept">Departamento</Label>
-        <Input id="l-dept" required value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Antioquia" />
+        <Select value={geo.departmentId} onValueChange={geo.setDepartmentId} disabled={geo.loadingDepartments}>
+          <SelectTrigger id="l-dept"><SelectValue placeholder={geo.loadingDepartments ? "Cargando..." : "Selecciona un departamento"} /></SelectTrigger>
+          <SelectContent>
+            {geo.departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="l-city">Ciudad (opcional)</Label>
-        <Input id="l-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Medellín" />
+        <Label htmlFor="l-city">Municipio (opcional)</Label>
+        <Select value={geo.cityName} onValueChange={geo.setCityName} disabled={!geo.departmentId || geo.loadingCities}>
+          <SelectTrigger id="l-city">
+            <SelectValue placeholder={!geo.departmentId ? "Elige primero el departamento" : geo.loadingCities ? "Cargando..." : "Selecciona un municipio"} />
+          </SelectTrigger>
+          <SelectContent>
+            {geo.cities.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <Button type="submit" disabled={loading}>{loading ? "Registrando..." : "Registrar liga"}</Button>
     </form>
