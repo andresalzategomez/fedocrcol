@@ -9,12 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
-import { dynamicPrice, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
+import { dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations } from "@/lib/ocr-data";
 
 export const Route = createFileRoute("/eventos/")({
   loader: async () => {
     const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
-    return { events, leagues };
+    const registrations = await fetchPublicRegistrations(events.map((e) => e.id));
+    const countByEvent = new Map<string, number>();
+    for (const r of registrations) countByEvent.set(r.event_id, (countByEvent.get(r.event_id) ?? 0) + 1);
+    const eventsWithCounts = events.map((e) => ({ ...e, registered: countByEvent.get(e.id) ?? 0 }));
+    return { events: eventsWithCounts, leagues };
   },
   head: () => ({
     meta: [
@@ -67,34 +71,34 @@ function EventsPage() {
           const cheapest = Math.min(...event.categories.map((c) => dynamicPrice(c.price, event.date).price));
           const fill = Math.round((event.registered / event.max_capacity) * 100);
           return (
-            <Card key={event.id} className="border-border/70">
-              <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.4fr_1fr_auto] lg:items-center">
-                <div>
-                  <Badge variant="outline" className="mb-2">{league?.department}</Badge>
-                  <p className="font-display text-3xl leading-tight">{event.title}</p>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><CalendarDays className="size-4" />{formatDate(event.date)}</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="size-4" />{event.location}</span>
-                    <span>{event.distance_km} km · {event.obstacles} obstáculos</span>
+            <Link key={event.id} to="/eventos/$eventId" params={{ eventId: event.id }} className="block">
+              <Card className="border-border/70 transition-colors hover:border-primary">
+                <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.4fr_1fr_auto] lg:items-center">
+                  <div>
+                    <Badge variant="outline" className="mb-2">{league?.department}</Badge>
+                    <p className="font-display text-3xl leading-tight">{event.title}</p>
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><CalendarDays className="size-4" />{formatDate(event.date)}</span>
+                      <span className="flex items-center gap-1.5"><MapPin className="size-4" />{event.location}</span>
+                      <span>{event.distance_km} km · {event.obstacles} obstáculos</span>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 text-muted-foreground"><Users className="size-4" /> Cupos</span>
-                    <span className="font-medium">{event.registered}/{event.max_capacity}</span>
-                  </p>
-                  <Progress value={fill} className="mt-2" />
-                  <p className="mt-2 text-xs text-muted-foreground">{event.categories.length} categorías disponibles</p>
-                </div>
-                <div className="lg:text-right">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Desde</p>
-                  <p className="font-display text-3xl text-primary">{formatCOP(cheapest)}</p>
-                  <Button asChild className="mt-3 w-full lg:w-auto">
-                    <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Inscribirme</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div>
+                    <p className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-muted-foreground"><Users className="size-4" /> Cupos</span>
+                      <span className="font-medium">{event.registered}/{event.max_capacity}</span>
+                    </p>
+                    <Progress value={fill} className="mt-2" />
+                    <p className="mt-2 text-xs text-muted-foreground">{event.categories.length} categorías disponibles</p>
+                  </div>
+                  <div className="lg:text-right">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Desde</p>
+                    <p className="font-display text-3xl text-primary">{formatCOP(cheapest)}</p>
+                    <Button className="mt-3 w-full lg:w-auto">Ver</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>

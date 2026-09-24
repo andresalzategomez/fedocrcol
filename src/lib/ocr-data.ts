@@ -60,6 +60,13 @@ export async function fetchPublicRegistrations(eventIds: string[]): Promise<Publ
   return data as unknown as PublicRegistration[];
 }
 
+/** Cuenta inscripciones activas por categoría, a partir de una lista ya cargada. */
+export function countRegistrationsByCategory(registrations: PublicRegistration[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const r of registrations) map.set(r.category_id, (map.get(r.category_id) ?? 0) + 1);
+  return map;
+}
+
 export function computeLeagueStandings(ranking: RankingRow[], leagues: League[]) {
   return leagues
     .map((league) => {
