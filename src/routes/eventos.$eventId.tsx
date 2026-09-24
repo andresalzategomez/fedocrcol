@@ -147,6 +147,24 @@ function EventDetail() {
       });
       setTicket({ code: result.qr_code, amount: result.amount, category: category.name });
       toast.success("Inscripción creada. Continúa con el pago.");
+
+      // Best-effort: la inscripción ya quedó creada, así que un correo que
+      // falla no debe interrumpir la pantalla de éxito -- solo se registra
+      // en consola para depurar.
+      fetch("/api/public/registration-confirmation", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: athlete.email,
+          full_name: athlete.full_name,
+          event_title: event.title,
+          category_name: category.name,
+          qr_code: result.qr_code,
+          amount: result.amount,
+        }),
+      })
+        .then((res) => { if (!res.ok) console.error("No se pudo enviar el correo de confirmación de inscripción:", res.status); })
+        .catch((e) => console.error("No se pudo enviar el correo de confirmación de inscripción:", e));
     } catch {
       toast.error("No pudimos crear la inscripción. Intenta de nuevo.");
     } finally {
