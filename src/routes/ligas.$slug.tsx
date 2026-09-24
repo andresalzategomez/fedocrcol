@@ -5,12 +5,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { SimpleTable } from "@/components/simple-table";
 import { formatDate } from "@/data/demo";
 import { fetchEvents, fetchLeagues, fetchPublicRegistrations, fetchRanking } from "@/lib/ocr-data";
 import { useTenantTheme } from "@/lib/tenant-theme";
-
-const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "Pendiente", paid: "Pagada" };
 
 export const Route = createFileRoute("/ligas/$slug")({
   loader: async ({ params }) => {
@@ -45,8 +44,6 @@ function LeaguePage() {
   const { league, events, ranking, registrations } = Route.useLoaderData();
   useTenantTheme({ primary_color: league.primary_color, secondary_color: league.secondary_color });
 
-  const eventTitleById = new Map(events.map((e) => [e.id, e.title]));
-
   return (
     <div className="min-h-screen">
       <SiteHeader activeLeagueSlug={league.slug} />
@@ -78,66 +75,24 @@ function LeaguePage() {
         ) : (
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
-              <Card key={event.id} className="border-border/70">
-                <CardContent className="p-6">
-                  <p className="font-display text-3xl leading-tight">{event.title}</p>
-                  <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                    <CalendarDays className="size-4" /> {formatDate(event.date)}
-                  </p>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="size-4" /> {event.location}
-                  </p>
-                  <p className="mt-3 text-sm">{event.distance_km} km · {event.obstacles} obstáculos</p>
-                  <Button asChild className="mt-5 w-full">
-                    <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Inscribirme</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <Link key={event.id} to="/eventos/$eventId" params={{ eventId: event.id }} className="block">
+                <Card className="h-full border-border/70 transition-colors hover:border-primary">
+                  <CardContent className="p-6">
+                    <p className="font-display text-3xl leading-tight">{event.title}</p>
+                    <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarDays className="size-4" /> {formatDate(event.date)}
+                    </p>
+                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="size-4" /> {event.location}
+                    </p>
+                    <p className="mt-3 text-sm">{event.distance_km} km · {event.obstacles} obstáculos</p>
+                    <Button className="mt-5 w-full">Ver</Button>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
-      </section>
-
-      <section className="border-t border-border bg-card/40">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <h2 className="flex items-center gap-3 font-display text-4xl">
-            <Users className="size-7 text-primary" /> Inscritos
-          </h2>
-          {registrations.length === 0 ? (
-            <p className="mt-4 text-muted-foreground">Todavía no hay inscritos en las carreras de esta liga.</p>
-          ) : (
-            <Card className="mt-6 border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">Dorsal</TableHead>
-                    <TableHead>Atleta</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    {events.length > 1 ? <TableHead>Carrera</TableHead> : null}
-                    <TableHead className="text-right">Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {registrations.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
-                      <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
-                      {events.length > 1 ? (
-                        <TableCell className="text-muted-foreground">{eventTitleById.get(r.event_id) ?? "—"}</TableCell>
-                      ) : null}
-                      <TableCell className="text-right">
-                        <Badge variant={r.status === "paid" ? "default" : "outline"}>
-                          {REGISTRATION_STATUS_LABEL[r.status] ?? r.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
-        </div>
       </section>
 
       <section className="border-t border-border bg-card/40">
@@ -148,35 +103,24 @@ function LeaguePage() {
           {ranking.length === 0 ? (
             <p className="mt-4 text-muted-foreground">Esta liga aún no tiene resultados registrados.</p>
           ) : (
-            <Card className="mt-6 border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Atleta</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Carreras</TableHead>
-                    <TableHead className="text-right">Puntos</TableHead>
+            <div className="mt-6">
+              <SimpleTable head={["#", "Atleta", "Categoría", "Carreras", "Puntos"]}>
+                {ranking.map((row, i) => (
+                  <TableRow key={row.athlete}>
+                    <TableCell className="font-display text-xl">{i + 1}</TableCell>
+                    <TableCell className="font-medium">
+                      {row.athlete}
+                      {row.qualified ? (
+                        <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.category}</TableCell>
+                    <TableCell className="text-right">{row.races}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ranking.map((row, i) => (
-                    <TableRow key={row.athlete}>
-                      <TableCell className="font-display text-xl">{i + 1}</TableCell>
-                      <TableCell className="font-medium">
-                        {row.athlete}
-                        {row.qualified ? (
-                          <Badge className="ml-2 bg-secondary text-secondary-foreground">Mundial</Badge>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{row.category}</TableCell>
-                      <TableCell className="text-right">{row.races}</TableCell>
-                      <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+                ))}
+              </SimpleTable>
+            </div>
           )}
         </div>
       </section>

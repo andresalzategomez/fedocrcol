@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Children, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SimpleTable } from "@/components/simple-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useSession, type Profile } from "@/lib/use-session";
 import { useColombiaLocation } from "@/lib/use-colombia-location";
@@ -1773,41 +1774,4 @@ function Resultados({ event }: { event: EventRow }) {
 // ----------------------------- helpers UI ----------------------------
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return <div className="grid gap-1.5"><Label>{label}</Label>{children}{error ? <span className="text-xs text-destructive">{error}</span> : null}</div>;
-}
-const PAGE_SIZES = [10, 20, 50, 100];
-function SimpleTable({ head, children }: { head: string[]; children: React.ReactNode }) {
-  const items = Children.toArray(children);
-  const [pageSize, setPageSize] = useState(10);
-  const [page, setPage] = useState(0);
-  const total = items.length;
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const current = Math.min(page, pages - 1);
-  const slice = items.slice(current * pageSize, current * pageSize + pageSize);
-  useEffect(() => { setPage(0); }, [pageSize, total]);
-
-  return (
-    <Card><CardContent className="p-0">
-      <Table>
-        <TableHeader><TableRow>{head.map((h, i) => <TableHead key={i} className={i === head.length - 1 ? "text-right" : ""}>{h}</TableHead>)}</TableRow></TableHeader>
-        <TableBody>{slice}</TableBody>
-      </Table>
-      {total > PAGE_SIZES[0] ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Ver</span>
-            <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-              <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
-              <SelectContent>{PAGE_SIZES.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
-            </Select>
-            <span className="text-muted-foreground">de {total} registros</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={current === 0} onClick={() => setPage(current - 1)}>Anterior</Button>
-            <span className="text-muted-foreground">Página {current + 1} de {pages}</span>
-            <Button size="sm" variant="outline" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>Siguiente</Button>
-          </div>
-        </div>
-      ) : null}
-    </CardContent></Card>
-  );
 }

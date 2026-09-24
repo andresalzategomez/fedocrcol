@@ -67,6 +67,14 @@ export function countRegistrationsByCategory(registrations: PublicRegistration[]
   return map;
 }
 
+/** Conteo público de atletas por liga (sin datos personales), vía league_athlete_counts. */
+export async function fetchAthleteCountsByTenant(): Promise<Map<string, number>> {
+  if (!supabase) return new Map();
+  const { data, error } = await supabase.from("league_athlete_counts").select("tenant_id, athlete_count");
+  if (error || !data) return new Map();
+  return new Map(data.map((r) => [r.tenant_id as string, r.athlete_count as number]));
+}
+
 export function computeLeagueStandings(ranking: RankingRow[], leagues: League[]) {
   return leagues
     .map((league) => {

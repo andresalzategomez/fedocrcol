@@ -4,8 +4,9 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SimpleTable } from "@/components/simple-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { DEMO_LEAGUES, DEMO_RANKING, leagueById } from "@/data/demo";
 import { computeLeagueStandings } from "@/lib/ocr-data";
 
@@ -48,39 +49,25 @@ function RankingPage() {
           </TabsList>
 
           <TabsContent value="individual" className="mt-6">
-            <Card className="border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Atleta</TableHead>
-                    <TableHead>Liga</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Carreras</TableHead>
-                    <TableHead className="text-right">Puntos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {DEMO_RANKING.map((row) => (
-                    <TableRow key={row.athlete}>
-                      <TableCell className="font-display text-xl">{row.position}</TableCell>
-                      <TableCell className="font-medium">
-                        {row.athlete}
-                        {row.qualified ? (
-                          <Badge className="ml-2 bg-secondary text-secondary-foreground">
-                            <Medal className="mr-1 size-3" /> Mundial
-                          </Badge>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{leagueById(row.tenant_id)?.department}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.category}</TableCell>
-                      <TableCell className="text-right">{row.races}</TableCell>
-                      <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+            <SimpleTable head={["#", "Atleta", "Liga", "Categoría", "Carreras", "Puntos"]}>
+              {DEMO_RANKING.map((row) => (
+                <TableRow key={row.athlete}>
+                  <TableCell className="font-display text-xl">{row.position}</TableCell>
+                  <TableCell className="font-medium">
+                    {row.athlete}
+                    {row.qualified ? (
+                      <Badge className="ml-2 bg-secondary text-secondary-foreground">
+                        <Medal className="mr-1 size-3" /> Mundial
+                      </Badge>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{leagueById(row.tenant_id)?.department}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.category}</TableCell>
+                  <TableCell className="text-right">{row.races}</TableCell>
+                  <TableCell className="text-right font-semibold text-primary">{row.points}</TableCell>
+                </TableRow>
+              ))}
+            </SimpleTable>
           </TabsContent>
 
           <TabsContent value="ligas" className="mt-6">

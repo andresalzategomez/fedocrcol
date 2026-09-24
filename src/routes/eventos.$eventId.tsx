@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { SimpleTable } from "@/components/simple-table";
 import { formatCOP, formatDate } from "@/data/demo";
 import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl, type PublicRegistration } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
@@ -232,11 +233,20 @@ function EventDetail() {
   const selected = event.categories.find((c) => c.id === form.watch("category_id"));
   const pricing = selected ? dynamicPrice(selected.price, event.date) : null;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isPastDate = event.date < todayStr;
+  const isFinished = event.status === "finished";
+  const registrationsClosed = isPastDate || isFinished;
+
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
     social_media?: string | undefined; eps: string; blood_type: string; emergency_contact_name: string;
     emergency_contact_phone: string; shirt_name: string; shirt_size: string;
   }) {
+    if (registrationsClosed) {
+      toast.error("Las inscripciones para esta carrera están cerradas.");
+      return;
+    }
     const category = event.categories.find((c) => c.id === categoryId);
     if (!category) return;
     if (category.slots_available <= 0) {
@@ -351,6 +361,10 @@ function EventDetail() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   Revisa el comprobante y el código QR a la derecha.
                 </p>
+              </div>
+            ) : registrationsClosed ? (
+              <div className="mt-6 rounded-lg border border-border/70 bg-accent/40 p-5 text-sm text-muted-foreground">
+                Las inscripciones para esta carrera están cerradas{isFinished ? " -- la carrera ya finalizó." : " -- la fecha de la carrera ya pasó."}
               </div>
             ) : hasCompleteProfile ? (
               <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
@@ -653,36 +667,26 @@ function EventDetail() {
         {registrations.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">Todavía no hay inscritos en esta carrera.</p>
         ) : (
-          <Card className="mt-5 border-border/70">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Dorsal</TableHead>
-                  <TableHead>Atleta</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead className="text-right">Estado</TableHead>
+          <div className="mt-5">
+            <SimpleTable head={["Dorsal", "Atleta", "Categoría", "Estado"]}>
+              {registrations.map((r: PublicRegistration) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
+                  <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={r.status === "paid" ? "default" : "outline"}>
+                      {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {registrations.map((r: PublicRegistration) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
-                    <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={r.status === "paid" ? "default" : "outline"}>
-                        {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+              ))}
+            </SimpleTable>
+          </div>
         )}
       </div>
 
-      {event.visibility === "public" ? (
+      {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
         <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
           <LiveResults eventId={event.id} />
         </div>

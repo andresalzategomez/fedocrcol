@@ -34,6 +34,7 @@ export type OcrEvent = {
   image_hint: string;
   categories: EventCategory[];
   visibility?: "public" | "private";
+  status?: "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 };
 
 export type RankingRow = {
