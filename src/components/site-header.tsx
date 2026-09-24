@@ -29,10 +29,11 @@ const ROLE_LABEL: Record<string, string> = {
   athlete: "Atleta",
 };
 
-export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | undefined }) {
+export function SiteHeader({ activeLeagueSlug, minimalNav }: { activeLeagueSlug?: string | undefined; minimalNav?: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { loading, email, profile, signOut } = useSession();
+  const navItems = minimalNav ? NAV.filter((n) => n.to === "/") : NAV;
 
   async function handleSignOut() {
     await signOut();
@@ -55,7 +56,7 @@ export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | u
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex">
-          {NAV.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -117,7 +118,7 @@ export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | u
       {open ? (
         <div className="border-t border-border bg-card px-4 py-3 lg:hidden">
           <div className="grid gap-1">
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette, Link2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SimpleTable } from "@/components/simple-table";
@@ -802,6 +802,17 @@ function AprobacionesClubesIndependientes() {
   );
 }
 
+/** Link público de inscripción: solo el formulario, sin el resto del sitio (para compartir en bio/anuncios). */
+async function copyRegistrationLink(eventId: string) {
+  const url = `${window.location.origin}/eventos/${eventId}?minimal=1`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link de inscripción copiado");
+  } catch {
+    toast.error(`No se pudo copiar automáticamente. Link: ${url}`);
+  }
+}
+
 // ------------------------------ Carreras -----------------------------
 function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSuper: boolean; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -907,6 +918,7 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
                   onClick={() => act(e.id, api.approveEvent, "Aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
                 <Button size="sm" variant="outline" onClick={() => act(e.id, api.rejectEvent, "Rechazado")}><XCircle className="mr-1 size-4" />Rechazar</Button>
               </>) : null}
+              <Button size="sm" variant="outline" onClick={() => copyRegistrationLink(e.id)}><Link2 className="mr-1 size-4" />Copiar link de inscripción</Button>
               <Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button>
             </div></TableCell>
           </TableRow>
@@ -1060,7 +1072,10 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
             <TableCell className="text-muted-foreground">{e.date}</TableCell>
             <TableCell><StatusBadge status={e.status} /></TableCell>
             <TableCell><OficialBadge value={e.is_official} /></TableCell>
-            <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button></TableCell>
+            <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => copyRegistrationLink(e.id)}><Link2 className="mr-1 size-4" />Copiar link de inscripción</Button>
+              <Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button>
+            </div></TableCell>
           </TableRow>
         ))}
         {events.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Aún no has creado carreras.</TableCell></TableRow> : null}
