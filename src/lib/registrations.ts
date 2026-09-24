@@ -29,6 +29,7 @@ export async function createRegistration(input: RegistrationInput) {
   const qr_code = makeReference(input);
 
   if (supabase) {
+    const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.from("registrations").insert({
       event_id: input.event_id,
       tenant_id: input.tenant_id,
@@ -36,6 +37,7 @@ export async function createRegistration(input: RegistrationInput) {
       status: "pending",
       qr_code,
       amount: input.amount,
+      athlete_id: userData.user?.id ?? null,
       athlete_document: input.athlete.document_id,
       athlete_name: input.athlete.full_name,
       athlete_email: input.athlete.email,

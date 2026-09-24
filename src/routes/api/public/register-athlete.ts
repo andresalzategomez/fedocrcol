@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { json, apiError, preflight, handler } from "../../../lib/server/api";
+import { json, apiError, preflight, handler, siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
+import { sendEmail, isResendConfigured } from "../../../lib/server/resend-server";
+import { athleteConfirmHtml, athleteConfirmSubject } from "../../../lib/server/email-templates/athlete-confirm";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -13,20 +15,22 @@ const bodySchema = z.object({
 
 /**
  * POST /api/public/register-athlete
- * Reemplaza el `supabase.auth.signUp()` directo desde el cliente que
- * usaba esta ruta antes: ese signUp dispara el correo de confirmación
- * integrado de Supabase (mismo mailer de límite bajo que ya migramos
- * para jueces/race_manager) y además rechaza ciertos dominios de correo
+ * Reemplaza el `supabase.auth.signUp()` directo desde el cliente que usaba
+ * esta ruta antes: ese signUp dispara el correo de confirmación integrado
+ * de Supabase (mismo mailer de límite bajo que ya migramos para
+ * jueces/race_manager) y además rechaza ciertos dominios de correo
  * (validación propia de Supabase, no relacionada con este código).
  *
- * El atleta no necesita aprobación ni confirmar correo (a diferencia de
- * liga/club) -- iniciando sesión de una vez es justo el punto -- así que
- * `admin.createUser({email_confirm:true})` no solo evita el mailer de
- * Supabase, además es lo correcto para este flujo: no hay nada que
- * migrar a Resend aquí porque no hace falta enviar ningún correo.
+ * El atleta SÍ debe confirmar su correo antes de poder iniciar sesión (a
+ * diferencia de antes, cuando `email_confirm:true` lo dejaba confirmado
+ * de una). Para no depender del mailer de Supabase, se genera el enlace
+ * de confirmación con la Admin API (`generateLink` type "signup" -- crea
+ * el usuario sin confirmar y devuelve el enlace) y se envía por Resend,
+ * igual que las invitaciones de juez/gestor y la recuperación de
+ * contraseña.
  *
  * El trigger handle_new_user() sigue resolviendo tenant_id/club_id desde
- * la metadata exactamente igual que con signUp -- createUser dispara el
+ * la metadata exactamente igual que con signUp -- generateLink dispara el
  * mismo trigger de auth.users.
  */
 export const Route = createFileRoute("/api/public/register-athlete")({
@@ -38,23 +42,38 @@ export const Route = createFileRoute("/api/public/register-athlete")({
         if (!parsed.success) return apiError("BAD_REQUEST", "Revisa los datos del formulario", 400);
         const { email, password, full_name, tenant_id, club_id } = parsed.data;
 
+        if (!isResendConfigured) {
+          return apiError("EMAIL_NOT_CONFIGURED", "RESEND_API_KEY no está configurada en el servidor: no se puede enviar el correo de confirmación", 503);
+        }
+
         const admin = serviceClient();
 
         const { data: tenant } = await admin.from("tenants").select("id, status").eq("id", tenant_id).maybeSingle();
         if (!tenant || tenant.status !== "active") return apiError("BAD_REQUEST", "La liga seleccionada no existe o no está activa", 400);
 
-        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        const redirectTo = `${siteUrl(request)}/panel`;
+        const { data, error } = await admin.auth.admin.generateLink({
+          type: "signup",
           email,
           password,
-          email_confirm: true,
-          user_metadata: { full_name, tenant_id, club_id },
+          options: { data: { full_name, tenant_id, club_id }, redirectTo },
         });
-        if (createErr) {
-          const status = createErr.status && createErr.status >= 400 && createErr.status < 500 ? createErr.status : 500;
-          return apiError("SIGNUP_FAILED", createErr.message, status);
+        if (error) {
+          const status = error.status && error.status >= 400 && error.status < 500 ? error.status : 500;
+          return apiError("SIGNUP_FAILED", error.message, status);
         }
-        const userId = created.user?.id;
-        if (!userId) return apiError("SIGNUP_FAILED", "No se pudo crear la cuenta", 500);
+        const userId = data.user?.id;
+        const confirmUrl = data.properties?.action_link;
+        if (!userId || !confirmUrl) return apiError("SIGNUP_FAILED", "No se pudo crear la cuenta", 500);
+
+        const sent = await sendEmail({
+          to: email,
+          subject: athleteConfirmSubject,
+          html: athleteConfirmHtml({ fullName: full_name, confirmUrl }),
+        });
+        if (!sent.ok) {
+          return apiError("EMAIL_FAILED", `La cuenta se creó, pero no se pudo enviar el correo de confirmación: ${sent.error}`, 502);
+        }
 
         return json({ user_id: userId });
       }),

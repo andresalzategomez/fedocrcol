@@ -49,7 +49,10 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message === "Email not confirmed" ? "Confirma tu correo antes de iniciar sesión (revisa tu bandeja de entrada)." : error.message);
+      return;
+    }
     toast.success("Bienvenido de vuelta");
     navigate({ to: "/panel" });
   }
@@ -213,7 +216,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
     return (
       <div className="flex items-start gap-3 text-sm">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
-        <p>Cuenta creada. Ya puedes iniciar sesión.</p>
+        <p>Cuenta creada. Revisa tu correo y confirma tu cuenta antes de iniciar sesión.</p>
       </div>
     );
   }
