@@ -1,15 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, LogOut, Menu, Mountain, User } from "lucide-react";
 import { useState } from "react";
-import { DEMO_LEAGUES } from "@/data/demo";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,28 +98,9 @@ export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | u
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <>
-              <div className="hidden w-56 md:block">
-                <Select
-                  value={activeLeagueSlug ?? ""}
-                  onValueChange={(slug) => navigate({ to: "/ligas/$slug", params: { slug } })}
-                >
-                  <SelectTrigger aria-label="Selector de liga departamental">
-                    <SelectValue placeholder="Elige tu liga departamental" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEMO_LEAGUES.map((league) => (
-                      <SelectItem key={league.id} value={league.slug}>
-                        {league.department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button asChild size="sm" className="hidden sm:inline-flex">
-                <Link to="/auth">Ingresar</Link>
-              </Button>
-            </>
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link to="/auth">Ingresar</Link>
+            </Button>
           )}
           <Button
             variant="ghost"
@@ -172,22 +145,7 @@ export function SiteHeader({ activeLeagueSlug }: { activeLeagueSlug?: string | u
                 <LogOut className="size-4" /> Cerrar sesión / Salir
               </button>
             </div>
-          ) : (
-            <div className="mt-3 md:hidden">
-              <Select onValueChange={(slug) => navigate({ to: "/ligas/$slug", params: { slug } })}>
-                <SelectTrigger aria-label="Selector de liga departamental">
-                  <SelectValue placeholder="Elige tu liga departamental" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEMO_LEAGUES.map((league) => (
-                    <SelectItem key={league.id} value={league.slug}>
-                      {league.department}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          ) : null}
         </div>
       ) : null}
     </header>

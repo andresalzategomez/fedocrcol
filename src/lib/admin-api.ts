@@ -71,6 +71,7 @@ export interface Tenant {
   slug: string;
   department: string;
   city: string | null;
+  description: string | null;
   primary_color: string;
   secondary_color: string;
   status: "active" | "suspended" | "pending" | "rejected";
@@ -244,6 +245,15 @@ export async function createTenant(input: {
   }).select("*").single();
   if (error) throw error;
   return data as Tenant;
+}
+
+/** Identidad de la liga: nombre, ubicación, descripción y colores -- lo que se ve en el sitio público. */
+export async function updateTenant(id: string, patch: {
+  name?: string; department?: string; city?: string | null; description?: string | null;
+  primary_color?: string; secondary_color?: string;
+}) {
+  const { error } = await db().from("tenants").update(patch).eq("id", id);
+  if (error) throw error;
 }
 
 export async function setTenantStatus(id: string, status: "active" | "suspended") {
