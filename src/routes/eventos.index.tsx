@@ -1,15 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, MapPin, Users } from "lucide-react";
+import { CalendarDays, MapPin, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
 import { dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations } from "@/lib/ocr-data";
+
+/** Normaliza para comparar "por semejanza": minúsculas y sin tildes. */
+function normalize(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
 
 export const Route = createFileRoute("/eventos/")({
   loader: async () => {
@@ -37,8 +43,15 @@ export const Route = createFileRoute("/eventos/")({
 function EventsPage() {
   const { events: allEvents, leagues } = Route.useLoaderData();
   const [tenant, setTenant] = useState("all");
-  const events = allEvents.filter((e) => tenant === "all" || e.tenant_id === tenant);
+  const [search, setSearch] = useState("");
   const leagueById = (id: string) => leagues.find((l) => l.id === id);
+  const query = normalize(search.trim());
+  const events = allEvents.filter((e) => {
+    if (tenant !== "all" && e.tenant_id !== tenant) return false;
+    if (!query) return true;
+    const haystack = normalize(`${e.title} ${e.location} ${leagueById(e.tenant_id)?.department ?? ""}`);
+    return haystack.includes(query);
+  });
 
   return (
     <div className="min-h-screen">
@@ -51,25 +64,41 @@ function EventsPage() {
               Cupos en tiempo real y tarifa dinámica según la etapa de preventa.
             </p>
           </div>
-          <div className="w-64">
-            <Select value={tenant} onValueChange={setTenant}>
-              <SelectTrigger aria-label="Filtrar por liga"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las ligas</SelectItem>
-                {leagues.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.department}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-3">
+            <div className="relative w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar carrera, ciudad o liga..."
+                className="pl-9"
+                aria-label="Buscar carreras"
+              />
+            </div>
+            <div className="w-64">
+              <Select value={tenant} onValueChange={setTenant}>
+                <SelectTrigger aria-label="Filtrar por liga"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las ligas</SelectItem>
+                  {leagues.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.department}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-14 sm:px-6">
+        {events.length === 0 ? (
+          <p className="text-muted-foreground">No encontramos carreras que coincidan con tu búsqueda.</p>
+        ) : null}
         {events.map((event) => {
           const league = leagueById(event.tenant_id);
           const cheapest = Math.min(...event.categories.map((c) => dynamicPrice(c.price, event.date).price));
-          const fill = Math.round((event.registered / event.max_capacity) * 100);
+          const totalSlots = event.categories.reduce((sum, c) => sum + c.slots_available, 0);
+          const fill = totalSlots > 0 ? Math.round((event.registered / totalSlots) * 100) : 0;
           return (
             <Link key={event.id} to="/eventos/$eventId" params={{ eventId: event.id }} className="block">
               <Card className="border-border/70 transition-colors hover:border-primary">
@@ -86,7 +115,7 @@ function EventsPage() {
                   <div>
                     <p className="flex items-center justify-between text-sm">
                       <span className="flex items-center gap-1.5 text-muted-foreground"><Users className="size-4" /> Cupos</span>
-                      <span className="font-medium">{event.registered}/{event.max_capacity}</span>
+                      <span className="font-medium">{event.registered}/{totalSlots}</span>
                     </p>
                     <Progress value={fill} className="mt-2" />
                     <p className="mt-2 text-xs text-muted-foreground">{event.categories.length} categorías disponibles</p>
