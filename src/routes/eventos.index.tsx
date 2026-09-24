@@ -94,7 +94,7 @@ function EventsPage() {
                   <div className="lg:text-right">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">Desde</p>
                     <p className="font-display text-3xl text-primary">{formatCOP(cheapest)}</p>
-                    <Button className="mt-3 w-full lg:w-auto">Inscribirme</Button>
+                    <Button className="mt-3 w-full lg:w-auto">Ver</Button>
                   </div>
                 </CardContent>
               </Card>
