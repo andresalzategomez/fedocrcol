@@ -11,6 +11,11 @@ const bodySchema = z.object({
   full_name: z.string().min(1),
   tenant_id: z.string().uuid(),
   club_id: z.string().uuid().optional(),
+  document_type: z.enum(["CC", "TI", "CE", "PA"]),
+  document_id: z.string().min(5).max(20),
+  birth_date: z.string().min(4),
+  phone: z.string().min(7),
+  gender: z.enum(["F", "M"]),
 });
 
 /**
@@ -31,7 +36,11 @@ const bodySchema = z.object({
  *
  * El trigger handle_new_user() sigue resolviendo tenant_id/club_id desde
  * la metadata exactamente igual que con signUp -- generateLink dispara el
- * mismo trigger de auth.users.
+ * mismo trigger de auth.users. El resto de datos personales (tipo/número
+ * de documento, fecha de nacimiento, celular, género) no los toca el
+ * trigger -- se guardan con un update aparte justo después de crear la
+ * cuenta, para no tener que pedirlos otra vez en cada inscripción a una
+ * carrera (ver eventos.$eventId.tsx).
  */
 export const Route = createFileRoute("/api/public/register-athlete")({
   server: {
@@ -40,7 +49,7 @@ export const Route = createFileRoute("/api/public/register-athlete")({
       POST: handler(async ({ request }) => {
         const parsed = bodySchema.safeParse(await request.json().catch(() => null));
         if (!parsed.success) return apiError("BAD_REQUEST", "Revisa los datos del formulario", 400);
-        const { email, password, full_name, tenant_id, club_id } = parsed.data;
+        const { email, password, full_name, tenant_id, club_id, document_type, document_id, birth_date, phone, gender } = parsed.data;
 
         if (!isResendConfigured) {
           return apiError("EMAIL_NOT_CONFIGURED", "RESEND_API_KEY no está configurada en el servidor: no se puede enviar el correo de confirmación", 503);
@@ -65,6 +74,12 @@ export const Route = createFileRoute("/api/public/register-athlete")({
         const userId = data.user?.id;
         const confirmUrl = data.properties?.action_link;
         if (!userId || !confirmUrl) return apiError("SIGNUP_FAILED", "No se pudo crear la cuenta", 500);
+
+        const { error: profErr } = await admin
+          .from("profiles")
+          .update({ document_type, document_id, birth_date, phone, gender })
+          .eq("id", userId);
+        if (profErr) return apiError("DB_ERROR", `La cuenta se creó, pero no se pudieron guardar tus datos: ${profErr.message}`, 500);
 
         const sent = await sendEmail({
           to: email,

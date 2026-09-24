@@ -6,6 +6,11 @@ export interface Profile {
   role: "superadmin" | "admin" | "athlete" | "judge" | "club" | "race_manager";
   tenant_id: string | null;
   full_name: string | null;
+  document_type: string | null;
+  document_id: string | null;
+  birth_date: string | null;
+  phone: string | null;
+  gender: string | null;
 }
 
 interface SessionState {
@@ -36,7 +41,7 @@ export function useSession() {
       }
       const { data: profile } = await supabase!
         .from("profiles")
-        .select("id, role, tenant_id, full_name")
+        .select("id, role, tenant_id, full_name, document_type, document_id, birth_date, phone, gender")
         .eq("id", user.id)
         .maybeSingle();
       if (active) setState({ loading: false, email: user.email ?? null, profile: (profile as Profile) ?? null });

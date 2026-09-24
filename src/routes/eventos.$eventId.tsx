@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
@@ -31,6 +32,8 @@ const schema = z.object({
   category_id: z.string().min(1, "Selecciona una categoría"),
 });
 type FormValues = z.infer<typeof schema>;
+
+const DOCUMENT_TYPE_LABEL: Record<string, string> = { CC: "C.C.", TI: "T.I.", CE: "C.E.", PA: "Pasaporte" };
 
 export const Route = createFileRoute("/eventos/$eventId")({
   loader: async ({ params }) => {
@@ -66,6 +69,17 @@ function EventDetail() {
   const [submitting, setSubmitting] = useState(false);
   const { profile, email: sessionEmail } = useSession();
   const [personalDataLocked, setPersonalDataLocked] = useState(false);
+  const [quickCategoryId, setQuickCategoryId] = useState("");
+
+  /**
+   * Si la cuenta ya tiene todos sus datos personales (los pide el registro
+   * de atleta desde que existe /api/public/register-athlete con estos
+   * campos -- cuentas viejas pueden no tenerlos), no hace falta volver a
+   * pedirlos: el formulario se reduce a elegir la categoría.
+   */
+  const hasCompleteProfile = Boolean(
+    profile?.full_name && profile.document_id && profile.phone && profile.birth_date && profile.gender,
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -82,7 +96,7 @@ function EventDetail() {
    * vacío y editable.
    */
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || hasCompleteProfile) return;
     form.setValue("email", sessionEmail ?? "");
     if (!supabase) return;
     let active = true;
@@ -113,8 +127,10 @@ function EventDetail() {
   const selected = event.categories.find((c) => c.id === form.watch("category_id"));
   const pricing = selected ? dynamicPrice(selected.price, event.date) : null;
 
-  async function onSubmit(values: FormValues) {
-    const category = event.categories.find((c) => c.id === values.category_id);
+  async function registerForCategory(categoryId: string, athlete: {
+    full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
+  }) {
+    const category = event.categories.find((c) => c.id === categoryId);
     if (!category) return;
     if (category.slots_available <= 0) {
       toast.error("Sin cupos disponibles en esta categoría");
@@ -126,7 +142,7 @@ function EventDetail() {
         event_id: event.id,
         tenant_id: event.tenant_id,
         category_id: category.id,
-        athlete: values,
+        athlete,
         amount: dynamicPrice(category.price, event.date).price,
       });
       setTicket({ code: result.qr_code, amount: result.amount, category: category.name });
@@ -136,6 +152,24 @@ function EventDetail() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function onSubmit(values: FormValues) {
+    await registerForCategory(values.category_id, values);
+  }
+
+  async function onQuickSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quickCategoryId) { toast.error("Selecciona una categoría"); return; }
+    if (!profile || (profile.gender !== "F" && profile.gender !== "M")) return;
+    await registerForCategory(quickCategoryId, {
+      full_name: profile.full_name ?? "",
+      document_id: profile.document_id ?? "",
+      email: sessionEmail ?? "",
+      phone: profile.phone ?? "",
+      birth_date: profile.birth_date ?? "",
+      gender: profile.gender,
+    });
   }
 
   return (
@@ -163,78 +197,38 @@ function EventDetail() {
             <p className="mt-1 text-sm text-muted-foreground">
               Los datos quedan asociados a tu perfil de atleta en la liga de {league?.department}.
             </p>
-            {personalDataLocked ? (
-              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Lock className="size-3.5" /> Tus datos personales vienen de tu inscripción anterior y no se pueden editar aquí.
-              </p>
-            ) : null}
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 grid gap-5 sm:grid-cols-2">
-                <FormField control={form.control} name="full_name" render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Nombre completo</FormLabel>
-                    <FormControl><Input placeholder="Andrés Felipe Alzate" {...field} disabled={personalDataLocked} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="document_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Documento</FormLabel>
-                    <FormControl><Input placeholder="1020304050" {...field} disabled={personalDataLocked} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="birth_date" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha de nacimiento</FormLabel>
-                    <FormControl><Input type="date" {...field} disabled={personalDataLocked} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Correo</FormLabel>
-                    <FormControl><Input type="email" placeholder="atleta@correo.com" {...field} disabled={Boolean(profile)} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="phone" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Celular</FormLabel>
-                    <FormControl><Input placeholder="3001234567" {...field} disabled={personalDataLocked} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="gender" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Género</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={personalDataLocked}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="F">Femenino</SelectItem>
-                        <SelectItem value="M">Masculino</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="category_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoría</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {event.categories.map((c) => (
-                          <SelectItem key={c.id} value={c.id} disabled={c.slots_available <= 0}>
-                            {c.name} — {c.slots_available} cupos
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="sm:col-span-2">
+            {hasCompleteProfile ? (
+              <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
+                <div className="rounded-lg border border-border/70 bg-accent/40 p-4 text-sm">
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <Lock className="size-3.5 text-muted-foreground" /> Tus datos de atleta
+                  </p>
+                  <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Nombre:</dt><dd>{profile?.full_name}</dd></div>
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Documento:</dt><dd>{DOCUMENT_TYPE_LABEL[profile?.document_type ?? ""] ?? profile?.document_type} {profile?.document_id}</dd></div>
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Nacimiento:</dt><dd>{profile?.birth_date}</dd></div>
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Celular:</dt><dd>{profile?.phone}</dd></div>
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Género:</dt><dd>{profile?.gender === "F" ? "Femenino" : "Masculino"}</dd></div>
+                    <div className="flex justify-between sm:justify-start sm:gap-2"><dt className="text-muted-foreground">Correo:</dt><dd>{sessionEmail}</dd></div>
+                  </dl>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    ¿Algo está mal? Actualízalo desde tu perfil, no se puede editar aquí.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="quick-category">Categoría</Label>
+                  <Select value={quickCategoryId} onValueChange={setQuickCategoryId}>
+                    <SelectTrigger id="quick-category"><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
+                    <SelectContent>
+                      {event.categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id} disabled={c.slots_available <= 0}>
+                          {c.name} — {c.slots_available} cupos
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                     <CreditCard className="mr-2 size-4" />
                     {submitting ? "Procesando..." : "Continuar al pago"}
@@ -244,7 +238,92 @@ function EventDetail() {
                   </p>
                 </div>
               </form>
-            </Form>
+            ) : (
+              <>
+                {personalDataLocked ? (
+                  <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="size-3.5" /> Tus datos personales vienen de tu inscripción anterior y no se pueden editar aquí.
+                  </p>
+                ) : null}
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 grid gap-5 sm:grid-cols-2">
+                    <FormField control={form.control} name="full_name" render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Nombre completo</FormLabel>
+                        <FormControl><Input placeholder="Andrés Felipe Alzate" {...field} disabled={personalDataLocked} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="document_id" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Documento</FormLabel>
+                        <FormControl><Input placeholder="1020304050" {...field} disabled={personalDataLocked} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="birth_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fecha de nacimiento</FormLabel>
+                        <FormControl><Input type="date" {...field} disabled={personalDataLocked} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="email" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo</FormLabel>
+                        <FormControl><Input type="email" placeholder="atleta@correo.com" {...field} disabled={Boolean(profile)} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="phone" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Celular</FormLabel>
+                        <FormControl><Input placeholder="3001234567" {...field} disabled={personalDataLocked} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="gender" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Género</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange} disabled={personalDataLocked}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="F">Femenino</SelectItem>
+                            <SelectItem value="M">Masculino</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="category_id" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoría</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {event.categories.map((c) => (
+                              <SelectItem key={c.id} value={c.id} disabled={c.slots_available <= 0}>
+                                {c.name} — {c.slots_available} cupos
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <div className="sm:col-span-2">
+                      <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                        <CreditCard className="mr-2 size-4" />
+                        {submitting ? "Procesando..." : "Continuar al pago"}
+                      </Button>
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        Pago seguro con Bold / PayU · PSE, tarjetas y Nequi
+                      </p>
+                    </div>
+                  </form>
+                </Form>
+              </>
+            )}
           </CardContent>
         </Card>
 
