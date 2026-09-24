@@ -1,9 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
-import { CalendarDays, CheckCircle2, CreditCard, MapPin, ShieldCheck } from "lucide-react";
+import { CalendarDays, CheckCircle2, CreditCard, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -17,6 +17,8 @@ import { formatCOP, formatDate } from "@/data/demo";
 import { dynamicPrice, fetchEvents, fetchLeagues, qrUrl } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
 import { useTenantTheme } from "@/lib/tenant-theme";
+import { useSession } from "@/lib/use-session";
+import { supabase } from "@/lib/supabase";
 import { LiveResults } from "@/components/live-results";
 
 const schema = z.object({
@@ -62,11 +64,51 @@ function EventDetail() {
 
   const [ticket, setTicket] = useState<{ code: string; amount: number; category: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { profile, email: sessionEmail } = useSession();
+  const [personalDataLocked, setPersonalDataLocked] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { full_name: "", document_id: "", email: "", phone: "", birth_date: "", category_id: "" },
   });
+
+  /**
+   * Si el atleta ya inició sesión, su correo de cuenta se prellena y bloquea
+   * siempre (es el dato de su cuenta, no de este formulario). Si además ya
+   * tiene una inscripción previa en cualquier carrera, se usan esos datos
+   * (nombre, documento, teléfono, fecha de nacimiento, género) para
+   * prellenar y bloquear el resto -- así no los vuelve a escribir cada vez.
+   * Un atleta nuevo sin inscripciones previas ve el formulario normal,
+   * vacío y editable.
+   */
+  useEffect(() => {
+    if (!profile) return;
+    form.setValue("email", sessionEmail ?? "");
+    if (!supabase) return;
+    let active = true;
+    supabase
+      .from("registrations")
+      .select("athlete_name, athlete_document, athlete_email, athlete_phone, athlete_birth_date, athlete_gender")
+      .eq("athlete_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active || !data) return;
+        form.reset({
+          ...form.getValues(),
+          full_name: data.athlete_name ?? "",
+          document_id: data.athlete_document ?? "",
+          email: data.athlete_email ?? sessionEmail ?? "",
+          phone: data.athlete_phone ?? "",
+          birth_date: data.athlete_birth_date ?? "",
+          gender: data.athlete_gender === "F" || data.athlete_gender === "M" ? data.athlete_gender : undefined,
+        });
+        setPersonalDataLocked(true);
+      });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, sessionEmail]);
 
   const selected = event.categories.find((c) => c.id === form.watch("category_id"));
   const pricing = selected ? dynamicPrice(selected.price, event.date) : null;
@@ -121,47 +163,52 @@ function EventDetail() {
             <p className="mt-1 text-sm text-muted-foreground">
               Los datos quedan asociados a tu perfil de atleta en la liga de {league?.department}.
             </p>
+            {personalDataLocked ? (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="size-3.5" /> Tus datos personales vienen de tu inscripción anterior y no se pueden editar aquí.
+              </p>
+            ) : null}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 grid gap-5 sm:grid-cols-2">
                 <FormField control={form.control} name="full_name" render={({ field }) => (
                   <FormItem className="sm:col-span-2">
                     <FormLabel>Nombre completo</FormLabel>
-                    <FormControl><Input placeholder="Andrés Felipe Alzate" {...field} /></FormControl>
+                    <FormControl><Input placeholder="Andrés Felipe Alzate" {...field} disabled={personalDataLocked} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="document_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Documento</FormLabel>
-                    <FormControl><Input placeholder="1020304050" {...field} /></FormControl>
+                    <FormControl><Input placeholder="1020304050" {...field} disabled={personalDataLocked} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="birth_date" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fecha de nacimiento</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormControl><Input type="date" {...field} disabled={personalDataLocked} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Correo</FormLabel>
-                    <FormControl><Input type="email" placeholder="atleta@correo.com" {...field} /></FormControl>
+                    <FormControl><Input type="email" placeholder="atleta@correo.com" {...field} disabled={Boolean(profile)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Celular</FormLabel>
-                    <FormControl><Input placeholder="3001234567" {...field} /></FormControl>
+                    <FormControl><Input placeholder="3001234567" {...field} disabled={personalDataLocked} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="gender" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Género</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={personalDataLocked}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="F">Femenino</SelectItem>
