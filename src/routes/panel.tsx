@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
@@ -399,8 +399,11 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
 // ------------------- Identidad de la liga (admin de liga) -------------
 function MiLigaSection({ tenantId }: { tenantId: string }) {
   const [tenant, setTenant] = useState<Tenant | "loading" | "none">("loading");
-  const [form, setForm] = useState({ name: "", department: "", city: "", description: "", primary_color: "", secondary_color: "" });
+  const [form, setForm] = useState({ name: "", description: "", primary_color: "", secondary_color: "" });
   const [saving, setSaving] = useState(false);
+  const geo = useColombiaLocation();
+  const departmentHydrated = useRef(false);
+  const cityHydrated = useRef(false);
 
   const load = useCallback(async () => {
     if (!supabase) { setTenant("none"); return; }
@@ -408,20 +411,36 @@ function MiLigaSection({ tenantId }: { tenantId: string }) {
     if (!data) { setTenant("none"); return; }
     const t = data as Tenant;
     setTenant(t);
-    setForm({
-      name: t.name, department: t.department, city: t.city ?? "", description: t.description ?? "",
-      primary_color: t.primary_color, secondary_color: t.secondary_color,
-    });
+    setForm({ name: t.name, description: t.description ?? "", primary_color: t.primary_color, secondary_color: t.secondary_color });
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
 
+  // Precarga el departamento/municipio guardados en el selector en cascada
+  // (mismo componente que usa el registro de liga y el de atleta).
+  useEffect(() => {
+    if (departmentHydrated.current || tenant === "loading" || tenant === "none") return;
+    if (geo.loadingDepartments || geo.departments.length === 0) return;
+    const match = geo.departments.find((d) => d.name === tenant.department);
+    if (match) geo.setDepartmentId(String(match.id));
+    departmentHydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant, geo.loadingDepartments, geo.departments]);
+
+  useEffect(() => {
+    if (cityHydrated.current || tenant === "loading" || tenant === "none") return;
+    if (geo.loadingCities || geo.cities.length === 0) return;
+    if (tenant.city) geo.setCityName(tenant.city);
+    cityHydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo.loadingCities, geo.cities]);
+
   async function save() {
     if (!form.name.trim()) { toast.error("Escribe el nombre de la liga"); return; }
-    if (!form.department.trim()) { toast.error("Escribe el departamento"); return; }
+    if (!geo.departmentName) { toast.error("Selecciona el departamento"); return; }
     setSaving(true);
     try {
       await api.updateTenant(tenantId, {
-        name: form.name, department: form.department, city: form.city || null, description: form.description || null,
+        name: form.name, department: geo.departmentName, city: geo.cityName || null, description: form.description || null,
         primary_color: form.primary_color, secondary_color: form.secondary_color,
       });
       toast.success("Liga actualizada");
@@ -436,8 +455,18 @@ function MiLigaSection({ tenantId }: { tenantId: string }) {
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-2">
         <Field label="Nombre de la liga *"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-        <Field label="Departamento *"><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></Field>
-        <Field label="Ciudad"><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></Field>
+        <Field label="Departamento *">
+          <Select value={geo.departmentId} onValueChange={geo.setDepartmentId} disabled={geo.loadingDepartments}>
+            <SelectTrigger><SelectValue placeholder={geo.loadingDepartments ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Ciudad">
+          <Select value={geo.cityName} onValueChange={geo.setCityName} disabled={!geo.departmentId || geo.loadingCities}>
+            <SelectTrigger><SelectValue placeholder={!geo.departmentId ? "Elige el depto." : geo.loadingCities ? "Cargando..." : "Selecciona"} /></SelectTrigger>
+            <SelectContent>{geo.cities.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
         <div />
         <div className="sm:col-span-2">
           <Field label="Descripción">
