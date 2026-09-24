@@ -233,11 +233,20 @@ function EventDetail() {
   const selected = event.categories.find((c) => c.id === form.watch("category_id"));
   const pricing = selected ? dynamicPrice(selected.price, event.date) : null;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isPastDate = event.date < todayStr;
+  const isFinished = event.status === "finished";
+  const registrationsClosed = isPastDate || isFinished;
+
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
     social_media?: string | undefined; eps: string; blood_type: string; emergency_contact_name: string;
     emergency_contact_phone: string; shirt_name: string; shirt_size: string;
   }) {
+    if (registrationsClosed) {
+      toast.error("Las inscripciones para esta carrera están cerradas.");
+      return;
+    }
     const category = event.categories.find((c) => c.id === categoryId);
     if (!category) return;
     if (category.slots_available <= 0) {
@@ -352,6 +361,10 @@ function EventDetail() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   Revisa el comprobante y el código QR a la derecha.
                 </p>
+              </div>
+            ) : registrationsClosed ? (
+              <div className="mt-6 rounded-lg border border-border/70 bg-accent/40 p-5 text-sm text-muted-foreground">
+                Las inscripciones para esta carrera están cerradas{isFinished ? " -- la carrera ya finalizó." : " -- la fecha de la carrera ya pasó."}
               </div>
             ) : hasCompleteProfile ? (
               <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
@@ -673,7 +686,7 @@ function EventDetail() {
         )}
       </div>
 
-      {event.visibility === "public" ? (
+      {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
         <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
           <LiveResults eventId={event.id} />
         </div>

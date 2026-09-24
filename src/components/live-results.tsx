@@ -39,6 +39,13 @@ export function LiveResults({ eventId }: { eventId: string }) {
     return () => { supabase!.removeChannel(channel); };
   }, [eventId, load]);
 
+  // Respaldo del canal realtime: si el websocket se cae sin avisar, esto
+  // igual mantiene la tabla al día mientras la carrera está en vivo.
+  useEffect(() => {
+    const interval = setInterval(load, 20000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   const catName = (id: string | null) => cats.find((c) => c.id === id)?.name ?? "—";
   const ranked = rankResults(rows);
 
