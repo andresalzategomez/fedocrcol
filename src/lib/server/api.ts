@@ -28,30 +28,39 @@ export function preflight(): Response {
  * Origen público del sitio, para armar enlaces de correo (invitación,
  * recuperación de contraseña). NO se puede confiar en `new URL(request.url).origin`
  * en producción: detrás del proxy de Lovable, `request.url` refleja el
- * listener interno del contenedor (visto en la práctica como
- * "http://localhost:3000"), no el dominio público.
+ * listener interno del contenedor ("http://localhost:3000"), no el
+ * dominio público.
  *
- * Se intentó fijarlo con la variable de entorno SITE_URL, pero en la
- * práctica Lovable (plan gratuito) no logró inyectarla de forma confiable
- * al runtime -- confirmado con pruebas repetidas en producción que
- * seguían devolviendo localhost incluso después de "publicar" varias
- * veces. En su lugar se lee la cabecera `x-forwarded-host` (estándar en
- * cualquier proxy/CDN, incluido Cloudflare -- que Lovable usa) con
- * `x-forwarded-proto` para el esquema; si SITE_URL sí está definida se
- * respeta primero (permite forzar el valor si hiciera falta), y como
- * último recurso cae al origin de la petición (sirve para desarrollo
- * local, donde no hay proxy de por medio).
+ * Se intentaron dos formas "dinámicas" de resolverlo y ninguna funcionó en
+ * este hosting (confirmado con pruebas repetidas en producción, incluso
+ * después de publicar varias veces):
+ *   1. La variable de entorno SITE_URL -- nunca se leyó con un valor útil,
+ *      ni siquiera después de borrarla y volverla a crear.
+ *   2. Las cabeceras `x-forwarded-host`/`host` del proxy -- Lovable
+ *      tampoco las reenvía: el proceso ve "localhost:3000" como si fuera
+ *      su propia dirección, no la del visitante.
+ * Por eso el último recurso es un dominio fijo en el código: si `request.url`
+ * no es localhost/127.0.0.1 (desarrollo local real) y las cabeceras
+ * tampoco dan algo útil, asumimos que estamos en el despliegue de
+ * producción conocido. Si algún día cambia el dominio, hay que actualizar
+ * PRODUCTION_SITE_URL aquí.
  */
+const PRODUCTION_SITE_URL = "https://fedocrcol.lovable.app";
+const LOCALHOST_RE = /^(localhost|127\.0\.0\.1)(:\d+)?$/;
+
 export function siteUrl(request: Request): string {
   if (process.env["SITE_URL"]) return process.env["SITE_URL"] as string;
 
+  const requestOrigin = new URL(request.url).origin;
+  if (LOCALHOST_RE.test(requestOrigin.replace(/^https?:\/\//, ""))) return requestOrigin;
+
   const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (forwardedHost) {
-    const forwardedProto = request.headers.get("x-forwarded-proto") ?? new URL(request.url).protocol.replace(":", "");
+  if (forwardedHost && !LOCALHOST_RE.test(forwardedHost)) {
+    const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
     return `${forwardedProto}://${forwardedHost}`;
   }
 
-  return new URL(request.url).origin;
+  return PRODUCTION_SITE_URL;
 }
 
 export interface AuthContext {
