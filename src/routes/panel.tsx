@@ -17,6 +17,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useSession, type Profile } from "@/lib/use-session";
 import { useColombiaLocation } from "@/lib/use-colombia-location";
+import { useTenantTheme } from "@/lib/tenant-theme";
 import * as api from "@/lib/admin-api";
 import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
 import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg } from "@/lib/validate";
@@ -92,17 +93,25 @@ function PanelPage() {
 
 /** Para un admin de liga: bloquea el panel si su liga sigue pendiente de aprobación (o suspendida). */
 function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: string }) {
-  const [status, setStatus] = useState<Tenant["status"] | "loading" | "none">("loading");
+  const [tenant, setTenant] = useState<Tenant | "loading" | "none">("loading");
   const [retrying, setRetrying] = useState(false);
 
   const load = useCallback(async () => {
-    if (!tenantId) { setStatus("none"); return; }
+    if (!tenantId) { setTenant("none"); return; }
     try {
       const all = await api.listTenants();
-      setStatus(all.find((t) => t.id === tenantId)?.status ?? "none");
-    } catch { setStatus("none"); }
+      setTenant(all.find((t) => t.id === tenantId) ?? "none");
+    } catch { setTenant("none"); }
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
+
+  // El panel de un admin de liga es una página "de esa liga" -- se ve con
+  // sus colores, igual que /ligas/:slug y el detalle de sus carreras.
+  useTenantTheme(
+    tenant !== "loading" && tenant !== "none"
+      ? { primary_color: tenant.primary_color, secondary_color: tenant.secondary_color }
+      : null,
+  );
 
   async function retry() {
     if (!tenantId) return;
@@ -111,11 +120,11 @@ function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: stri
     catch (e) { toast.error((e as Error).message); } finally { setRetrying(false); }
   }
 
-  if (status === "loading") return <Note>Cargando…</Note>;
-  if (status === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
-  if (status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
-  if (status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
-  if (status === "rejected") {
+  if (tenant === "loading") return <Note>Cargando…</Note>;
+  if (tenant === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
+  if (tenant.status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
+  if (tenant.status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
+  if (tenant.status === "rejected") {
     return (
       <Note>
         <p className="mb-3">La solicitud de tu liga fue rechazada.</p>
