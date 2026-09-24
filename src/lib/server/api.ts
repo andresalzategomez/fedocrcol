@@ -29,12 +29,29 @@ export function preflight(): Response {
  * recuperación de contraseña). NO se puede confiar en `new URL(request.url).origin`
  * en producción: detrás del proxy de Lovable, `request.url` refleja el
  * listener interno del contenedor (visto en la práctica como
- * "http://localhost:3000"), no el dominio público -- por eso hay que fijarlo
- * explícitamente con SITE_URL. En desarrollo local, sin esa variable, cae de
- * vuelta al origin de la petición (funciona para cualquier puerto local).
+ * "http://localhost:3000"), no el dominio público.
+ *
+ * Se intentó fijarlo con la variable de entorno SITE_URL, pero en la
+ * práctica Lovable (plan gratuito) no logró inyectarla de forma confiable
+ * al runtime -- confirmado con pruebas repetidas en producción que
+ * seguían devolviendo localhost incluso después de "publicar" varias
+ * veces. En su lugar se lee la cabecera `x-forwarded-host` (estándar en
+ * cualquier proxy/CDN, incluido Cloudflare -- que Lovable usa) con
+ * `x-forwarded-proto` para el esquema; si SITE_URL sí está definida se
+ * respeta primero (permite forzar el valor si hiciera falta), y como
+ * último recurso cae al origin de la petición (sirve para desarrollo
+ * local, donde no hay proxy de por medio).
  */
 export function siteUrl(request: Request): string {
-  return process.env["SITE_URL"] ?? new URL(request.url).origin;
+  if (process.env["SITE_URL"]) return process.env["SITE_URL"] as string;
+
+  const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (forwardedHost) {
+    const forwardedProto = request.headers.get("x-forwarded-proto") ?? new URL(request.url).protocol.replace(":", "");
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  return new URL(request.url).origin;
 }
 
 export interface AuthContext {
