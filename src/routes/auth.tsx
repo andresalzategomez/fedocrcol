@@ -176,12 +176,24 @@ function AuthPage() {
   );
 }
 
+const DOCUMENT_TYPES = [
+  { value: "CC", label: "Cédula de ciudadanía" },
+  { value: "TI", label: "Tarjeta de identidad" },
+  { value: "CE", label: "Cédula de extranjería" },
+  { value: "PA", label: "Pasaporte" },
+] as const;
+
 function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [documentType, setDocumentType] = useState("");
+  const [documentId, setDocumentId] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
   const [tenant, setTenant] = useState("");
   const [club, setClub] = useState(INDEPENDIENTE);
   const [clubs, setClubs] = useState<PublicClub[]>([]);
@@ -195,6 +207,8 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     if (!tenant) { toast.error("Selecciona tu liga"); return; }
+    if (!documentType) { toast.error("Selecciona el tipo de documento"); return; }
+    if (!gender) { toast.error("Selecciona el género"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/public/register-athlete", {
@@ -203,6 +217,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
         body: JSON.stringify({
           email, password, full_name: fullName, tenant_id: tenant,
           club_id: club === INDEPENDIENTE ? undefined : club,
+          document_type: documentType, document_id: documentId, birth_date: birthDate, phone, gender,
         }),
       });
       const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
@@ -221,18 +236,47 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
   }
 
   return (
-    <form onSubmit={signUp} className="grid gap-4">
-      <div className="grid gap-2">
+    <form onSubmit={signUp} className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="a-name">Nombre completo</Label>
         <Input id="a-name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="a-email">Correo</Label>
         <Input id="a-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="a-pass">Contraseña</Label>
         <PasswordInput id="a-pass" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Tipo de documento</Label>
+        <Select value={documentType} onValueChange={setDocumentType}>
+          <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+          <SelectContent>{DOCUMENT_TYPES.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="a-doc">Número de documento</Label>
+        <Input id="a-doc" required value={documentId} onChange={(e) => setDocumentId(e.target.value.replace(/\D/g, ""))} placeholder="1020304050" />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="a-birth">Fecha de nacimiento</Label>
+        <Input id="a-birth" type="date" required value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="a-phone">Celular</Label>
+        <Input id="a-phone" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="3001234567" />
+      </div>
+      <div className="grid gap-2">
+        <Label>Género</Label>
+        <Select value={gender} onValueChange={setGender}>
+          <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="F">Femenino</SelectItem>
+            <SelectItem value="M">Masculino</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-2">
         <Label>Liga departamental</Label>
@@ -242,7 +286,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
         </Select>
       </div>
       {tenant ? (
-        <div className="grid gap-2">
+        <div className="grid gap-2 sm:col-span-2">
           <Label>Club (opcional)</Label>
           <Select value={club} onValueChange={setClub}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -253,7 +297,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
           </Select>
         </div>
       ) : null}
-      <Button type="submit" disabled={loading}>{loading ? "Creando..." : "Crear cuenta de atleta"}</Button>
+      <Button type="submit" disabled={loading} className="sm:col-span-2">{loading ? "Creando..." : "Crear cuenta de atleta"}</Button>
     </form>
   );
 }
