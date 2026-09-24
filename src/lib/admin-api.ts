@@ -102,7 +102,7 @@ export interface EventRow {
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
 export interface Checkpoint { id: string; event_id: string; name: string; ord: number; is_start: boolean; is_finish: boolean; }
-export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; role?: string; }
+export interface Judge { id: string; email: string | null; full_name: string | null; password_set_at: string | null; role?: string; tenant_id?: string | null; }
 export interface RaceManager { id: string; email: string | null; full_name: string | null; password_set_at: string | null; }
 export interface Wave { id: string; event_id: string; wave_number: number | null; name: string; scheduled_time: string | null; started_at: string | null; status: string; }
 export interface EventResult {
@@ -423,14 +423,15 @@ export async function deleteCheckpoint(id: string) {
 // ------------------------------- Jueces -------------------------------
 /**
  * Jueces de la liga, para asignarlos a checkpoints de cualquiera de sus
- * carreras: cuentas dedicadas (rol `judge`) más los admins de la liga
- * marcados en tenant_judges como "también disponibles como juez" --
- * estos conservan su rol de admin, ver migración 0026.
+ * carreras: cuentas dedicadas (rol `judge`, tenant_id = esta liga) más
+ * los admins/superadmins o jueces de OTRA liga marcados en tenant_judges
+ * como "también disponibles como juez" de esta -- conservan su rol y su
+ * liga de origen, ver migraciones 0026/0028.
  */
 export async function listJudges(tenantId: string): Promise<Judge[]> {
   const [{ data: dedicated, error: dedicatedErr }, { data: extra, error: extraErr }] = await Promise.all([
-    db().from("profiles").select("id, email, full_name, password_set_at, role").eq("tenant_id", tenantId).eq("role", "judge"),
-    db().from("tenant_judges").select("profiles(id, email, full_name, password_set_at, role)").eq("tenant_id", tenantId),
+    db().from("profiles").select("id, email, full_name, password_set_at, role, tenant_id").eq("tenant_id", tenantId).eq("role", "judge"),
+    db().from("tenant_judges").select("profiles(id, email, full_name, password_set_at, role, tenant_id)").eq("tenant_id", tenantId),
   ]);
   if (dedicatedErr) throw dedicatedErr;
   if (extraErr) throw extraErr;

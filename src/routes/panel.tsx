@@ -1613,16 +1613,20 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
 
   async function remove(j: api.Judge) {
     const isAdmin = j.role === "admin" || j.role === "superadmin";
+    const isForeignJudge = j.role === "judge" && j.tenant_id !== tenantId;
+    const isExtra = isAdmin || isForeignJudge;
     const msg = isAdmin
       ? `¿Quitar a ${j.full_name ?? j.email} de la lista de jueces? Sigue siendo administrador y conserva su cuenta, solo deja de aparecer para asignarlo a un checkpoint.`
-      : j.password_set_at
-        ? `¿Eliminar a ${j.full_name ?? j.email} como juez? Pierde acceso a FedOCR Timer y sus checkpoints asignados.`
-        : `¿Cancelar la invitación a ${j.full_name ?? j.email}?`;
+      : isForeignJudge
+        ? `¿Quitar a ${j.full_name ?? j.email} de la lista de jueces de esta liga? Sigue siendo juez de su liga de origen, solo deja de estar disponible aquí.`
+        : j.password_set_at
+          ? `¿Eliminar a ${j.full_name ?? j.email} como juez? Pierde acceso a FedOCR Timer y sus checkpoints asignados.`
+          : `¿Cancelar la invitación a ${j.full_name ?? j.email}?`;
     if (!confirm(msg)) return;
     setRemovingId(j.id);
     try {
       await api.removeJudge(j.id);
-      toast.success(isAdmin ? "Quitado de la lista de jueces" : j.password_set_at ? "Juez eliminado" : "Invitación cancelada");
+      toast.success(isExtra ? "Quitado de la lista de jueces" : j.password_set_at ? "Juez eliminado" : "Invitación cancelada");
       load();
     } catch (e) { toast.error((e as Error).message); } finally { setRemovingId(null); }
   }
@@ -1636,7 +1640,8 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar juez</Button></div>
           <p className="sm:col-span-4 text-xs text-muted-foreground">
             El juez recibe un correo para crear su contraseña; con ella inicia sesión en FedOCR Timer. Asigna el
-            checkpoint de cada juez desde la pestaña Checkpoints.
+            checkpoint de cada juez desde la pestaña Checkpoints. Si el correo ya tiene cuenta (atleta, admin,
+            o juez de otra liga), se agrega sin pedirle contraseña nueva ni quitarle su rol o liga de origen.
           </p>
         </CardContent></Card>
       ) : null}
@@ -1646,10 +1651,11 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
             <TableCell className="font-medium">
               {j.full_name ?? "—"}
               {j.role === "admin" || j.role === "superadmin" ? <Badge variant="outline" className="ml-2">Admin</Badge> : null}
+              {j.role === "judge" && j.tenant_id !== tenantId ? <Badge variant="outline" className="ml-2">Otra liga</Badge> : null}
             </TableCell>
             <TableCell className="text-muted-foreground">{j.email ?? "—"}</TableCell>
             <TableCell>
-              {j.password_set_at || j.role === "admin" || j.role === "superadmin" ? (
+              {j.password_set_at || j.role === "admin" || j.role === "superadmin" || (j.role === "judge" && j.tenant_id !== tenantId) ? (
                 <Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Cuenta creada</Badge>
               ) : (
                 <Button size="sm" variant="outline" disabled={locked || resendingId === j.id} onClick={() => resend(j)}>
@@ -1660,7 +1666,7 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
             <TableCell className="text-right">
               <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={locked || removingId === j.id} onClick={() => remove(j)}>
                 <Trash2 className="mr-1 size-4" />
-                {removingId === j.id ? "Eliminando..." : (j.role === "admin" || j.role === "superadmin") ? "Quitar" : j.password_set_at ? "Eliminar" : "Cancelar invitación"}
+                {removingId === j.id ? "Eliminando..." : (j.role === "admin" || j.role === "superadmin" || (j.role === "judge" && j.tenant_id !== tenantId)) ? "Quitar" : j.password_set_at ? "Eliminar" : "Cancelar invitación"}
               </Button>
             </TableCell>
           </TableRow>

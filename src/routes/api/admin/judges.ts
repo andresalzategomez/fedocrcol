@@ -7,6 +7,7 @@ import { judgeInviteHtml, judgeInviteSubject } from "../../../lib/server/email-t
 import { judgeRemovedHtml, judgeRemovedSubject } from "../../../lib/server/email-templates/judge-removed";
 import { judgeAdminAddedHtml, judgeAdminAddedSubject } from "../../../lib/server/email-templates/judge-admin-added";
 import { judgeRoleAddedHtml, judgeRoleAddedSubject } from "../../../lib/server/email-templates/judge-role-added";
+import { judgeCrossLeagueAddedHtml, judgeCrossLeagueAddedSubject } from "../../../lib/server/email-templates/judge-crossleague-added";
 import { inviteOrResendAccount, removeAccount } from "../../../lib/server/invite-account";
 
 const bodySchema = z.object({
@@ -54,22 +55,36 @@ export const Route = createFileRoute("/api/admin/judges")({
         const { data: tenant } = await admin.from("tenants").select("name").eq("id", leagueId).maybeSingle();
         const leagueName = tenant?.name ?? "tu liga";
 
-        const { data: existing } = await admin.from("profiles").select("id, role").eq("email", email).maybeSingle();
+        const { data: existing } = await admin.from("profiles").select("id, role, tenant_id").eq("email", email).maybeSingle();
 
-        // Un admin (o superadmin) conserva su rol -- solo se marca como
-        // "también disponible como juez" de esta liga, ver migración 0026.
-        // No pierde nada, no hace falta invite link ni cambiarle el rol.
-        if (existing && (existing.role === "admin" || existing.role === "superadmin")) {
+        // Dos casos que NO cambian rol ni tenant_id, solo marcan en
+        // tenant_judges "también disponible como juez de esta liga"
+        // (ver migraciones 0026 y 0028):
+        //  - Un admin o superadmin: nunca se reasigna su rol.
+        //  - Un juez YA dedicado a OTRA liga (tenant_id distinto):
+        //    reasignarlo aquí le quitaría el acceso a su liga de
+        //    origen (timing_reads_insert_scoped compara su
+        //    profiles.tenant_id). Si ya es juez de ESTA MISMA liga,
+        //    sigue el camino normal de abajo (reenvío/actualización).
+        const isAdminOrSuperadmin = existing?.role === "admin" || existing?.role === "superadmin";
+        const isForeignJudge = existing?.role === "judge" && existing.tenant_id !== leagueId;
+        if (existing && (isAdminOrSuperadmin || isForeignJudge)) {
           const { error: upsertErr } = await admin
             .from("tenant_judges")
             .upsert({ tenant_id: leagueId, user_id: existing.id }, { onConflict: "tenant_id,user_id" });
           if (upsertErr) return apiError("DB_ERROR", upsertErr.message, 500);
 
-          const sent = await sendEmail({
-            to: email,
-            subject: judgeAdminAddedSubject(leagueName),
-            html: judgeAdminAddedHtml({ fullName: full_name, leagueName }),
-          });
+          const sent = isAdminOrSuperadmin
+            ? await sendEmail({
+                to: email,
+                subject: judgeAdminAddedSubject(leagueName),
+                html: judgeAdminAddedHtml({ fullName: full_name, leagueName }),
+              })
+            : await sendEmail({
+                to: email,
+                subject: judgeCrossLeagueAddedSubject(leagueName),
+                html: judgeCrossLeagueAddedHtml({ fullName: full_name, leagueName }),
+              });
           if (!sent.ok) {
             return apiError("EMAIL_FAILED", `Se agregó como juez, pero no se pudo avisarle por correo: ${sent.error}`, 502);
           }
@@ -119,10 +134,23 @@ export const Route = createFileRoute("/api/admin/judges")({
 
         const admin = serviceClient();
 
-        // Un admin/superadmin marcado como juez adicional (migración 0026):
-        // solo se quita la marca de tenant_judges, su cuenta no se toca.
-        const { data: target } = await admin.from("profiles").select("id, role, email, full_name").eq("id", parsed.data.id).maybeSingle();
-        if (target && (target.role === "admin" || target.role === "superadmin")) {
+        // Un admin/superadmin, o un juez YA dedicado a OTRA liga, marcado
+        // como juez adicional (migraciones 0026/0028): solo se quita la
+        // marca de tenant_judges, su cuenta nunca se toca. Un juez
+        // dedicado a ESTA MISMA liga sigue el camino normal de abajo
+        // (elimina la cuenta por completo, comportamiento de siempre).
+        const { data: target } = await admin.from("profiles").select("id, role, tenant_id, email, full_name").eq("id", parsed.data.id).maybeSingle();
+        if (!target) return apiError("NOT_FOUND", "No se encontró esa cuenta", 404);
+        const isAdminOrSuperadmin = target.role === "admin" || target.role === "superadmin";
+        const isForeignJudge = target.role === "judge" && target.tenant_id !== leagueId;
+        if (isAdminOrSuperadmin || isForeignJudge) {
+          // Al quitarlo de la lista también se le retiran sus checkpoints
+          // asignados EN ESTA LIGA: si no, quedarían huérfanos en
+          // checkpoint_judges y seguiría pudiendo registrar tiempos ahí
+          // (timing_reads_insert_scoped solo mira checkpoint_judges, no
+          // tenant_judges).
+          const { error: delCpErr } = await admin.from("checkpoint_judges").delete().eq("tenant_id", leagueId).eq("judge_id", target.id);
+          if (delCpErr) return apiError("DB_ERROR", delCpErr.message, 500);
           const { error: delMarkErr } = await admin.from("tenant_judges").delete().eq("tenant_id", leagueId).eq("user_id", target.id);
           if (delMarkErr) return apiError("DB_ERROR", delMarkErr.message, 500);
           return json({ ok: true });

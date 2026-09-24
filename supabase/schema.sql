@@ -541,6 +541,8 @@ create policy "checkpoints_tenant_manage" on public.checkpoints for all to authe
 
 -- Timing reads: lectura por admin/superadmin del tenant; inserción por el
 -- tenant dueño del evento. El FedOCR Timer que use service_role no pasa por RLS.
+-- (Ampliado más abajo en la migración 0028 para jueces cross-liga, una vez
+-- checkpoint_judges/checkpoints/events ya existen en este script.)
 drop policy if exists "timing_reads_read_scoped" on public.timing_reads;
 create policy "timing_reads_read_scoped" on public.timing_reads for select to authenticated
   using (public.has_role(auth.uid(),'superadmin') or tenant_id = public.current_tenant_id());
@@ -1382,3 +1384,68 @@ update public.profiles p
 set email = u.email
 from auth.users u
 where p.id = u.id and p.email is null and u.email is not null;
+
+-- =====================================================================
+-- 0028 — Un juez (o admin marcado como juez adicional, ver 0026) puede
+-- registrar y leer tiempos de un checkpoint de OTRA liga, si tiene una
+-- fila en checkpoint_judges para ese checkpoint puntual. Valida que
+-- checkpoint_id/event_id/tenant_id sean mutuamente consistentes -- no
+-- confía en el tenant_id que venga en la fila.
+-- =====================================================================
+
+drop policy if exists "timing_reads_read_scoped" on public.timing_reads;
+create policy "timing_reads_read_scoped" on public.timing_reads for select to authenticated
+  using (
+    public.has_role(auth.uid(),'superadmin')
+    or tenant_id = public.current_tenant_id()
+    or exists (
+      select 1
+      from public.checkpoint_judges cj
+      join public.checkpoints c on c.id = cj.checkpoint_id
+      join public.events e on e.id = c.event_id
+      where cj.judge_id = auth.uid()
+        and cj.checkpoint_id = timing_reads.checkpoint_id
+        and c.event_id = timing_reads.event_id
+        and e.tenant_id = timing_reads.tenant_id
+    )
+  );
+
+drop policy if exists "timing_reads_insert_scoped" on public.timing_reads;
+create policy "timing_reads_insert_scoped" on public.timing_reads for insert to authenticated
+  with check (
+    public.has_role(auth.uid(),'superadmin')
+    or tenant_id = public.current_tenant_id()
+    or exists (
+      select 1
+      from public.checkpoint_judges cj
+      join public.checkpoints c on c.id = cj.checkpoint_id
+      join public.events e on e.id = c.event_id
+      where cj.judge_id = auth.uid()
+        and cj.checkpoint_id = timing_reads.checkpoint_id
+        and c.event_id = timing_reads.event_id
+        and e.tenant_id = timing_reads.tenant_id
+    )
+  );
+
+-- =====================================================================
+-- 0029 — Un admin, superadmin o gestor de carreras puede leer el
+-- profile de un juez marcado en tenant_judges como "también disponible"
+-- para su liga (ver migraciones 0026/0028), aunque ese juez sea nativo
+-- de OTRA liga.
+-- =====================================================================
+
+drop policy if exists "profiles_read_own" on public.profiles;
+create policy "profiles_read_own" on public.profiles for select to authenticated
+  using (
+    id = auth.uid()
+    or public.has_role(auth.uid(), 'superadmin')
+    or (public.has_role(auth.uid(), 'admin') and tenant_id = public.current_tenant_id())
+    or (
+      (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'race_manager'))
+      and exists (
+        select 1 from public.tenant_judges tj
+        where tj.user_id = profiles.id
+          and tj.tenant_id = public.current_tenant_id()
+      )
+    )
+  );
