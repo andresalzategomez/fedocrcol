@@ -309,7 +309,7 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
 
 export async function createEvent(input: {
   tenant_id: string; title: string; date: string; location: string; is_official: boolean;
-  distance_km?: number; obstacles?: number; max_capacity?: number; visibility?: "public" | "private";
+  distance_km?: number | undefined; obstacles?: number | undefined; max_capacity?: number | undefined; visibility?: "public" | "private";
 }): Promise<EventRow> {
   const { data, error } = await db().from("events").insert({
     tenant_id: input.tenant_id,

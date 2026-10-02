@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/v1/races/$raceId/waves")({
         const { data, error } = await supa
           .from("waves")
           .select("id, wave_number, name, scheduled_time, started_at, status")
-          .eq("event_id", params.raceId)
+          .eq("event_id", params["raceId"])
           .eq("tenant_id", leagueId)
           .order("wave_number", { ascending: true });
 

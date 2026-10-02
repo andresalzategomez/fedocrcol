@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/v1/races/$raceId/athletes")({
         const { data, error } = await supa
           .from("registrations")
           .select("id, bib_number, athlete_name, athlete_document, athlete_gender, wave_id, category_id, status")
-          .eq("event_id", params.raceId)
+          .eq("event_id", params["raceId"])
           .eq("tenant_id", leagueId);
 
         if (error) return json({ error: { code: "DB_ERROR", message: error.message } }, 500);

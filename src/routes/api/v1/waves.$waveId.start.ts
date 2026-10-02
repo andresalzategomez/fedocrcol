@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/v1/waves/$waveId/start")({
         const { data: wave, error: findErr } = await supa
           .from("waves")
           .select("id, started_at")
-          .eq("id", params.waveId)
+          .eq("id", params["waveId"])
           .eq("tenant_id", leagueId)
           .maybeSingle();
         if (findErr) return apiError("DB_ERROR", findErr.message, 500);

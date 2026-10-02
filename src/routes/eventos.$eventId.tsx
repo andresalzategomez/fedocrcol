@@ -81,7 +81,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 
 export const Route = createFileRoute("/eventos/$eventId")({
   validateSearch: (search: Record<string, unknown>): { minimal?: true } => {
-    const minimal = search.minimal === "1" || search.minimal === 1 || search.minimal === true || search.minimal === "true";
+    const minimal = search["minimal"] === "1" || search["minimal"] === 1 || search["minimal"] === true || search["minimal"] === "true";
     return minimal ? { minimal: true } : {};
   },
   loader: async ({ params }) => {
