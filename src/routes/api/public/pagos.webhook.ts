@@ -1,84 +1,119 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createHmac, timingSafeEqual } from "crypto";
-import { createClient } from "@supabase/supabase-js";
+import { siteUrl } from "../../../lib/server/api";
+import { serviceClient } from "../../../lib/server/supabase-server";
+import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold";
+import { activateLeagueIfPaid, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
 
 /**
- * Webhook de confirmación de pago (Bold / PayU).
- * Configura en el panel de la pasarela:
+ * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
+ * Webhooks) con la URL:
  *   https://<tu-dominio>/api/public/pagos/webhook
  *
- * Variables de entorno requeridas (servidor):
- *   PAYMENT_WEBHOOK_SECRET  (llave secreta de Bold/PayU para firmar)
- *   EXT_SUPABASE_URL, EXT_SUPABASE_SERVICE_ROLE_KEY  (proyecto externo de la Federación)
- *   (El prefijo SUPABASE_ está reservado por Lovable; se usa EXT_SUPABASE_.)
+ * Variables de entorno (servidor):
+ *   BOLD_SECRET_KEY, BOLD_IDENTITY_KEY, BOLD_TEST_MODE (ver lib/server/bold.ts)
+ *   EXT_SUPABASE_URL, EXT_SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Bold exige responder 200 en menos de 2 s; ante cualquier otra respuesta
+ * reintenta (15 min, 1 h, 4 h, 8 h, 24 h). Por eso solo se responde no-200
+ * cuando un reintento puede arreglar algo (error nuestro, o el link de
+ * Bold aún no aparece como pagado).
+ *
+ * El mismo endpoint atiende dos tipos de cobro, según la referencia del
+ * pago (data.metadata.reference):
+ *   - "liga-<uuid>-..."  cuota de afiliación de una liga -> la activa
+ *   - cualquier otra     el qr_code de una inscripción  -> la marca pagada
+ *
+ * Payload (CloudEvents): { id, type, subject, source, data: {
+ *   payment_id, metadata: { reference }, amount: { total }, payment_method } }
+ * type: SALE_APPROVED | SALE_REJECTED | VOID_APPROVED | VOID_REJECTED
  */
+interface BoldWebhookPayload {
+  type?: string;
+  data?: {
+    payment_id?: string;
+    metadata?: { reference?: string | null };
+    amount?: { total?: number };
+    payment_method?: string;
+  };
+}
+
+const ok = (body = "ok") => new Response(body, { status: 200 });
+
 export const Route = createFileRoute("/api/public/pagos/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const raw = await request.text();
-        const secret = process.env["PAYMENT_WEBHOOK_SECRET"];
-        const signature =
-          request.headers.get("x-bold-signature") ?? request.headers.get("x-signature") ?? "";
 
-        if (!secret) {
-          return new Response("Webhook no configurado", { status: 503 });
+        if (!isBoldConfigured) return new Response("Webhook no configurado", { status: 503 });
+        if (!process.env["EXT_SUPABASE_URL"] || !process.env["EXT_SUPABASE_SERVICE_ROLE_KEY"]) {
+          return new Response("Supabase externo no configurado", { status: 503 });
         }
 
-        const expected = createHmac("sha256", secret).update(raw).digest("hex");
-        const sig = Buffer.from(signature);
-        const exp = Buffer.from(expected);
-        if (sig.length !== exp.length || !timingSafeEqual(sig, exp)) {
+        if (!verifyBoldSignature(raw, request.headers.get("x-bold-signature") ?? "")) {
           return new Response("Firma inválida", { status: 401 });
         }
 
-        let payload: {
-          reference?: string;
-          status?: string;
-          transaction_id?: string;
-          amount?: number;
-          method?: string;
-        };
+        let payload: BoldWebhookPayload;
         try {
           payload = JSON.parse(raw);
         } catch {
           return new Response("Payload inválido", { status: 400 });
         }
 
-        const reference = payload.reference;
-        if (!reference) return new Response("Falta la referencia", { status: 400 });
+        const type = payload.type ?? "";
+        const reference = payload.data?.metadata?.reference ?? null;
+        // Eventos sin referencia nuestra (p. ej. ventas del datáfono): no son de esta app.
+        if (!reference) return ok("ignorado");
 
-        const approved = ["APPROVED", "PAID", "SUCCESS", "approved", "paid"].includes(
-          payload.status ?? "",
-        );
+        const admin = serviceClient();
 
-        const url = process.env["EXT_SUPABASE_URL"];
-        const serviceKey = process.env["EXT_SUPABASE_SERVICE_ROLE_KEY"];
-        if (!url || !serviceKey) {
-          return new Response("Supabase externo no configurado", { status: 503 });
+        const leagueId = tenantIdFromLeagueReference(reference);
+        if (leagueId) {
+          if (type !== "SALE_APPROVED") return ok("ignorado");
+          const result = await activateLeagueIfPaid(admin, leagueId, `${siteUrl(request)}/panel`);
+          if (result.state === "error") {
+            console.error("Webhook de afiliación de liga:", result.error);
+            return new Response("Error activando la liga", { status: 500 });
+          }
+          // Bold avisa la aprobación antes de que el link figure como PAID: que reintente.
+          if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+            return new Response("Pago aún no confirmado en Bold", { status: 503 });
+          }
+          return ok();
         }
 
-        const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+        if (type !== "SALE_APPROVED" && type !== "SALE_REJECTED") return ok("ignorado");
+        const approved = type === "SALE_APPROVED";
 
-        const { data: registration, error: regError } = await admin
-          .from("registrations")
-          .update({ status: approved ? "paid" : "cancelled" })
-          .eq("qr_code", reference)
-          .select("id")
-          .maybeSingle();
-
+        // Un rechazo solo cancela una inscripción aún pendiente: nunca una ya pagada.
+        let update = admin.from("registrations").update({ status: approved ? "paid" : "cancelled" }).eq("qr_code", reference);
+        if (!approved) update = update.eq("status", "pending");
+        const { data: registration, error: regError } = await update.select("id").maybeSingle();
         if (regError) return new Response("Error actualizando inscripción", { status: 500 });
-        if (!registration) return new Response("Inscripción no encontrada", { status: 404 });
+        if (!registration) {
+          console.warn("Webhook de Bold: sin inscripción pendiente para la referencia", reference);
+          return ok("ignorado");
+        }
 
-        await admin.from("payments").insert({
-          registration_id: registration.id,
-          transaction_id: payload.transaction_id ?? reference,
-          amount: payload.amount ?? 0,
-          method: payload.method ?? "unknown",
-          status: approved ? "approved" : "declined",
-        });
+        const transactionId = payload.data?.payment_id ?? reference;
+        const { data: already } = await admin
+          .from("payments")
+          .select("id")
+          .eq("registration_id", registration.id)
+          .eq("transaction_id", transactionId)
+          .maybeSingle();
+        if (!already) {
+          await admin.from("payments").insert({
+            registration_id: registration.id,
+            transaction_id: transactionId,
+            amount: payload.data?.amount?.total ?? 0,
+            method: payload.data?.payment_method ?? "unknown",
+            status: approved ? "approved" : "declined",
+          });
+        }
 
-        return new Response("ok");
+        return ok();
       },
     },
   },

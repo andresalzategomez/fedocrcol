@@ -12,7 +12,9 @@ producción. **Nunca** subas `.env` al repo.
 | `EXT_SUPABASE_URL` | Servidor | URL del proyecto (para el webhook y la API /api/v1). |
 | `EXT_SUPABASE_ANON_KEY` | Servidor | Anon key (cliente por-usuario con RLS en la API /api/v1). |
 | `EXT_SUPABASE_SERVICE_ROLE_KEY` | Servidor | Service role (omite RLS). **Solo servidor.** |
-| `PAYMENT_WEBHOOK_SECRET` | Servidor | Secreto HMAC de la pasarela (Bold/PayU). |
+| `BOLD_IDENTITY_KEY` | Servidor | Llave de identidad de Bold (crea links de pago y consulta su estado). |
+| `BOLD_SECRET_KEY` | Servidor | Llave secreta de Bold (firma de los webhooks). **Solo servidor.** |
+| `BOLD_TEST_MODE` | Servidor | `true` solo con llaves de pruebas (Bold firma con llave vacía). En producción, no definirla. |
 | `RESEND_API_KEY` | Servidor | API key de Resend para correos transaccionales. |
 | `RESEND_FROM_EMAIL` | Servidor | Remitente verificado en Resend. |
 
@@ -41,13 +43,25 @@ cp .env.example .env   # y completa los valores
 npm run dev        # Vite dev server
 ```
 
-## 4. Pagos (webhook)
+## 4. Pagos con Bold (webhook y afiliación de ligas)
 
 - Endpoint: `POST https://<tu-dominio>/api/public/pagos/webhook`
-- Configúralo en el panel de la pasarela (Bold/PayU) con el mismo
-  `PAYMENT_WEBHOOK_SECRET`.
-- El webhook valida la firma HMAC-SHA256 y actualiza `registrations` a `paid` y
-  crea el `payment`. Ver `src/routes/api/public/pagos.webhook.ts`.
+- Regístralo en Bold (Integraciones -> Webhooks). Bold firma cada notificación
+  en `x-bold-signature`: HMAC-SHA256, en hexadecimal, del cuerpo en Base64 con
+  `BOLD_SECRET_KEY` (llave vacía en el ambiente de pruebas). Debe responderse
+  200 en menos de 2 s; si no, Bold reintenta hasta 5 veces en 24 h.
+- El mismo endpoint atiende dos cobros, según `data.metadata.reference`:
+  - `liga-<uuid>-...`: cuota de afiliación de una liga. Se consulta a Bold el
+    estado real del link y, si está `PAID`, la liga pasa de `awaiting_payment`
+    a `active` (tabla `league_affiliation_payments`, migración 0030).
+  - cualquier otra: el `qr_code` de una inscripción, que pasa a `paid` y crea
+    el `payment`.
+- Flujo de afiliación: la liga solicita (`pending`) -> la federación la aprueba
+  en Panel > Aprobaciones definiendo el monto (`POST /api/admin/league-approve`
+  crea el link en Bold y lo envía por correo) -> se paga -> `active`. Si el
+  webhook se pierde, "Verificar pago" (`/api/admin/league-check-payment`)
+  consulta a Bold y activa la liga.
+- Ver `src/routes/api/public/pagos.webhook.ts` y `src/lib/server/bold.ts`.
 
 ## 5. Sincronización con Lovable
 

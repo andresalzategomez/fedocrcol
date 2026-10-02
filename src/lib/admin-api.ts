@@ -74,7 +74,7 @@ export interface Tenant {
   description: string | null;
   primary_color: string;
   secondary_color: string;
-  status: "active" | "suspended" | "pending" | "rejected";
+  status: "active" | "suspended" | "pending" | "awaiting_payment" | "rejected";
 }
 export interface PublicClub { id: string; name: string; tenant_id: string | null; }
 export interface AdminClub {
@@ -146,15 +146,54 @@ export async function listClubsForTenant(tenantId: string): Promise<PublicClub[]
 }
 
 // ------------------- Aprobaciones: ligas y clubes --------------------
+/** Ligas por aprobar (pending) y ligas aprobadas que aún no pagan la afiliación (awaiting_payment). */
 export async function listPendingLeagues(): Promise<Tenant[]> {
-  const { data, error } = await db().from("tenants").select("*").eq("status", "pending").order("name");
+  const { data, error } = await db().from("tenants").select("*").in("status", ["pending", "awaiting_payment"]).order("name");
   if (error) throw error;
   return data as Tenant[];
 }
-/** Solo superadmin: el trigger enforce_tenants_status_change rechaza cualquier otro caso. */
-export async function approveLeague(id: string) {
-  const { error } = await db().from("tenants").update({ status: "active" }).eq("id", id);
+
+/** Cobro de afiliación de una liga (tabla league_affiliation_payments; solo la federación y el admin de esa liga la leen). */
+export interface LeaguePayment {
+  tenant_id: string;
+  amount: number;
+  payment_url: string;
+  status: "pending" | "paid";
+  expires_at: string | null;
+}
+export async function getLeaguePayment(tenantId: string): Promise<LeaguePayment | null> {
+  const { data, error } = await db().from("league_affiliation_payments")
+    .select("tenant_id, amount, payment_url, status, expires_at").eq("tenant_id", tenantId).maybeSingle();
   if (error) throw error;
+  return data ? ({ ...data, amount: Number(data.amount) } as LeaguePayment) : null;
+}
+export async function listLeaguePayments(): Promise<Record<string, LeaguePayment>> {
+  const { data, error } = await db().from("league_affiliation_payments")
+    .select("tenant_id, amount, payment_url, status, expires_at");
+  if (error) throw error;
+  const byTenant: Record<string, LeaguePayment> = {};
+  (data ?? []).forEach((r) => { byTenant[r.tenant_id as string] = { ...r, amount: Number(r.amount) } as LeaguePayment; });
+  return byTenant;
+}
+
+/**
+ * Solo la federación. Aprueba la liga definiendo la cuota de afiliación: el
+ * servidor crea el link de pago en Bold y se lo envía por correo al admin de
+ * la liga. También sirve para reenviar el link de una liga en awaiting_payment.
+ */
+export async function approveLeague(id: string, amount: number): Promise<{ payment_url: string; emails_sent: number; email_error: string | null }> {
+  return (await authFetch("/api/admin/league-approve", { id, amount })) as { payment_url: string; emails_sent: number; email_error: string | null };
+}
+export interface LeaguePaymentCheck {
+  activated: boolean;
+  bold_status?: string;
+  /** El link anterior ya no servía (rechazado, vencido o cancelado) y se emitió uno nuevo con el mismo monto. */
+  renewed?: boolean;
+  payment_url?: string;
+}
+/** Pregunta a Bold si ya se pagó la afiliación y, si es así, activa la liga. Si el link murió, emite uno nuevo. */
+export async function checkLeaguePayment(id: string): Promise<LeaguePaymentCheck> {
+  return (await authFetch("/api/admin/league-check-payment", { id })) as LeaguePaymentCheck;
 }
 export async function rejectLeague(id: string) {
   const { error } = await db().from("tenants").update({ status: "rejected" }).eq("id", id);
