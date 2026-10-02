@@ -85,6 +85,28 @@ export async function renewLeagueLinkIfDead(
   return issued.ok ? { state: "renewed", url: issued.url, expiresAt: issued.expiresAt } : { state: "error", error: issued.error };
 }
 
+/**
+ * Red de seguridad del webhook: revisa contra Bold los cobros de afiliación
+ * aún pendientes y activa los que ya figuren pagados. Sirve cuando el aviso
+ * llega con una referencia que no reconocemos (p. ej. si un link de pago la
+ * trae en otro campo): de todos modos Bold solo activa lo que realmente pagó.
+ */
+export async function activatePendingLeagues(admin: SupabaseClient, panelUrl: string): Promise<number> {
+  const { data: pending } = await admin
+    .from("league_affiliation_payments")
+    .select("tenant_id")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(5);
+  let activated = 0;
+  for (const row of pending ?? []) {
+    const result = await activateLeagueIfPaid(admin, row.tenant_id as string, panelUrl);
+    if (result.state === "activated") activated += 1;
+    else if (result.state === "error") console.error("Revisión de cobros de afiliación:", result.error);
+  }
+  return activated;
+}
+
 export type ActivationResult =
   | { state: "activated" }
   | { state: "not_paid"; boldStatus: BoldLinkStatus }

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold";
-import { activateLeagueIfPaid, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
+import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
 
 /**
  * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
@@ -63,15 +63,28 @@ export const Route = createFileRoute("/api/public/pagos/webhook")({
 
         const type = payload.type ?? "";
         const reference = payload.data?.metadata?.reference ?? null;
-        // Eventos sin referencia nuestra (p. ej. ventas del datáfono): no son de esta app.
-        if (!reference) return ok("ignorado");
-
+        const panelUrl = `${siteUrl(request)}/panel`;
         const admin = serviceClient();
+
+        // Sin referencia (p. ej. ventas del datáfono, o un link de pago que la trae en otro
+        // campo): no se asume que no es nuestro. Si hay cobros de afiliación pendientes se
+        // revisan contra Bold; si no, no hay nada que hacer.
+        if (!reference) {
+          console.warn("Webhook de Bold sin metadata.reference:", type, Object.keys(payload.data ?? {}).join(","));
+          if (type === "SALE_APPROVED") await activatePendingLeagues(admin, panelUrl);
+          return ok("ignorado");
+        }
 
         const leagueId = tenantIdFromLeagueReference(reference);
         if (leagueId) {
           if (type !== "SALE_APPROVED") return ok("ignorado");
-          const result = await activateLeagueIfPaid(admin, leagueId, `${siteUrl(request)}/panel`);
+          let result = await activateLeagueIfPaid(admin, leagueId, panelUrl);
+          // Bold a veces avisa antes de que el link figure como PAID: un reintento breve lo resuelve
+          // sin esperar los 15 minutos de su política de reintentos.
+          if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            result = await activateLeagueIfPaid(admin, leagueId, panelUrl);
+          }
           if (result.state === "error") {
             console.error("Webhook de afiliación de liga:", result.error);
             return new Response("Error activando la liga", { status: 500 });
@@ -93,6 +106,7 @@ export const Route = createFileRoute("/api/public/pagos/webhook")({
         if (regError) return new Response("Error actualizando inscripción", { status: 500 });
         if (!registration) {
           console.warn("Webhook de Bold: sin inscripción pendiente para la referencia", reference);
+          if (approved) await activatePendingLeagues(admin, panelUrl);
           return ok("ignorado");
         }
 
