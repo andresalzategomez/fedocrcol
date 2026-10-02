@@ -14,17 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { SimpleTable } from "@/components/simple-table";
 import { formatCOP, formatDate } from "@/data/demo";
-import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl, type PublicRegistration } from "@/lib/ocr-data";
+import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { useSession } from "@/lib/use-session";
 import { supabase } from "@/lib/supabase";
 import { LiveResults } from "@/components/live-results";
-
-const REGISTRATION_LIST_STATUS_LABEL: Record<string, string> = { pending: "Pendiente", paid: "Pagada" };
 
 const BLOOD_TYPES = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
 const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
@@ -124,7 +120,7 @@ export const Route = createFileRoute("/eventos/$eventId")({
 });
 
 function EventDetail() {
-  const { event, league, registrations } = Route.useLoaderData();
+  const { event, league } = Route.useLoaderData();
   const { minimal } = Route.useSearch();
   useTenantTheme(league ? { primary_color: league.primary_color, secondary_color: league.secondary_color } : null);
 
@@ -687,30 +683,6 @@ function EventDetail() {
 
       {!minimal ? (
         <>
-          <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
-            <h2 className="font-display text-3xl">Inscritos</h2>
-            {registrations.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">Todavía no hay inscritos en esta carrera.</p>
-            ) : (
-              <div className="mt-5">
-                <SimpleTable head={["Dorsal", "Atleta", "Categoría", "Estado"]}>
-                  {registrations.map((r: PublicRegistration) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-mono text-muted-foreground">{r.bib_number ?? "—"}</TableCell>
-                      <TableCell className="font-medium">{r.athlete_name ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.category_name}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={r.status === "paid" ? "default" : "outline"}>
-                          {REGISTRATION_LIST_STATUS_LABEL[r.status] ?? r.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </SimpleTable>
-              </div>
-            )}
-          </div>
-
           {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
             <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
               <LiveResults eventId={event.id} />
