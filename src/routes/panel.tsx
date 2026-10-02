@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -23,6 +24,7 @@ import type { Tenant, EventRow, EventStatus } from "@/lib/admin-api";
 import { validateForm, required, slug as slugRule, numeric, positiveInt, decimalNonNeg } from "@/lib/validate";
 import { exportExcel, exportPDF, type Column } from "@/lib/export";
 import { RESULT_STATUS_LABEL, formatDuration, rankResults } from "@/lib/results";
+import { formatCOP } from "@/data/demo";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({ meta: [{ title: "Panel de administración — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
@@ -123,6 +125,7 @@ function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: stri
   if (tenant === "loading") return <Note>Cargando…</Note>;
   if (tenant === "none") return <Note>Tu cuenta no tiene una liga asignada.</Note>;
   if (tenant.status === "pending") return <Note>Tu liga está <strong>pendiente de aprobación</strong> de la federación. Te avisaremos por correo cuando quede activa.</Note>;
+  if (tenant.status === "awaiting_payment") return <AffiliationPaymentNote tenantId={tenant.id} onActivated={load} />;
   if (tenant.status === "suspended") return <Note>Tu liga está suspendida. Contacta a la federación.</Note>;
   if (tenant.status === "rejected") {
     return (
@@ -133,6 +136,47 @@ function AdminGate({ tenantId, userId }: { tenantId: string | null; userId: stri
     );
   }
   return <AdminConsole role="admin" userId={userId} fixedTenant={tenantId} />;
+}
+
+/** Liga aprobada por la federación a la espera del pago de la cuota de afiliación (link de Bold). */
+function AffiliationPaymentNote({ tenantId, onActivated }: { tenantId: string; onActivated: () => void }) {
+  const [payment, setPayment] = useState<api.LeaguePayment | null | "loading">("loading");
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    api.getLeaguePayment(tenantId).then(setPayment).catch(() => setPayment(null));
+  }, [tenantId]);
+
+  async function check() {
+    setChecking(true);
+    try {
+      const r = await api.checkLeaguePayment(tenantId);
+      if (r.activated) { toast.success("¡Pago confirmado! Tu liga ya está activa."); onActivated(); }
+      else if (r.renewed) {
+        toast.warning("El pago anterior no se completó (fue rechazado o el link venció). Generamos un link nuevo: pulsa \"Pagar la afiliación\".");
+        setPayment(await api.getLeaguePayment(tenantId));
+      }
+      else toast.info("Todavía no vemos el pago. Si ya pagaste, espera unos minutos y vuelve a verificar.");
+    } catch (e) { toast.error((e as Error).message); } finally { setChecking(false); }
+  }
+
+  if (payment === "loading") return <Note>Cargando…</Note>;
+  if (!payment) {
+    return <Note>Tu liga fue <strong>aprobada</strong>, pero aún no encontramos el link de pago de la afiliación. Contacta a la federación.</Note>;
+  }
+  return (
+    <Note>
+      <p className="mb-1">Tu liga fue <strong>aprobada</strong> por la federación. Para activarla falta pagar la cuota de afiliación:</p>
+      <p className="mb-3 font-display text-2xl">{formatCOP(payment.amount)}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => window.open(payment.payment_url, "_blank", "noopener,noreferrer")}>Pagar la afiliación</Button>
+        <Button size="sm" variant="outline" onClick={check} disabled={checking}>{checking ? "Verificando..." : "Ya pagué, verificar"}</Button>
+      </div>
+      {payment.expires_at ? (
+        <p className="mt-3 text-xs text-muted-foreground">El link vence el {new Date(payment.expires_at).toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })}. Al confirmarse el pago, tu liga se activa sola y te avisamos por correo.</p>
+      ) : null}
+    </Note>
+  );
 }
 
 /** Para un club: muestra su estado de aprobación, o le permite reintentar si fue rechazado. */
@@ -332,6 +376,7 @@ function canManageEvent(event: EventRow, isSuper: boolean, userId: string): bool
 const TENANT_STATUS_LABEL: Record<Tenant["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Activa", variant: "default" },
   pending: { label: "Pendiente", variant: "outline" },
+  awaiting_payment: { label: "Falta el pago", variant: "secondary" },
   rejected: { label: "Rechazada", variant: "destructive" },
   suspended: { label: "Suspendida", variant: "destructive" },
 };
@@ -751,26 +796,119 @@ function AprobacionesCarreras({ tenants }: { tenants: Tenant[] }) {
 
 function AprobacionesLigas() {
   const [rows, setRows] = useState<Tenant[]>([]);
-  const load = useCallback(async () => { try { setRows(await api.listPendingLeagues()); } catch (e) { toast.error((e as Error).message); } }, []);
+  const [payments, setPayments] = useState<Record<string, api.LeaguePayment>>({});
+  const [approving, setApproving] = useState<Tenant | null>(null);
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [leagues, pays] = await Promise.all([api.listPendingLeagues(), api.listLeaguePayments()]);
+      setRows(leagues);
+      setPayments(pays);
+    } catch (e) { toast.error((e as Error).message); }
+  }, []);
   useEffect(() => { load(); }, [load]);
-  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
-    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
+
+  function openApprove(t: Tenant) {
+    setApproving(t);
+    setAmount(payments[t.id] ? String(payments[t.id]!.amount) : "");
   }
+
+  async function confirmApprove() {
+    if (!approving) return;
+    const value = Number(amount.replace(/\D/g, ""));
+    if (!Number.isInteger(value) || value < 1000 || value > 10_000_000) {
+      toast.error("Ingresa un monto entre $1.000 y $10.000.000");
+      return;
+    }
+    setBusy(approving.id);
+    try {
+      const r = await api.approveLeague(approving.id, value);
+      if (r.emails_sent > 0) toast.success("Liga aprobada: le enviamos el link de pago a su administrador");
+      else {
+        await navigator.clipboard?.writeText(r.payment_url).catch(() => undefined);
+        toast.warning("Liga aprobada, pero no se pudo enviar el correo. El link de pago quedó copiado: envíaselo al administrador.");
+      }
+      setApproving(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  async function reject(id: string) {
+    setBusy(id);
+    try { await api.rejectLeague(id); toast.success("Liga rechazada"); load(); }
+    catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  async function verify(t: Tenant) {
+    setBusy(t.id);
+    try {
+      const r = await api.checkLeaguePayment(t.id);
+      if (r.activated) toast.success("Pago confirmado: la liga quedó activa");
+      else if (r.renewed) toast.warning(`El pago quedó ${r.bold_status} en Bold: se generó un link nuevo (cópialo o usa "Reenviar" para mandárselo por correo)`);
+      else toast.info(`Bold aún no registra el pago (estado: ${r.bold_status ?? "sin pago"})`);
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  async function copyLink(url: string) {
+    try { await navigator.clipboard.writeText(url); toast.success("Link de pago copiado"); }
+    catch { toast.error("No se pudo copiar el link"); }
+  }
+
   return (
-    <SimpleTable head={["Liga", "Departamento", "Ciudad", "Acciones"]}>
-      {rows.map((t) => (
-        <TableRow key={t.id}>
-          <TableCell className="font-medium">{t.name}</TableCell>
-          <TableCell className="text-muted-foreground">{t.department}</TableCell>
-          <TableCell className="text-muted-foreground">{t.city ?? "—"}</TableCell>
-          <TableCell className="text-right"><div className="flex justify-end gap-2">
-            <Button size="sm" onClick={() => act(t.id, api.approveLeague, "Liga aprobada")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
-            <Button size="sm" variant="outline" onClick={() => act(t.id, api.rejectLeague, "Liga rechazada")}><XCircle className="mr-1 size-4" />Rechazar</Button>
-          </div></TableCell>
-        </TableRow>
-      ))}
-      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay ligas pendientes de aprobación.</TableCell></TableRow> : null}
-    </SimpleTable>
+    <>
+      <SimpleTable head={["Liga", "Departamento", "Ciudad", "Estado", "Acciones"]}>
+        {rows.map((t) => {
+          const pay = payments[t.id];
+          const waiting = t.status === "awaiting_payment";
+          return (
+            <TableRow key={t.id}>
+              <TableCell className="font-medium">{t.name}</TableCell>
+              <TableCell className="text-muted-foreground">{t.department}</TableCell>
+              <TableCell className="text-muted-foreground">{t.city ?? "—"}</TableCell>
+              <TableCell>
+                {waiting
+                  ? <Badge variant="secondary">Falta el pago{pay ? ` · ${formatCOP(pay.amount)}` : ""}</Badge>
+                  : <Badge variant="outline">Por aprobar</Badge>}
+              </TableCell>
+              <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
+                {waiting ? (<>
+                  <Button size="sm" disabled={busy === t.id} onClick={() => verify(t)}><RefreshCw className="mr-1 size-4" />Verificar pago</Button>
+                  {pay ? <Button size="sm" variant="outline" onClick={() => copyLink(pay.payment_url)}><Link2 className="mr-1 size-4" />Copiar link</Button> : null}
+                  <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => openApprove(t)}><Mail className="mr-1 size-4" />Reenviar</Button>
+                </>) : (
+                  <Button size="sm" disabled={busy === t.id} onClick={() => openApprove(t)}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+                )}
+                <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => reject(t.id)}><XCircle className="mr-1 size-4" />Rechazar</Button>
+              </div></TableCell>
+            </TableRow>
+          );
+        })}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay ligas pendientes de aprobación ni de pago.</TableCell></TableRow> : null}
+      </SimpleTable>
+
+      <Dialog open={approving !== null} onOpenChange={(open) => { if (!open) setApproving(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{approving?.status === "awaiting_payment" ? "Reenviar link de pago" : "Aprobar liga"}</DialogTitle>
+            <DialogDescription>
+              Define la cuota de afiliación de <strong>{approving?.name}</strong>. Se crea un link de pago en Bold y se envía por correo al administrador de la liga; la liga se activa sola cuando Bold confirma el pago.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="affiliation-amount">Cuota de afiliación (COP)</Label>
+            <Input id="affiliation-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500000" />
+            <p className="text-xs text-muted-foreground">Entre $1.000 y $10.000.000 (tarjeta y PSE llegan hasta $5.000.000 en Bold).</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproving(null)}>Cancelar</Button>
+            <Button onClick={confirmApprove} disabled={busy !== null}>{busy ? "Enviando..." : "Aprobar y enviar link"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

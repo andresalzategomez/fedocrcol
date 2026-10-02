@@ -19,6 +19,8 @@ import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
 import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
+import { Route as ApiAdminLeagueApproveRouteImport } from './routes/api/admin/league-approve'
+import { Route as ApiAdminLeagueCheckPaymentRouteImport } from './routes/api/admin/league-check-payment'
 import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
 import { Route as ApiPublicForgotPasswordRouteImport } from './routes/api/public/forgot-password'
@@ -88,6 +90,17 @@ const ApiAdminJudgesRoute = ApiAdminJudgesRouteImport.update({
   path: '/api/admin/judges',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminLeagueApproveRoute = ApiAdminLeagueApproveRouteImport.update({
+  id: '/api/admin/league-approve',
+  path: '/api/admin/league-approve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminLeagueCheckPaymentRoute =
+  ApiAdminLeagueCheckPaymentRouteImport.update({
+    id: '/api/admin/league-check-payment',
+    path: '/api/admin/league-check-payment',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminRaceManagersRoute = ApiAdminRaceManagersRouteImport.update({
   id: '/api/admin/race-managers',
   path: '/api/admin/race-managers',
@@ -194,6 +207,8 @@ export interface FileRoutesByFullPath {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/league-approve': typeof ApiAdminLeagueApproveRoute
+  '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
@@ -224,6 +239,8 @@ export interface FileRoutesByTo {
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/league-approve': typeof ApiAdminLeagueApproveRoute
+  '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
@@ -255,6 +272,8 @@ export interface FileRoutesById {
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
+  '/api/admin/league-approve': typeof ApiAdminLeagueApproveRoute
+  '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
@@ -287,6 +306,8 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/league-approve'
+    | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/public/forgot-password'
@@ -317,6 +338,8 @@ export interface FileRouteTypes {
     | '/eventos'
     | '/ligas'
     | '/api/admin/judges'
+    | '/api/admin/league-approve'
+    | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/public/forgot-password'
@@ -347,6 +370,8 @@ export interface FileRouteTypes {
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
+    | '/api/admin/league-approve'
+    | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/public/forgot-password'
@@ -378,6 +403,8 @@ export interface RootRouteChildren {
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
   ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
+  ApiAdminLeagueApproveRoute: typeof ApiAdminLeagueApproveRoute
+  ApiAdminLeagueCheckPaymentRoute: typeof ApiAdminLeagueCheckPaymentRoute
   ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
   ApiPublicForgotPasswordRoute: typeof ApiPublicForgotPasswordRoute
@@ -463,6 +490,20 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/judges'
       fullPath: '/api/admin/judges'
       preLoaderRoute: typeof ApiAdminJudgesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/league-approve': {
+      id: '/api/admin/league-approve'
+      path: '/api/admin/league-approve'
+      fullPath: '/api/admin/league-approve'
+      preLoaderRoute: typeof ApiAdminLeagueApproveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/league-check-payment': {
+      id: '/api/admin/league-check-payment'
+      path: '/api/admin/league-check-payment'
+      fullPath: '/api/admin/league-check-payment'
+      preLoaderRoute: typeof ApiAdminLeagueCheckPaymentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/race-managers': {
@@ -625,6 +666,8 @@ const rootRouteChildren: RootRouteChildren = {
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
   ApiAdminJudgesRoute: ApiAdminJudgesRoute,
+  ApiAdminLeagueApproveRoute: ApiAdminLeagueApproveRoute,
+  ApiAdminLeagueCheckPaymentRoute: ApiAdminLeagueCheckPaymentRoute,
   ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
   ApiPublicForgotPasswordRoute: ApiPublicForgotPasswordRoute,

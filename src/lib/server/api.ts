@@ -105,6 +105,37 @@ export async function authenticate(request: Request): Promise<AuthContext> {
   };
 }
 
+export interface UserContext {
+  userId: string;
+  role: string;
+  tenantId: string | null;
+}
+
+/**
+ * Como authenticate(), pero sin exigir liga: para operaciones de la
+ * federación (superadmin), cuyo profile puede no tener tenant_id.
+ */
+export async function authenticateUser(request: Request): Promise<UserContext> {
+  if (!isServerSupabaseConfigured) {
+    throw apiError("NOT_CONFIGURED", "Supabase no está configurado en el servidor", 503);
+  }
+  const header = request.headers.get("authorization") ?? "";
+  if (!header.startsWith("Bearer ")) {
+    throw apiError("UNAUTHORIZED", "Falta el token Bearer", 401);
+  }
+  const supa = userClient(header.slice(7));
+  const { data: userData, error } = await supa.auth.getUser();
+  if (error || !userData?.user) {
+    throw apiError("UNAUTHORIZED", "Token inválido o expirado", 401);
+  }
+  const { data: profile } = await supa.from("profiles").select("tenant_id, role").eq("id", userData.user.id).maybeSingle();
+  return {
+    userId: userData.user.id,
+    role: (profile?.role as string) ?? "athlete",
+    tenantId: (profile?.tenant_id as string | null) ?? null,
+  };
+}
+
 /** Envuelve un handler: captura Response lanzadas por authenticate() y errores. */
 export function handler(fn: (ctx: { request: Request; params: Record<string, string> }) => Promise<Response>) {
   return async (ctx: { request: Request; params: Record<string, string> }) => {
