@@ -5,15 +5,17 @@ import { serviceClient } from "../../../lib/server/supabase-server";
 import { isBoldConfigured } from "../../../lib/server/bold";
 import { activateLeagueIfPaid, renewLeagueLinkIfDead } from "../../../lib/server/league-affiliation";
 
-const bodySchema = z.object({ id: z.string().uuid() });
+const bodySchema = z.object({ id: z.string().uuid(), renew: z.boolean().optional() });
 
 /**
  * POST /api/admin/league-check-payment  { id }
  * Consulta a Bold si ya se pagó la afiliación de la liga y, si es así, la
  * activa. Es la red de seguridad por si el webhook se pierde o demora.
- * La puede pulsar la federación (cualquier liga) o el admin de esa liga.
+ * La puede pulsar la federación (cualquier liga) o el admin de esa liga, y el
+ * panel de la liga la llama sola cada pocos segundos mientras espera el pago.
  * Si el link vigente quedó rechazado, vencido o cancelado (ya no se puede
- * pagar), emite uno nuevo con el mismo monto y lo devuelve en payment_url.
+ * pagar), emite uno nuevo con el mismo monto y lo devuelve en payment_url;
+ * esa renovación se desactiva con { renew: false } (verificaciones automáticas).
  */
 export const Route = createFileRoute("/api/admin/league-check-payment")({
   server: {
@@ -23,7 +25,7 @@ export const Route = createFileRoute("/api/admin/league-check-payment")({
         const { role, tenantId, userId } = await authenticateUser(request);
         const parsed = bodySchema.safeParse(await request.json().catch(() => null));
         if (!parsed.success) return apiError("BAD_REQUEST", "Falta el id de la liga", 400);
-        const { id } = parsed.data;
+        const { id, renew = true } = parsed.data;
 
         const allowed = role === "superadmin" || (role === "admin" && tenantId === id);
         if (!allowed) return apiError("FORBIDDEN", "No puedes verificar el pago de esa liga", 403);
@@ -36,7 +38,9 @@ export const Route = createFileRoute("/api/admin/league-check-payment")({
           case "activated":
             return json({ ok: true, activated: true });
           case "not_paid": {
-            const renewed = await renewLeagueLinkIfDead(serviceClient(), id, result.boldStatus, userId, `${siteUrl(request)}/panel`);
+            const renewed = renew
+              ? await renewLeagueLinkIfDead(serviceClient(), id, result.boldStatus, userId, `${siteUrl(request)}/panel`)
+              : ({ state: "not_needed" } as const);
             if (renewed.state === "error") return apiError("BOLD_ERROR", renewed.error, 502);
             return json({
               ok: true,

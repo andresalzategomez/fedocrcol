@@ -147,6 +147,26 @@ function AffiliationPaymentNote({ tenantId, onActivated }: { tenantId: string; o
     api.getLeaguePayment(tenantId).then(setPayment).catch(() => setPayment(null));
   }, [tenantId]);
 
+  // Bold devuelve a la admin a este panel al terminar de pagar: mientras la pantalla esté
+  // abierta se pregunta a Bold cada 10 s, así la liga se activa aunque el webhook no llegue.
+  const onActivatedRef = useRef(onActivated);
+  onActivatedRef.current = onActivated;
+  useEffect(() => {
+    let stopped = false;
+    async function poll() {
+      try {
+        const r = await api.checkLeaguePayment(tenantId, { renew: false });
+        if (!stopped && r.activated) {
+          toast.success("¡Pago confirmado! Tu liga ya está activa.");
+          onActivatedRef.current();
+        }
+      } catch { /* sin sesión o sin red: se reintenta en el siguiente ciclo */ }
+    }
+    poll();
+    const timer = setInterval(poll, 10_000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [tenantId]);
+
   async function check() {
     setChecking(true);
     try {
