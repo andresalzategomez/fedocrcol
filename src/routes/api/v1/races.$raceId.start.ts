@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/v1/races/$raceId/start")({
         const { data: race, error: findErr } = await supa
           .from("events")
           .select("id, status")
-          .eq("id", params.raceId)
+          .eq("id", params["raceId"])
           .eq("tenant_id", leagueId)
           .maybeSingle();
         if (findErr) return apiError("DB_ERROR", findErr.message, 500);

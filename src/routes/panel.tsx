@@ -692,9 +692,9 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
   return (
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-        <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Liga Valle OCR" /></Field>
-        <Field label="Slug *" error={errors.slug}><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} placeholder="valle" /></Field>
-        <Field label="Departamento *" error={errors.department}>
+        <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Liga Valle OCR" /></Field>
+        <Field label="Slug *" error={errors["slug"]}><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} placeholder="valle" /></Field>
+        <Field label="Departamento *" error={errors["department"]}>
           <Select value={geo.departmentId} onValueChange={geo.setDepartmentId} disabled={geo.loadingDepartments}>
             <SelectTrigger><SelectValue placeholder={geo.loadingDepartments ? "Cargando..." : "Selecciona"} /></SelectTrigger>
             <SelectContent>{geo.departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}</SelectContent>
@@ -1011,10 +1011,10 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
   return (
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-        <Field label="Nombre *" error={errors.title}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
-        <Field label="Fecha *" error={errors.date}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-        <Field label="Lugar *" error={errors.location}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
-        <Field label="¿Es oficial? *" error={errors.is_official}>
+        <Field label="Nombre *" error={errors["title"]}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
+        <Field label="Fecha *" error={errors["date"]}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+        <Field label="Lugar *" error={errors["location"]}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
+        <Field label="¿Es oficial? *" error={errors["is_official"]}>
           <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
@@ -1026,7 +1026,7 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
             <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
           </Select>
         </Field>
-        <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
+        <Field label="Distancia (km)" error={errors["distance_km"]}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
         <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
         <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
         <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
@@ -1182,10 +1182,10 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
   return (
     <div className="grid gap-6">
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-        <Field label="Nombre *" error={errors.title}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
-        <Field label="Fecha *" error={errors.date}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-        <Field label="Lugar *" error={errors.location}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
-        <Field label="¿Es oficial? *" error={errors.is_official}>
+        <Field label="Nombre *" error={errors["title"]}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
+        <Field label="Fecha *" error={errors["date"]}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+        <Field label="Lugar *" error={errors["location"]}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
+        <Field label="¿Es oficial? *" error={errors["is_official"]}>
           <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
@@ -1197,7 +1197,7 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
             <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
           </Select>
         </Field>
-        <Field label="Distancia (km)" error={errors.distance_km}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
+        <Field label="Distancia (km)" error={errors["distance_km"]}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
         <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
         <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
         <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
@@ -1292,10 +1292,10 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
         </TabsList>
         <TabsContent value="datos" className="mt-4">
           <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-            <Field label="Nombre *" error={errors.title}><Input disabled={locked} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-            <Field label="Fecha *" error={errors.date}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-            <Field label="Lugar *" error={errors.location}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
-            <Field label="¿Es oficial? *" error={errors.is_official}>
+            <Field label="Nombre *" error={errors["title"]}><Input disabled={locked} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
+            <Field label="Fecha *" error={errors["date"]}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+            <Field label="Lugar *" error={errors["location"]}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
+            <Field label="¿Es oficial? *" error={errors["is_official"]}>
               <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                 <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
@@ -1307,7 +1307,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
                 <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
               </Select>
             </Field>
-            <Field label="Distancia (km)" error={errors.distance_km}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
+            <Field label="Distancia (km)" error={errors["distance_km"]}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
             <Field label="Obstáculos"><Input disabled={locked} inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} /></Field>
             <Field label="Cupos"><Input disabled={locked} inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} /></Field>
             <div className="flex gap-2 sm:col-span-3">
@@ -1360,7 +1360,7 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
     <div className="grid gap-4">
       {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-          <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Elite Masculino" /></Field>
+          <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Elite Masculino" /></Field>
           <Field label="Género">
             <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -1461,15 +1461,15 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
     <div className="grid gap-4">
       {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
-          <Field label="Nombre *" error={errors.athlete_name}><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
-          <Field label="Documento *" error={errors.athlete_document}><Input inputMode="numeric" value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="Nombre *" error={errors["athlete_name"]}><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
+          <Field label="Documento *" error={errors["athlete_document"]}><Input inputMode="numeric" value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value.replace(/\D/g, "") })} /></Field>
           <Field label="Sexo">
             <Select value={form.athlete_gender} onValueChange={(v) => setForm({ ...form, athlete_gender: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="M">M</SelectItem><SelectItem value="F">F</SelectItem><SelectItem value="X">X</SelectItem></SelectContent>
             </Select>
           </Field>
-          <Field label="Categoría *" error={errors.category_id}>
+          <Field label="Categoría *" error={errors["category_id"]}>
             <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
               <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
               <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -1607,8 +1607,8 @@ function Oleadas({ tenantId, eventId, eventDate, locked }: { tenantId: string; e
         </CardContent></Card>
 
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-          <Field label="N° *" error={errors.wave_number}><Input inputMode="numeric" value={form.wave_number} onChange={(e) => setForm({ ...form, wave_number: e.target.value.replace(/\D/g, "") })} /></Field>
-          <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Oleada manual" /></Field>
+          <Field label="N° *" error={errors["wave_number"]}><Input inputMode="numeric" value={form.wave_number} onChange={(e) => setForm({ ...form, wave_number: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Oleada manual" /></Field>
           <Field label="Hora prevista"><Input type="time" value={form.scheduled_time} onChange={(e) => setForm({ ...form, scheduled_time: e.target.value })} /></Field>
           <div className="flex items-end"><Button variant="outline" onClick={addManual}><Plus className="mr-1 size-4" />Agregar manual</Button></div>
         </CardContent></Card>
@@ -1683,8 +1683,8 @@ function Checkpoints({ tenantId, eventId, locked }: { tenantId: string; eventId:
     <div className="grid gap-4">
       {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-6">
-          <Field label="Nombre *" error={errors.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
-          <Field label="Orden *" error={errors.ord}><Input inputMode="numeric" value={form.ord} onChange={(e) => setForm({ ...form, ord: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
+          <Field label="Orden *" error={errors["ord"]}><Input inputMode="numeric" value={form.ord} onChange={(e) => setForm({ ...form, ord: e.target.value.replace(/\D/g, "") })} /></Field>
           <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_start} onCheckedChange={(v) => setForm({ ...form, is_start: v })} />Salida</label>
           <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_finish} onCheckedChange={(v) => setForm({ ...form, is_finish: v })} />Meta</label>
           <Field label="Juez">
@@ -1773,8 +1773,8 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
     <div className="grid gap-4">
       {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-          <Field label="Nombre *" error={errors.full_name}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
-          <Field label="Correo *" error={errors.email}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <Field label="Nombre *" error={errors["full_name"]}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
+          <Field label="Correo *" error={errors["email"]}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar juez</Button></div>
           <p className="sm:col-span-4 text-xs text-muted-foreground">
             El juez recibe un correo para crear su contraseña; con ella inicia sesión en FedOCR Timer. Asigna el
@@ -1863,8 +1863,8 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
     <div className="grid gap-4">
       {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
-          <Field label="Nombre *" error={errors.full_name}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
-          <Field label="Correo *" error={errors.email}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <Field label="Nombre *" error={errors["full_name"]}><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
+          <Field label="Correo *" error={errors["email"]}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar gestor</Button></div>
           <p className="sm:col-span-4 text-xs text-muted-foreground">
             Un gestor de carreras solo puede crear y editar carreras de tu liga (oficiales o no) — no puede aprobar

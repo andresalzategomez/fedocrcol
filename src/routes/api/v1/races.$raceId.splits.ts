@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/v1/races/$raceId/splits")({
         let query = supa
           .from("checkpoints")
           .select("id, name, ord, is_start, is_finish")
-          .eq("event_id", params.raceId)
+          .eq("event_id", params["raceId"])
           .eq("tenant_id", leagueId);
         if (assignedIds) query = query.in("id", assignedIds);
 
