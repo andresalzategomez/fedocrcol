@@ -87,13 +87,13 @@ export function firstError(value: string, validators: Validator[]): string | nul
  * Valida un objeto de campos contra un mapa de validadores.
  * Devuelve { ok, errors } donde errors[campo] = mensaje.
  */
-export function validateForm<T extends Record<string, string>>(
+export function validateForm<T extends Record<string, string | boolean>>(
   values: T,
   rules: Partial<Record<keyof T, Validator[]>>,
 ): { ok: boolean; errors: Partial<Record<keyof T, string>> } {
   const errors: Partial<Record<keyof T, string>> = {};
   (Object.keys(rules) as (keyof T)[]).forEach((k) => {
-    const e = firstError(values[k] ?? "", rules[k] ?? []);
+    const e = firstError(String(values[k] ?? ""), rules[k] ?? []);
     if (e) errors[k] = e;
   });
   return { ok: Object.keys(errors).length === 0, errors };

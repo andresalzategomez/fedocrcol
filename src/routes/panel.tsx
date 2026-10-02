@@ -1302,7 +1302,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
               </Select>
             </Field>
             <Field label="Visibilidad">
-              <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
+              <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v as "private" | "public" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
               </Select>
@@ -2060,6 +2060,6 @@ function Resultados({ event }: { event: EventRow }) {
 }
 
 // ----------------------------- helpers UI ----------------------------
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string | undefined; children: React.ReactNode }) {
   return <div className="grid gap-1.5"><Label>{label}</Label>{children}{error ? <span className="text-xs text-destructive">{error}</span> : null}</div>;
 }

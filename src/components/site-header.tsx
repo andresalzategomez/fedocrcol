@@ -29,7 +29,7 @@ const ROLE_LABEL: Record<string, string> = {
   athlete: "Atleta",
 };
 
-export function SiteHeader({ activeLeagueSlug, minimalNav }: { activeLeagueSlug?: string | undefined; minimalNav?: boolean }) {
+export function SiteHeader({ activeLeagueSlug, minimalNav }: { activeLeagueSlug?: string | undefined; minimalNav?: boolean | undefined }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { loading, email, profile, signOut } = useSession();
