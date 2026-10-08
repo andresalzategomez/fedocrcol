@@ -192,8 +192,8 @@ export interface LeaguePaymentCheck {
   payment_url?: string;
 }
 /** Pregunta a Bold si ya se pagó la afiliación y, si es así, activa la liga. Si el link murió, emite uno nuevo. */
-export async function checkLeaguePayment(id: string): Promise<LeaguePaymentCheck> {
-  return (await authFetch("/api/admin/league-check-payment", { id })) as LeaguePaymentCheck;
+export async function checkLeaguePayment(id: string, opts: { renew?: boolean } = {}): Promise<LeaguePaymentCheck> {
+  return (await authFetch("/api/admin/league-check-payment", { id, ...opts })) as LeaguePaymentCheck;
 }
 export async function rejectLeague(id: string) {
   const { error } = await db().from("tenants").update({ status: "rejected" }).eq("id", id);
