@@ -163,34 +163,38 @@ export async function activateLeagueIfPaid(admin: SupabaseClient, tenantId: stri
   const leagueName = (tenant?.name as string | undefined) ?? "tu liga";
   const leagueAdmins = (admins ?? []).filter((a) => a.email) as { email: string; full_name: string | null }[];
 
-  for (const a of leagueAdmins) {
-    const sent = await sendEmail({
-      to: a.email,
-      subject: leagueActivatedSubject(leagueName),
-      html: leagueActivatedHtml({ fullName: a.full_name ?? "", leagueName, panelUrl }),
-    });
-    if (!sent.ok) console.error("No se pudo avisar la activación a la liga:", sent.error);
-  }
-
   const contact = leagueAdmins[0];
   const federationEmails = [...new Set((federation ?? []).map((f) => f.email as string | null).filter((e): e is string => Boolean(e)))];
-  for (const to of federationEmails) {
-    const sent = await sendEmail({
-      to,
-      subject: leaguePaidFederationSubject(leagueName),
-      html: leaguePaidFederationHtml({
-        leagueName,
-        department: (tenant?.department as string | undefined) ?? "—",
-        city: (tenant?.city as string | null | undefined) ?? null,
-        adminName: contact?.full_name ?? "—",
-        adminEmail: contact?.email ?? "—",
-        amountCop: Number(pay.amount),
-        transactionId: res.link.transactionId,
-        paidAt: new Date(),
-        panelUrl,
-      }),
-    });
-    if (!sent.ok) console.error("No se pudo avisar el pago a la federación:", sent.error);
-  }
+
+  // En paralelo: Bold exige que el webhook responda en menos de 2 s, y enviar los
+  // correos uno tras otro tardaba varios segundos.
+  await Promise.all([
+    ...leagueAdmins.map(async (a) => {
+      const sent = await sendEmail({
+        to: a.email,
+        subject: leagueActivatedSubject(leagueName),
+        html: leagueActivatedHtml({ fullName: a.full_name ?? "", leagueName, panelUrl }),
+      });
+      if (!sent.ok) console.error("No se pudo avisar la activación a la liga:", sent.error);
+    }),
+    ...federationEmails.map(async (to) => {
+      const sent = await sendEmail({
+        to,
+        subject: leaguePaidFederationSubject(leagueName),
+        html: leaguePaidFederationHtml({
+          leagueName,
+          department: (tenant?.department as string | undefined) ?? "—",
+          city: (tenant?.city as string | null | undefined) ?? null,
+          adminName: contact?.full_name ?? "—",
+          adminEmail: contact?.email ?? "—",
+          amountCop: Number(pay.amount),
+          transactionId: res.link.transactionId,
+          paidAt: new Date(),
+          panelUrl,
+        }),
+      });
+      if (!sent.ok) console.error("No se pudo avisar el pago a la federación:", sent.error);
+    }),
+  ]);
   return { state: "activated" };
 }
