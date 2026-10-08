@@ -26,7 +26,8 @@ export async function fetchEvents(): Promise<OcrEvent[]> {
     .select("*, categories:event_categories(*)")
     .order("date");
   if (error || !data?.length) return DEMO_EVENTS;
-  return data as unknown as OcrEvent[];
+  // Una categoría con precio 0 aún no está lista: no se muestra ni se puede elegir hasta que el director le ponga precio.
+  return (data as unknown as OcrEvent[]).map((e) => ({ ...e, categories: (e.categories ?? []).filter((c) => Number(c.price) > 0) }));
 }
 
 export async function fetchRanking(): Promise<RankingRow[]> {
