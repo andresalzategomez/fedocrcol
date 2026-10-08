@@ -175,6 +175,7 @@ export const Route = createFileRoute("/api/public/pagos/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const startedAt = Date.now();
         const raw = await request.text();
         const log: WebhookLog = {
           signature_valid: null, event_type: null, reference: null, payment_id: null,
@@ -189,6 +190,8 @@ export const Route = createFileRoute("/api/public/pagos/webhook")({
           log.summary = { ...log.summary, error: e instanceof Error ? e.message : String(e) };
           response = new Response("Error interno", { status: 500 });
         }
+        // Bold exige respuesta en menos de 2 s: se guarda cuánto tardó cada aviso.
+        log.summary = { ...log.summary, duration_ms: Date.now() - startedAt };
         await saveLog(request, log, response.status);
         return response;
       },
