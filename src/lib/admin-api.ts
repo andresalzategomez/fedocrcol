@@ -608,6 +608,21 @@ export async function listRegistrations(eventId: string): Promise<Registration[]
   return data as Registration[];
 }
 
+/** Atleta que se inscribió pero aún no pagó: dato de mercadeo para contactarlo y entender por qué. */
+export interface UnpaidRegistration {
+  id: string; athlete_name: string | null; athlete_document: string | null;
+  athlete_email: string | null; athlete_phone: string | null;
+  category_id: string; amount: number; created_at: string;
+}
+/** Inscripciones pendientes de pago de una carrera, las más antiguas primero. Solo las lee el admin de la liga o la federación (RLS). */
+export async function listUnpaidRegistrations(eventId: string): Promise<UnpaidRegistration[]> {
+  const { data, error } = await db().from("registrations")
+    .select("id, athlete_name, athlete_document, athlete_email, athlete_phone, category_id, amount, created_at")
+    .eq("event_id", eventId).eq("status", "pending").order("created_at");
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) })) as UnpaidRegistration[];
+}
+
 /** Dorsal para mostrar/exportar: siempre 4 dígitos con ceros a la izquierda ("0001"). */
 export function formatBib(n: number): string {
   return String(n).padStart(4, "0");
