@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatCOP, formatDate } from "@/data/demo";
 import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
+import { isDeadlinePassed, paymentWindow } from "@/lib/payment-window";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { useSession } from "@/lib/use-session";
 import { supabase } from "@/lib/supabase";
@@ -46,10 +47,11 @@ type FormValues = z.infer<typeof schema>;
 const DOCUMENT_TYPE_LABEL: Record<string, string> = { CC: "C.C.", TI: "T.I.", CE: "C.E.", PA: "Pasaporte" };
 const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "pendiente de pago", paid: "pagada", cancelled: "cancelada" };
 
-type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean };
+type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean; lateGranted: boolean };
 
 /** Confirmación con QR -- se muestra igual en el layout completo (barra lateral) y en el minimal (bajo el formulario). */
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | null }) {
+  const window = ticket.status === "pending" ? paymentWindow(deadline, ticket.lateGranted ? "granted" : null) : "open";
   return (
     <Card className="border-secondary/60">
       <CardContent className="p-6 text-center">
@@ -67,7 +69,17 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           loading="lazy"
         />
         <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
-        {ticket.status === "pending" ? (
+        {window === "closed" ? (
+          <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            El plazo de pago de esta carrera venció el {formatDate(deadline as string)}. Si aún quieres pagar, pide a tu liga un permiso de pago extemporáneo.
+          </p>
+        ) : null}
+        {window === "late_allowed" ? (
+          <p className="mt-4 rounded-md border border-secondary/60 bg-secondary/10 p-3 text-sm">
+            El plazo de pago venció el {formatDate(deadline as string)}, pero tu liga te dio un permiso extemporáneo: aún puedes pagar.
+          </p>
+        ) : null}
+        {ticket.status === "pending" && window !== "closed" ? (
           <Button className="mt-4 w-full" asChild>
             <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
               Ir a la pasarela de pago
@@ -242,7 +254,7 @@ function EventDetail() {
     let active = true;
     supabase
       .from("registrations")
-      .select("qr_code, amount, category_id, status")
+      .select("qr_code, amount, category_id, status, late_payment_granted_at")
       .eq("event_id", event.id)
       .eq("athlete_id", profile.id)
       .neq("status", "cancelled")
@@ -258,6 +270,7 @@ function EventDetail() {
           category: category?.name ?? "—",
           status: data.status,
           preexisting: true,
+          lateGranted: Boolean((data as { late_payment_granted_at?: string | null }).late_payment_granted_at),
         });
       });
     return () => { active = false; };
@@ -270,7 +283,8 @@ function EventDetail() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const isPastDate = event.date < todayStr;
   const isFinished = event.status === "finished";
-  const registrationsClosed = isPastDate || isFinished;
+  const deadlinePassed = isDeadlinePassed(event.payment_deadline);
+  const registrationsClosed = isPastDate || isFinished || deadlinePassed;
 
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
@@ -296,7 +310,7 @@ function EventDetail() {
         athlete,
         amount: dynamicPrice(category.price, event.date).price,
       });
-      setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false });
+      setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false, lateGranted: false });
       toast.success("Inscripción creada. Continúa con el pago.");
 
       // Best-effort: la inscripción ya quedó creada, así que un correo que
@@ -389,6 +403,9 @@ function EventDetail() {
             <p className="mt-1 text-sm text-muted-foreground">
               Los datos quedan asociados a tu perfil de atleta en la liga de {league?.department}.
             </p>
+            {event.payment_deadline && !deadlinePassed ? (
+              <p className="mt-2 text-sm font-medium">Plazo de pago: hasta el {formatDate(event.payment_deadline)}.</p>
+            ) : null}
             {ticket ? (
               <div className="mt-6 rounded-lg border border-secondary/60 bg-secondary/10 p-5 text-sm">
                 <p className="flex items-center gap-1.5 font-medium text-secondary">
@@ -405,7 +422,11 @@ function EventDetail() {
               </div>
             ) : registrationsClosed ? (
               <div className="mt-6 rounded-lg border border-border/70 bg-accent/40 p-5 text-sm text-muted-foreground">
-                Las inscripciones para esta carrera están cerradas{isFinished ? " -- la carrera ya finalizó." : " -- la fecha de la carrera ya pasó."}
+                Las inscripciones para esta carrera están cerradas{isFinished
+                  ? " -- la carrera ya finalizó."
+                  : isPastDate
+                    ? " -- la fecha de la carrera ya pasó."
+                    : ` -- el plazo de pago venció el ${formatDate(event.payment_deadline as string)}. Si necesitas inscribirte, comunícate con tu liga.`}
               </div>
             ) : hasCompleteProfile ? (
               <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
@@ -642,7 +663,7 @@ function EventDetail() {
         </Card>
 
         {minimal ? (
-          ticket ? <div className="mt-6"><TicketCard ticket={ticket} /></div> : null
+          ticket ? <div className="mt-6"><TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} /></div> : null
         ) : (
           <div className="space-y-5">
             <Card className="border-border/70">
@@ -676,7 +697,7 @@ function EventDetail() {
               </CardContent>
             </Card>
 
-            {ticket ? <TicketCard ticket={ticket} /> : null}
+            {ticket ? <TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} /> : null}
           </div>
         )}
       </div>
