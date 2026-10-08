@@ -1286,6 +1286,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <TabsList>
           <TabsTrigger value="categorias">Categorías</TabsTrigger>
           <TabsTrigger value="inscritos">Inscritos</TabsTrigger>
+          <TabsTrigger value="sinpagar">Sin pagar</TabsTrigger>
           <TabsTrigger value="oleadas">Oleadas</TabsTrigger>
           <TabsTrigger value="checkpoints">Checkpoints</TabsTrigger>
           <TabsTrigger value="jueces"><Gavel className="mr-1 size-4" />Jueces</TabsTrigger>
@@ -1294,6 +1295,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} locked={!canManage} /></TabsContent>
+        <TabsContent value="sinpagar" className="mt-4"><SinPagar eventId={event.id} eventTitle={event.title} paymentDeadline={event.payment_deadline} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
@@ -1725,6 +1727,114 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, 
           </TableRow>
         ))}
         {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin inscritos aún.</TableCell></TableRow> : null}
+      </SimpleTable>
+    </div>
+  );
+}
+
+// ----------------------------- Sin pagar -----------------------------
+/** Celular colombiano -> número para wa.me (código de país 57 si falta). */
+function whatsappNumber(phone: string | null): string | null {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.length === 10) return `57${digits}`;
+  if (digits.length === 12 && digits.startsWith("57")) return digits;
+  return digits.length >= 10 ? digits : null;
+}
+
+/**
+ * Atletas que se inscribieron pero no pagaron: contacto para mercadeo y seguimiento (entender por qué no
+ * pagaron, ayudarles a completar el pago). Solo la ve quien puede leer las inscripciones: admin de la liga y federación.
+ */
+function SinPagar({ eventId, eventTitle, paymentDeadline }: { eventId: string; eventTitle: string; paymentDeadline: string | null }) {
+  const [rows, setRows] = useState<api.UnpaidRegistration[] | null>(null);
+  const [cats, setCats] = useState<api.EventCategory[]>([]);
+  const [paidCount, setPaidCount] = useState(0);
+
+  const load = useCallback(async () => {
+    try {
+      const [unpaid, categories, all] = await Promise.all([api.listUnpaidRegistrations(eventId), api.listEventCategories(eventId), api.listRegistrations(eventId)]);
+      setRows(unpaid); setCats(categories); setPaidCount(all.filter((r) => r.status === "paid").length);
+    } catch (e) { toast.error((e as Error).message); setRows([]); }
+  }, [eventId]);
+  useEffect(() => { load(); }, [load]);
+
+  if (rows === null) return <Note>Cargando…</Note>;
+
+  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? "—";
+  const daysSince = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+  const pendingTotal = rows.reduce((sum, r) => sum + r.amount, 0);
+  const overdue = paymentWindow(paymentDeadline) === "closed";
+  const share = rows.length + paidCount > 0 ? Math.round((rows.length / (rows.length + paidCount)) * 100) : 0;
+  const message = (name: string | null) =>
+    `Hola ${(name ?? "").split(" ")[0] || ""}, te escribimos de la liga: vimos que te inscribiste en ${eventTitle} pero tu pago quedó pendiente. ¿Pasó algo o podemos ayudarte a completarlo?`;
+
+  function exportUnpaid(kind: "excel" | "pdf") {
+    const cols: Column[] = [
+      { header: "Atleta", key: "name" }, { header: "Documento", key: "doc" }, { header: "Correo", key: "email" }, { header: "Celular", key: "phone" },
+      { header: "Categoría", key: "cat" }, { header: "Valor (COP)", key: "amount" }, { header: "Inscrito el", key: "date" }, { header: "Días sin pagar", key: "days" },
+    ];
+    const data = rows!.map((r) => ({
+      name: r.athlete_name ?? "", doc: r.athlete_document ?? "", email: r.athlete_email ?? "", phone: r.athlete_phone ?? "",
+      cat: catName(r.category_id), amount: r.amount, date: new Date(r.created_at).toLocaleDateString("es-CO"), days: daysSince(r.created_at),
+    }));
+    if (kind === "excel") exportExcel("atletas-sin-pagar", [{ name: "Sin pagar", columns: cols, rows: data }]);
+    else exportPDF("atletas-sin-pagar", `Atletas sin pagar — ${eventTitle}`, cols, data);
+  }
+
+  return (
+    <div className="grid gap-4">
+      <Card><CardContent className="flex flex-wrap items-center justify-between gap-3 p-6">
+        <div>
+          <p className="font-display text-3xl">{rows.length} sin pagar</p>
+          <p className="text-sm text-muted-foreground">
+            {rows.length > 0
+              ? `${formatCOP(pendingTotal)} en inscripciones pendientes (${share}% de las inscripciones). ${overdue ? "El plazo de pago ya venció." : ""}`
+              : "Todos los atletas inscritos ya pagaron."}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={load}><RefreshCw className="mr-1 size-4" />Actualizar</Button>
+          <Button size="sm" variant="outline" onClick={() => exportUnpaid("excel")} disabled={rows.length === 0}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportUnpaid("pdf")} disabled={rows.length === 0}><FileText className="mr-1 size-4" />PDF</Button>
+        </div>
+        <p className="basis-full text-xs text-muted-foreground">
+          Atletas que llenaron el formulario pero no completaron el pago. Úsalo para contactarlos, saber por qué no pagaron o ayudarles a terminar.
+          Son datos personales: úsalos solo para la gestión de esta carrera.
+        </p>
+      </CardContent></Card>
+
+      <SimpleTable head={["Atleta", "Contacto", "Categoría", "Valor", "Hace"]}>
+        {rows.map((r) => {
+          const wa = whatsappNumber(r.athlete_phone);
+          const days = daysSince(r.created_at);
+          return (
+            <TableRow key={r.id}>
+              <TableCell className="font-medium">{r.athlete_name ?? "—"}<div className="text-xs font-normal text-muted-foreground">{r.athlete_document ?? ""}</div></TableCell>
+              <TableCell>
+                <div className="flex flex-col items-start gap-1 text-sm">
+                  {r.athlete_phone ? <span>{r.athlete_phone}</span> : <span className="text-muted-foreground">Sin celular</span>}
+                  {r.athlete_email ? <span className="text-muted-foreground">{r.athlete_email}</span> : null}
+                  <div className="flex gap-2">
+                    {wa ? (
+                      <a className="text-xs text-primary underline" target="_blank" rel="noopener noreferrer"
+                        href={`https://wa.me/${wa}?text=${encodeURIComponent(message(r.athlete_name))}`}>WhatsApp</a>
+                    ) : null}
+                    {r.athlete_email ? (
+                      <a className="text-xs text-primary underline"
+                        href={`mailto:${r.athlete_email}?subject=${encodeURIComponent(`Tu inscripción a ${eventTitle}`)}&body=${encodeURIComponent(message(r.athlete_name))}`}>Correo</a>
+                    ) : null}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>{catName(r.category_id)}</TableCell>
+              <TableCell>{formatCOP(r.amount)}</TableCell>
+              <TableCell className="text-right">
+                <Badge variant={days >= 3 ? "destructive" : "outline"}>{days === 0 ? "Hoy" : days === 1 ? "1 día" : `${days} días`}</Badge>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay atletas pendientes de pago.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
