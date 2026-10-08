@@ -76,6 +76,7 @@ export interface BoldLink {
   total: number;
   reference: string | null;
   transactionId: string | null;
+  paymentMethod: string | null;
 }
 
 /** Consulta el estado real de un link: es la fuente de verdad, más que el cuerpo de un webhook. */
@@ -84,7 +85,7 @@ export async function getPaymentLink(linkId: string): Promise<BoldResult<{ link:
   try {
     const res = await fetch(`${BASE_URL}/online/link/v1/${encodeURIComponent(linkId)}`, { headers: authHeaders() });
     const data = (await res.json().catch(() => null)) as
-      | { status?: BoldLinkStatus; total?: number; reference?: string; transaction_id?: string }
+      | { status?: BoldLinkStatus; total?: number; reference?: string; transaction_id?: string; payment_method?: string }
       | null;
     if (!res.ok || !data?.status) {
       return { ok: false, error: `Bold respondió ${res.status}: ${describeErrors(data, res.statusText)}` };
@@ -96,6 +97,7 @@ export async function getPaymentLink(linkId: string): Promise<BoldResult<{ link:
         total: Number(data.total ?? 0),
         reference: data.reference ?? null,
         transactionId: data.transaction_id ?? null,
+        paymentMethod: data.payment_method ?? null,
       },
     };
   } catch (e) {

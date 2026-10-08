@@ -3,6 +3,7 @@ import { siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold";
 import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
+import { activateRegistrationIfPaid } from "../../../lib/server/registration-payment";
 
 /**
  * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
@@ -21,7 +22,7 @@ import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReferen
  * El mismo endpoint atiende dos tipos de cobro, según la referencia del
  * pago (data.metadata.reference):
  *   - "liga-<uuid>-..."  cuota de afiliación de una liga -> la activa
- *   - cualquier otra     el qr_code de una inscripción  -> la marca pagada
+ *   - cualquier otra     el qr_code de una inscripción  -> la marca pagada (si Bold confirma el link)
  *
  * Payload (CloudEvents): { id, type, subject, source, data: {
  *   payment_id, metadata: { reference }, amount: { total }, payment_method } }
@@ -137,38 +138,37 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
     return reply(log, `liga:${result.state}`, 200, "ok");
   }
 
-  if (type !== "SALE_APPROVED" && type !== "SALE_REJECTED") return reply(log, "inscripcion:evento_ignorado", 200, "ignorado");
-  const approved = type === "SALE_APPROVED";
+  // Un rechazo no cancela nada: con el mismo link el atleta puede volver a intentar el pago.
+  if (type !== "SALE_APPROVED") return reply(log, "inscripcion:evento_ignorado", 200, "ignorado");
 
-  // Un rechazo solo cancela una inscripción aún pendiente: nunca una ya pagada.
-  let update = admin.from("registrations").update({ status: approved ? "paid" : "cancelled" }).eq("qr_code", reference);
-  if (!approved) update = update.eq("status", "pending");
-  const { data: registration, error: regError } = await update.select("id").maybeSingle();
-  if (regError) return reply(log, "inscripcion:error", 500, "Error actualizando inscripción");
-  if (!registration) {
-    console.warn("Webhook de Bold: sin inscripción pendiente para la referencia", reference);
-    if (approved) await activatePendingLeagues(admin, panelUrl);
-    return reply(log, "inscripcion:no_encontrada", 200, "ignorado");
+  // La inscripción solo pasa a pagada si Bold confirma el link (no se confía en el cuerpo del aviso).
+  let result = await activateRegistrationIfPaid(admin, reference);
+  if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    result = await activateRegistrationIfPaid(admin, reference);
   }
-
-  const transactionId = payload.data?.payment_id ?? reference;
-  const { data: already } = await admin
-    .from("payments")
-    .select("id")
-    .eq("registration_id", registration.id)
-    .eq("transaction_id", transactionId)
-    .maybeSingle();
-  if (!already) {
-    await admin.from("payments").insert({
-      registration_id: registration.id,
-      transaction_id: transactionId,
-      amount: payload.data?.amount?.total ?? 0,
-      method: payload.data?.payment_method ?? "unknown",
-      status: approved ? "approved" : "declined",
-    });
+  switch (result.state) {
+    case "paid":
+      return reply(log, "inscripcion:pagada", 200, "ok");
+    case "not_found":
+      console.warn("Webhook de Bold: sin inscripción para la referencia", reference);
+      await activatePendingLeagues(admin, panelUrl);
+      return reply(log, "inscripcion:no_encontrada", 200, "ignorado");
+    case "no_link":
+      return reply(log, "inscripcion:sin_link_de_pago", 200, "ignorado");
+    case "paid_but_cancelled":
+      console.error("Webhook de Bold: pago recibido de una inscripción cancelada", reference);
+      return reply(log, "inscripcion:pagada_pero_cancelada", 200, "ok");
+    case "error":
+      console.error("Webhook de inscripción:", result.error);
+      log.summary = { ...log.summary, error: result.error };
+      return reply(log, "inscripcion:error", 500, "Error confirmando la inscripción");
+    default:
+      if (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE") {
+        return reply(log, `inscripcion:pendiente_bold_${result.boldStatus}`, 503, "Pago aún no confirmado en Bold");
+      }
+      return reply(log, `inscripcion:no_pagada_${result.boldStatus}`, 200, "ok");
   }
-
-  return reply(log, approved ? "inscripcion:pagada" : "inscripcion:cancelada", 200, "ok");
 }
 
 export const Route = createFileRoute("/api/public/pagos/webhook")({
