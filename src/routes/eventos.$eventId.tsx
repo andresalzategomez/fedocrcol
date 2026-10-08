@@ -47,11 +47,11 @@ type FormValues = z.infer<typeof schema>;
 const DOCUMENT_TYPE_LABEL: Record<string, string> = { CC: "C.C.", TI: "T.I.", CE: "C.E.", PA: "Pasaporte" };
 const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "pendiente de pago", paid: "pagada", cancelled: "cancelada" };
 
-type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean; lateGranted: boolean };
+type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean };
 
 /** Confirmación con QR -- se muestra igual en el layout completo (barra lateral) y en el minimal (bajo el formulario). */
 function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | null }) {
-  const window = ticket.status === "pending" ? paymentWindow(deadline, ticket.lateGranted ? "granted" : null) : "open";
+  const window = ticket.status === "pending" ? paymentWindow(deadline) : "open";
   return (
     <Card className="border-secondary/60">
       <CardContent className="p-6 text-center">
@@ -71,12 +71,7 @@ function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | n
         <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
         {window === "closed" ? (
           <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            El plazo de pago de esta carrera venció el {formatDate(deadline as string)}. Si aún quieres pagar, pide a tu liga un permiso de pago extemporáneo.
-          </p>
-        ) : null}
-        {window === "late_allowed" ? (
-          <p className="mt-4 rounded-md border border-secondary/60 bg-secondary/10 p-3 text-sm">
-            El plazo de pago venció el {formatDate(deadline as string)}, pero tu liga te dio un permiso extemporáneo: aún puedes pagar.
+            El plazo de pago de esta carrera venció el {formatDate(deadline as string)}. Si aún quieres pagar, pide a tu liga que lo extienda.
           </p>
         ) : null}
         {ticket.status === "pending" && window !== "closed" ? (
@@ -254,7 +249,7 @@ function EventDetail() {
     let active = true;
     supabase
       .from("registrations")
-      .select("qr_code, amount, category_id, status, late_payment_granted_at")
+      .select("qr_code, amount, category_id, status")
       .eq("event_id", event.id)
       .eq("athlete_id", profile.id)
       .neq("status", "cancelled")
@@ -270,7 +265,6 @@ function EventDetail() {
           category: category?.name ?? "—",
           status: data.status,
           preexisting: true,
-          lateGranted: Boolean((data as { late_payment_granted_at?: string | null }).late_payment_granted_at),
         });
       });
     return () => { active = false; };
@@ -310,7 +304,7 @@ function EventDetail() {
         athlete,
         amount: dynamicPrice(category.price, event.date).price,
       });
-      setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false, lateGranted: false });
+      setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false });
       toast.success("Inscripción creada. Continúa con el pago.");
 
       // Best-effort: la inscripción ya quedó creada, así que un correo que

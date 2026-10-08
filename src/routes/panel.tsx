@@ -25,7 +25,7 @@ import { validateForm, required, slug as slugRule, numeric, positiveInt, decimal
 import { exportExcel, exportPDF, type Column } from "@/lib/export";
 import { RESULT_STATUS_LABEL, formatDuration, rankResults } from "@/lib/results";
 import { formatCOP } from "@/data/demo";
-import { paymentWindow } from "@/lib/payment-window";
+import { bogotaToday, paymentWindow } from "@/lib/payment-window";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({ meta: [{ title: "Panel de administración — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
@@ -1177,7 +1177,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} canGrantLate={canManage} locked={!canManage} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={canManage} locked={!canManage} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
@@ -1384,7 +1384,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
           </CardContent></Card>
         </TabsContent>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={contentLocked} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} canGrantLate={false} locked={contentLocked} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={false} locked={contentLocked} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={contentLocked} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={contentLocked} /></TabsContent>
@@ -1466,12 +1466,15 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
 }
 
 // ------------------------------ Inscritos ----------------------------
-function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, canGrantLate, locked }: {
-  tenantId: string; eventId: string; eventDate: string; paymentDeadline: string | null; canGrantLate: boolean; locked: boolean;
+function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, canExtend, locked }: {
+  tenantId: string; eventId: string; eventDate: string; paymentDeadline: string | null; extendedAt: string | null;
+  /** Director de la liga o federación: pueden extender o quitar el plazo; un gestor solo fijarlo o acortarlo. */
+  canExtend: boolean; locked: boolean;
 }) {
   const [rows, setRows] = useState<api.Registration[]>([]);
   const [deadline, setDeadline] = useState(paymentDeadline ?? "");
   const [savedDeadline, setSavedDeadline] = useState<string | null>(paymentDeadline);
+  const [lastExtendedAt, setLastExtendedAt] = useState<string | null>(extendedAt);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const [waves, setWaves] = useState<api.Wave[]>([]);
   const [cats, setCats] = useState<api.EventCategory[]>([]);
@@ -1501,23 +1504,27 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, canGrantLate
     } catch (e) { toast.error((e as Error).message); }
   }
 
-  async function saveDeadline(value: string) {
+  /** Guardar el plazo. Posponerlo o quitarlo cuando ya estaba fijado es "extenderlo": solo el director (lo valida la base). */
+  async function saveDeadline(value: string, msg: string) {
     if (value && value > eventDate) { toast.error("La fecha límite de pago no puede ser posterior a la fecha de la carrera"); return; }
     setSavingDeadline(true);
     try {
       await api.updateEvent(eventId, { payment_deadline: value || null });
+      const extended = Boolean(savedDeadline) && (!value || value > (savedDeadline as string));
       setSavedDeadline(value || null);
       setDeadline(value);
-      toast.success(value ? "Fecha límite de pago guardada" : "Fecha límite de pago quitada");
+      if (extended) setLastExtendedAt(new Date().toISOString());
+      toast.success(msg);
     } catch (e) { toast.error((e as Error).message); } finally { setSavingDeadline(false); }
   }
-  async function toggleLatePayment(regId: string, grant: boolean) {
-    try {
-      await api.setLatePaymentPermission(regId, grant);
-      toast.success(grant ? "Permiso de pago extemporáneo otorgado" : "Permiso de pago extemporáneo retirado");
-      load();
-    } catch (e) { toast.error((e as Error).message); }
+  /** Cerrar el plazo ya: la fecha límite pasa a ayer (el último día es inclusive). */
+  function closeNow() {
+    const d = new Date(`${bogotaToday()}T12:00:00-05:00`);
+    d.setDate(d.getDate() - 1);
+    saveDeadline(d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" }), "Plazo de pago cerrado");
   }
+  const window = paymentWindow(savedDeadline);
+  const wantsToExtend = Boolean(savedDeadline) && (!deadline || deadline > (savedDeadline as string));
 
   async function reassignWave(regId: string, waveId: string) {
     try { await api.updateRegistration(regId, { wave_id: waveId || null }); load(); } catch (e) { toast.error((e as Error).message); }
@@ -1555,12 +1562,29 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, canGrantLate
             <Label htmlFor="payment-deadline">Fecha límite de pago</Label>
             <Input id="payment-deadline" type="date" className="w-48" max={eventDate} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </div>
-          <Button size="sm" onClick={() => saveDeadline(deadline)} disabled={savingDeadline || deadline === (savedDeadline ?? "")}>Guardar fecha</Button>
-          {savedDeadline ? <Button size="sm" variant="outline" onClick={() => saveDeadline("")} disabled={savingDeadline}>Quitar fecha</Button> : null}
-          <p className="basis-full text-xs text-muted-foreground">
-            Último día (inclusive) para pagar la inscripción. Pasada esa fecha, los atletas pendientes no pueden pagar a menos que el director
-            de la liga les dé un permiso extemporáneo desde la tabla. Sin fecha, no hay límite.
-          </p>
+          <Button size="sm" disabled={savingDeadline || deadline === (savedDeadline ?? "") || (wantsToExtend && !canExtend)}
+            onClick={() => saveDeadline(deadline, wantsToExtend ? "Plazo de pago extendido" : "Fecha límite de pago guardada")}>
+            {wantsToExtend ? "Extender plazo" : "Guardar fecha"}
+          </Button>
+          {window === "open" ? (
+            <Button size="sm" variant="outline" onClick={closeNow} disabled={savingDeadline}>Cerrar el plazo ahora</Button>
+          ) : null}
+          {savedDeadline ? (
+            <Button size="sm" variant="outline" onClick={() => saveDeadline("", "Fecha límite de pago quitada")} disabled={savingDeadline || !canExtend}>Quitar fecha</Button>
+          ) : null}
+          <div className="basis-full text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">
+              {!savedDeadline ? "Sin fecha límite: no hay tope para pagar."
+                : window === "open" ? `Plazo abierto: se puede pagar hasta el ${savedDeadline} (inclusive).`
+                : `Plazo vencido el ${savedDeadline}: los atletas pendientes ya no pueden pagar ni inscribirse por su cuenta.`}
+              {lastExtendedAt ? ` Extendido por el director el ${new Date(lastExtendedAt).toLocaleDateString("es-CO")}.` : ""}
+            </p>
+            <p className="mt-1">
+              La fecha aplica a toda la carrera. Si el plazo venció, el director de la liga lo extiende para toda la carrera y, cuando el
+              atleta rezagado ya se inscribió, lo vuelve a cerrar con "Cerrar el plazo ahora". También puede inscribir atletas a mano (abajo),
+              aunque el plazo haya vencido. {canExtend ? "" : "Como gestor puedes fijar o acortar la fecha, pero solo el director puede extenderla."}
+            </p>
+          </div>
         </CardContent></Card>
       ) : null}
       {!locked ? (
@@ -1607,24 +1631,10 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, canGrantLate
             <TableCell className="text-muted-foreground">{r.athlete_document}</TableCell>
             <TableCell>{catName(r.category_id)}</TableCell>
             <TableCell>
-              {(() => {
-                if (r.status === "paid") return <Badge>Pagada</Badge>;
-                if (r.status === "cancelled") return <Badge variant="outline">Cancelada</Badge>;
-                const win = paymentWindow(savedDeadline, r.late_payment_granted_at);
-                if (win === "open") return <Badge variant="outline">Pendiente</Badge>;
-                return (
-                  <div className="flex flex-col items-start gap-1">
-                    {win === "late_allowed"
-                      ? <Badge variant="secondary">Permiso extemporáneo</Badge>
-                      : <Badge variant="destructive">Plazo vencido</Badge>}
-                    {canGrantLate && !locked ? (
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => toggleLatePayment(r.id, win === "closed")}>
-                        {win === "closed" ? "Dar permiso" : "Quitar permiso"}
-                      </Button>
-                    ) : null}
-                  </div>
-                );
-              })()}
+              {r.status === "paid" ? <Badge>Pagada</Badge>
+                : r.status === "cancelled" ? <Badge variant="outline">Cancelada</Badge>
+                : window === "closed" ? <Badge variant="destructive">Plazo vencido</Badge>
+                : <Badge variant="outline">Pendiente</Badge>}
             </TableCell>
             <TableCell className="text-right">
               <Select value={r.wave_id ?? ""} onValueChange={(v) => reassignWave(r.id, v)} disabled={locked}>

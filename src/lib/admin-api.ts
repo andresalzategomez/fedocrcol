@@ -104,6 +104,8 @@ export interface EventRow {
   club?: { name: string } | null;
   /** Último día (inclusive, hora de Colombia) para pagar la inscripción; null = sin fecha límite. */
   payment_deadline: string | null;
+  /** Cuándo el director extendió el plazo por última vez (posponerlo o quitarlo). */
+  payment_deadline_extended_at?: string | null;
   created_by: string | null;
   visibility: "public" | "private";
 }
@@ -133,8 +135,6 @@ export interface Registration {
   id: string; event_id: string; bib_number: string | null; wave_id: string | null;
   status: string; athlete_name: string | null; athlete_document: string | null;
   athlete_gender: string | null; ranking_category_id: string | null; category_id: string;
-  /** Permiso de pago extemporáneo dado por el director de la liga (null = sin permiso). */
-  late_payment_granted_at?: string | null;
 }
 
 // --------------------------- Ligas (tenants) -------------------------
@@ -602,7 +602,7 @@ export async function registrationCountsByEvent(tenantId: string): Promise<Recor
 // --------------------------- Inscripciones ---------------------------
 export async function listRegistrations(eventId: string): Promise<Registration[]> {
   const { data, error } = await db().from("registrations")
-    .select("id, event_id, bib_number, wave_id, status, athlete_name, athlete_document, athlete_gender, ranking_category_id, category_id, late_payment_granted_at")
+    .select("id, event_id, bib_number, wave_id, status, athlete_name, athlete_document, athlete_gender, ranking_category_id, category_id")
     .eq("event_id", eventId).order("bib_number");
   if (error) throw error;
   return data as Registration[];
@@ -657,16 +657,6 @@ export async function createRegistration(input: {
     throw error;
   }
   throw new Error("No se pudo asignar un dorsal disponible");
-}
-
-/**
- * El director de la liga (o la federación) permite -o quita el permiso de- pagar una inscripción
- * después de la fecha límite. Un trigger en la base valida el rol y registra quién lo otorgó.
- */
-export async function setLatePaymentPermission(registrationId: string, grant: boolean): Promise<void> {
-  const { error } = await db().from("registrations")
-    .update({ late_payment_granted_at: grant ? new Date().toISOString() : null }).eq("id", registrationId);
-  if (error) throw error;
 }
 
 export async function updateRegistration(id: string, patch: {
