@@ -373,6 +373,84 @@ export async function listEligibleResponsibleClubs(tenantId: string): Promise<Re
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Lee todas las filas de una consulta (PostgREST devuelve máximo 1.000 por página). */
+async function fetchAllRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+  const size = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < size) break;
+  }
+  return out;
+}
+
+/** Una carrera en el reporte de cobros de la federación. */
+export interface CobroCarrera {
+  event_id: string;
+  title: string;
+  date: string;
+  status: string;
+  league: string;
+  is_official: boolean | null;
+  /** Quién recibe el cobro: el club (carrera oficial con club responsable) o, si no, la liga. */
+  responsible_key: string;
+  responsible: string;
+  responsible_kind: "club" | "liga";
+  independent_club: boolean;
+  paid: number;
+  pending: number;
+  collected: number;
+}
+
+/**
+ * Reporte para que la federación liquide a mano: por carrera, quién es el responsable del cobro
+ * (el club si es oficial y tiene club responsable; la liga si no) y cuánto se recaudó en pagos
+ * aprobados. Solo lo ve la federación (RLS de payments/registrations/events).
+ */
+export async function listCollectionsReport(): Promise<CobroCarrera[]> {
+  type EventRaw = {
+    id: string; title: string; date: string; status: string; is_official: boolean | null;
+    club_id: string | null; tenant_id: string;
+    club: { name: string; tenant: { allows_events: boolean } | null } | null;
+    league: { name: string } | null;
+  };
+  const [events, regs, pays] = await Promise.all([
+    fetchAllRows<EventRaw>((f, t) => db().from("events")
+      .select("id, title, date, status, is_official, club_id, tenant_id, club:clubs(name, tenant:tenants(allows_events)), league:tenants(name)")
+      .order("date", { ascending: false }).range(f, t) as unknown as PromiseLike<{ data: EventRaw[] | null; error: unknown }>),
+    fetchAllRows<{ event_id: string; status: string }>((f, t) => db().from("registrations").select("event_id, status").range(f, t)),
+    fetchAllRows<{ amount: number; registrations: { event_id: string } | null }>((f, t) => db().from("payments")
+      .select("amount, registrations!inner(event_id)").eq("status", "approved").range(f, t) as unknown as PromiseLike<{ data: { amount: number; registrations: { event_id: string } | null }[] | null; error: unknown }>),
+  ]);
+
+  const paid = new Map<string, number>();
+  const pending = new Map<string, number>();
+  regs.forEach((r) => {
+    if (r.status === "paid") paid.set(r.event_id, (paid.get(r.event_id) ?? 0) + 1);
+    else if (r.status === "pending") pending.set(r.event_id, (pending.get(r.event_id) ?? 0) + 1);
+  });
+  const collected = new Map<string, number>();
+  pays.forEach((p) => {
+    const id = p.registrations?.event_id;
+    if (id) collected.set(id, (collected.get(id) ?? 0) + Number(p.amount));
+  });
+
+  return events.map((e) => {
+    const byClub = Boolean(e.is_official && e.club_id && e.club);
+    const league = e.league?.name ?? "—";
+    return {
+      event_id: e.id, title: e.title, date: e.date, status: e.status, league, is_official: e.is_official,
+      responsible_key: byClub ? `club:${e.club_id}` : `liga:${e.tenant_id}`,
+      responsible: byClub ? (e.club as { name: string }).name : league,
+      responsible_kind: byClub ? "club" : "liga",
+      independent_club: byClub && e.club?.tenant?.allows_events === false,
+      paid: paid.get(e.id) ?? 0, pending: pending.get(e.id) ?? 0, collected: collected.get(e.id) ?? 0,
+    } satisfies CobroCarrera;
+  });
+}
+
 /** Copia el catálogo nacional de categorías al maestro de esta carrera. */
 export async function seedStandardCategories(eventId: string): Promise<void> {
   const cats = await listCategories();

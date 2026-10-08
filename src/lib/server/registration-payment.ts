@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPaymentLink, getPaymentLink, type BoldLinkStatus } from "./bold";
 import { sendEmail } from "./resend-server";
 import { registrationPaidHtml, registrationPaidSubject } from "./email-templates/registration-paid";
+import { registrationPaidAdminHtml, registrationPaidAdminSubject } from "./email-templates/registration-paid-admin";
 import { dynamicPrice } from "../pricing";
 import { bogotaToday, paymentWindow } from "../payment-window";
 
@@ -154,10 +155,10 @@ export type RegistrationActivation =
  * a Bold, no se confía en el cuerpo de un webhook) y monto y referencia coinciden.
  * Idempotente: repetirla no duplica el pago ni el correo.
  */
-export async function activateRegistrationIfPaid(admin: SupabaseClient, qrCode: string): Promise<RegistrationActivation> {
+export async function activateRegistrationIfPaid(admin: SupabaseClient, qrCode: string, panelUrl: string): Promise<RegistrationActivation> {
   const { data: reg } = await admin
     .from("registrations")
-    .select("id, event_id, category_id, status, athlete_name, athlete_email")
+    .select("id, tenant_id, event_id, category_id, status, athlete_name, athlete_document, athlete_email")
     .eq("qr_code", qrCode)
     .maybeSingle();
   if (!reg) return { state: "not_found" };
@@ -196,24 +197,37 @@ export async function activateRegistrationIfPaid(admin: SupabaseClient, qrCode: 
     status: "approved",
   });
 
-  if (reg.athlete_email) {
-    const [{ data: event }, { data: category }] = await Promise.all([
-      admin.from("events").select("title").eq("id", reg.event_id as string).maybeSingle(),
-      admin.from("event_categories").select("name").eq("id", reg.category_id as string).maybeSingle(),
-    ]);
-    const eventTitle = (event?.title as string | undefined) ?? "la carrera";
-    const sent = await sendEmail({
-      to: reg.athlete_email as string,
-      subject: registrationPaidSubject(eventTitle),
-      html: registrationPaidHtml({
-        fullName: (reg.athlete_name as string | null) ?? "",
-        eventTitle,
-        categoryName: (category?.name as string | undefined) ?? "",
-        qrCode,
-        amount: Number(row.amount),
-      }),
-    });
-    if (!sent.ok) console.error("No se pudo enviar el correo de pago confirmado:", sent.error);
-  }
+  // Avisos de inscripción confirmada: al atleta y a los administradores de la liga. Un correo que
+  // falla nunca revierte el pago, y se envían en paralelo (Bold exige responder al webhook en < 2 s).
+  const [{ data: event }, { data: category }, { data: admins }, { count: paidCount }] = await Promise.all([
+    admin.from("events").select("title").eq("id", reg.event_id as string).maybeSingle(),
+    admin.from("event_categories").select("name").eq("id", reg.category_id as string).maybeSingle(),
+    admin.from("profiles").select("email").eq("tenant_id", reg.tenant_id as string).eq("role", "admin"),
+    admin.from("registrations").select("id", { count: "exact", head: true }).eq("event_id", reg.event_id as string).eq("status", "paid"),
+  ]);
+  const eventTitle = (event?.title as string | undefined) ?? "la carrera";
+  const categoryName = (category?.name as string | undefined) ?? "";
+  const athleteName = (reg.athlete_name as string | null) ?? "Un atleta";
+  const adminEmails = [...new Set((admins ?? []).map((a) => a.email as string | null).filter((e): e is string => Boolean(e)))];
+
+  await Promise.all([
+    reg.athlete_email
+      ? sendEmail({
+          to: reg.athlete_email as string,
+          subject: registrationPaidSubject(eventTitle),
+          html: registrationPaidHtml({ fullName: (reg.athlete_name as string | null) ?? "", eventTitle, categoryName, qrCode, amount: Number(row.amount) }),
+        }).then((sent) => { if (!sent.ok) console.error("No se pudo enviar el correo de pago confirmado al atleta:", sent.error); })
+      : Promise.resolve(),
+    ...adminEmails.map((to) =>
+      sendEmail({
+        to,
+        subject: registrationPaidAdminSubject(eventTitle, athleteName),
+        html: registrationPaidAdminHtml({
+          eventTitle, categoryName, athleteName,
+          athleteDocument: (reg.athlete_document as string | null) ?? null,
+          amount: Number(row.amount), paidCount: paidCount ?? 0, panelUrl,
+        }),
+      }).then((sent) => { if (!sent.ok) console.error("No se pudo avisar al administrador de la liga de la inscripción:", sent.error); })),
+  ]);
   return { state: "paid" };
 }
