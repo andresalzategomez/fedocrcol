@@ -143,10 +143,10 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
 
   // La inscripción solo pasa a pagada si Bold confirma el link (no se confía en el cuerpo del aviso).
   const qrCode = await qrCodeFromReference(admin, reference);
-  let result = await activateRegistrationIfPaid(admin, qrCode);
+  let result = await activateRegistrationIfPaid(admin, qrCode, panelUrl);
   if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    result = await activateRegistrationIfPaid(admin, qrCode);
+    result = await activateRegistrationIfPaid(admin, qrCode, panelUrl);
   }
   switch (result.state) {
     case "paid":
