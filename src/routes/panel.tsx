@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette, Link2 } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette, Link2, Banknote } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SimpleTable } from "@/components/simple-table";
@@ -459,6 +459,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
         <TabsTrigger value="carreras"><Flag className="mr-1 size-4" />Carreras</TabsTrigger>
         <TabsTrigger value="clubes"><Users className="mr-1 size-4" />Clubes</TabsTrigger>
         {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
+        {isSuper ? <TabsTrigger value="cobros"><Banknote className="mr-1 size-4" />Cobros</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="solicitudes"><ClipboardCheck className="mr-1 size-4" />Solicitudes</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="mi-liga"><Palette className="mr-1 size-4" />Mi liga</TabsTrigger> : null}
       </TabsList>
@@ -494,6 +495,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
       </TabsContent>
 
       {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
+      {isSuper ? <TabsContent value="cobros" className="mt-6"><ReporteCobros /></TabsContent> : null}
       {!isSuper && fixedTenant ? <TabsContent value="solicitudes" className="mt-6"><SolicitudesClub tenantId={fixedTenant} /></TabsContent> : null}
       {!isSuper && fixedTenant ? <TabsContent value="mi-liga" className="mt-6"><MiLigaSection tenantId={fixedTenant} /></TabsContent> : null}
     </Tabs>
@@ -999,6 +1001,120 @@ async function copyRegistrationLink(eventId: string) {
   } catch {
     toast.error(`No se pudo copiar automáticamente. Link: ${url}`);
   }
+}
+
+// ------------------------------ Cobros -------------------------------
+/**
+ * Reporte para la federación: quién es el responsable de cada carrera (club si es oficial y tiene club
+ * responsable; la liga si no) y cuánto se recaudó con pagos aprobados. La liquidación se hace a mano
+ * por fuera del sistema: este reporte solo dice a quién le corresponde cada peso.
+ */
+function ReporteCobros() {
+  const [rows, setRows] = useState<api.CobroCarrera[] | null>(null);
+  const [withActivity, setWithActivity] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(async () => {
+    try { setRows(await api.listCollectionsReport()); } catch (e) { toast.error((e as Error).message); setRows([]); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (rows === null) return <Note>Cargando…</Note>;
+
+  const needle = search.trim().toLowerCase();
+  const shown = rows.filter((r) =>
+    (!withActivity || r.paid + r.pending > 0 || r.collected > 0) &&
+    (!needle || [r.title, r.league, r.responsible].some((v) => v.toLowerCase().includes(needle))));
+
+  const byResponsible = new Map<string, { key: string; name: string; kind: "club" | "liga"; independent: boolean; races: number; paid: number; collected: number }>();
+  shown.forEach((r) => {
+    const cur = byResponsible.get(r.responsible_key)
+      ?? { key: r.responsible_key, name: r.responsible, kind: r.responsible_kind, independent: r.independent_club, races: 0, paid: 0, collected: 0 };
+    cur.races += 1; cur.paid += r.paid; cur.collected += r.collected;
+    byResponsible.set(r.responsible_key, cur);
+  });
+  const summary = [...byResponsible.values()].sort((a, b) => b.collected - a.collected || a.name.localeCompare(b.name));
+  const total = shown.reduce((sum, r) => sum + r.collected, 0);
+  const kindLabel = (kind: "club" | "liga", independent: boolean) => (kind === "club" ? (independent ? "Club independiente" : "Club") : "Liga");
+
+  function exportReport(kind: "excel" | "pdf") {
+    const sumCols: Column[] = [
+      { header: "Responsable", key: "name" }, { header: "Tipo", key: "kind" }, { header: "Carreras", key: "races" },
+      { header: "Inscripciones pagadas", key: "paid" }, { header: "Recaudado (COP)", key: "collected" },
+    ];
+    const sumRows = summary.map((s) => ({ name: s.name, kind: kindLabel(s.kind, s.independent), races: s.races, paid: s.paid, collected: s.collected }));
+    if (kind === "pdf") {
+      exportPDF("cobros-por-responsable", "Cobros por responsable", sumCols, [...sumRows, { name: "TOTAL", kind: "", races: shown.length, paid: summary.reduce((x, s) => x + s.paid, 0), collected: total }]);
+      return;
+    }
+    const detCols: Column[] = [
+      { header: "Carrera", key: "title" }, { header: "Fecha", key: "date" }, { header: "Liga", key: "league" },
+      { header: "Oficial", key: "official" }, { header: "Responsable del cobro", key: "responsible" }, { header: "Tipo", key: "kind" },
+      { header: "Pagadas", key: "paid" }, { header: "Pendientes", key: "pending" }, { header: "Recaudado (COP)", key: "collected" },
+    ];
+    const detRows = shown.map((r) => ({
+      title: r.title, date: r.date, league: r.league, official: r.is_official == null ? "Sin definir" : r.is_official ? "Sí" : "No",
+      responsible: r.responsible, kind: kindLabel(r.responsible_kind, r.independent_club), paid: r.paid, pending: r.pending, collected: r.collected,
+    }));
+    exportExcel("cobros", [{ name: "Por responsable", columns: sumCols, rows: sumRows }, { name: "Por carrera", columns: detCols, rows: detRows }]);
+  }
+
+  return (
+    <div className="grid gap-6">
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        <Field label="Buscar"><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Carrera, liga o responsable" /></Field>
+        <label className="flex items-center gap-2 text-sm"><Switch checked={withActivity} onCheckedChange={setWithActivity} />Solo carreras con inscritos</label>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => exportReport("excel")}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportReport("pdf")}><FileText className="mr-1 size-4" />PDF</Button>
+        </div>
+        <p className="text-xs text-muted-foreground sm:col-span-3">
+          En una carrera <strong>oficial con club responsable</strong> el cobro le corresponde al club; en cualquier otro caso, a la liga. Suma solo pagos aprobados por Bold.
+          La liquidación la haces tú por fuera del sistema.
+        </p>
+      </CardContent></Card>
+
+      <div>
+        <h3 className="mb-2 font-display text-2xl">Por responsable</h3>
+        <SimpleTable head={["Responsable", "Tipo", "Carreras", "Pagadas", "Recaudado"]}>
+          {summary.map((s) => (
+            <TableRow key={s.key}>
+              <TableCell className="font-medium">{s.name}</TableCell>
+              <TableCell><Badge variant={s.kind === "club" ? "default" : "outline"}>{kindLabel(s.kind, s.independent)}</Badge></TableCell>
+              <TableCell>{s.races}</TableCell>
+              <TableCell>{s.paid}</TableCell>
+              <TableCell className="text-right font-medium">{formatCOP(s.collected)}</TableCell>
+            </TableRow>
+          ))}
+          {summary.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay carreras con inscritos todavía.</TableCell></TableRow> : null}
+          {summary.length > 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-right font-semibold">Total recaudado</TableCell>
+              <TableCell className="text-right font-semibold">{formatCOP(total)}</TableCell>
+            </TableRow>
+          ) : null}
+        </SimpleTable>
+      </div>
+
+      <div>
+        <h3 className="mb-2 font-display text-2xl">Por carrera</h3>
+        <SimpleTable head={["Carrera", "Fecha", "Liga", "Responsable del cobro", "Pagadas", "Pendientes", "Recaudado"]}>
+          {shown.map((r) => (
+            <TableRow key={r.event_id}>
+              <TableCell className="font-medium">{r.title}<div className="mt-0.5"><OficialBadge value={r.is_official} /></div></TableCell>
+              <TableCell className="text-muted-foreground">{r.date}</TableCell>
+              <TableCell className="text-muted-foreground">{r.league}</TableCell>
+              <TableCell>{r.responsible}<div className="text-xs text-muted-foreground">{kindLabel(r.responsible_kind, r.independent_club)}</div></TableCell>
+              <TableCell>{r.paid}</TableCell>
+              <TableCell>{r.pending}</TableCell>
+              <TableCell className="text-right">{formatCOP(r.collected)}</TableCell>
+            </TableRow>
+          ))}
+          {shown.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin carreras para mostrar.</TableCell></TableRow> : null}
+        </SimpleTable>
+      </div>
+    </div>
+  );
 }
 
 // ------------------------------ Carreras -----------------------------
