@@ -25,6 +25,7 @@ import { validateForm, required, slug as slugRule, numeric, positiveInt, decimal
 import { exportExcel, exportPDF, type Column } from "@/lib/export";
 import { RESULT_STATUS_LABEL, formatDuration, rankResults } from "@/lib/results";
 import { formatCOP } from "@/data/demo";
+import { bogotaToday, paymentWindow } from "@/lib/payment-window";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({ meta: [{ title: "Panel de administración — FEDOCR Colombia" }, { name: "robots", content: "noindex" }] }),
@@ -1004,7 +1005,7 @@ async function copyRegistrationLink(eventId: string) {
 function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSuper: boolean; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -1024,13 +1025,14 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
         club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
+        payment_deadline: form.payment_deadline || null,
         visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
@@ -1071,6 +1073,7 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
           </Select>
         </Field>
         <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} onChange={(v) => setForm({ ...form, club_id: v })} />
+        <Field label="Fecha límite de pago"><Input type="date" value={form.payment_deadline} onChange={(e) => setForm({ ...form, payment_deadline: e.target.value })} /></Field>
         <Field label="Visibilidad">
           <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1174,7 +1177,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={canManage} locked={!canManage} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
@@ -1198,7 +1201,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 function GestorConsole({ tenantId }: { tenantId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -1218,13 +1221,14 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
         club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
+        payment_deadline: form.payment_deadline || null,
         visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
@@ -1245,6 +1249,7 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
           </Select>
         </Field>
         <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} onChange={(v) => setForm({ ...form, club_id: v })} />
+        <Field label="Fecha límite de pago"><Input type="date" value={form.payment_deadline} onChange={(e) => setForm({ ...form, payment_deadline: e.target.value })} /></Field>
         <Field label="Visibilidad">
           <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1285,6 +1290,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
     title: event.title, date: event.date, location: event.location,
     is_official: event.is_official == null ? "" : String(event.is_official),
     club_id: event.club_id ?? "",
+    payment_deadline: event.payment_deadline ?? "",
     visibility: event.visibility ?? "private",
     distance_km: event.distance_km != null ? String(event.distance_km) : "",
     obstacles: event.obstacles != null ? String(event.obstacles) : "",
@@ -1305,6 +1311,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
       title: form.title, date: form.date, location: form.location,
       is_official: form.is_official === "true",
         club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
+        payment_deadline: form.payment_deadline || null,
       visibility: (form.visibility === "public" ? "public" : "private") as "public" | "private",
       distance_km: form.distance_km ? Number(form.distance_km) : null,
       obstacles: form.obstacles ? Number(form.obstacles) : null,
@@ -1360,6 +1367,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
               </Select>
             </Field>
             <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} disabled={locked} onChange={(v) => setForm({ ...form, club_id: v })} />
+            <Field label="Fecha límite de pago"><Input disabled={locked} type="date" value={form.payment_deadline} onChange={(e) => setForm({ ...form, payment_deadline: e.target.value })} /></Field>
             <Field label="Visibilidad">
               <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v as "private" | "public" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1376,7 +1384,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
           </CardContent></Card>
         </TabsContent>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={contentLocked} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={false} locked={contentLocked} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={contentLocked} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={contentLocked} /></TabsContent>
@@ -1458,8 +1466,16 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
 }
 
 // ------------------------------ Inscritos ----------------------------
-function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: string; locked: boolean }) {
+function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, canExtend, locked }: {
+  tenantId: string; eventId: string; eventDate: string; paymentDeadline: string | null; extendedAt: string | null;
+  /** Director de la liga o federación: pueden extender o quitar el plazo; un gestor solo fijarlo o acortarlo. */
+  canExtend: boolean; locked: boolean;
+}) {
   const [rows, setRows] = useState<api.Registration[]>([]);
+  const [deadline, setDeadline] = useState(paymentDeadline ?? "");
+  const [savedDeadline, setSavedDeadline] = useState<string | null>(paymentDeadline);
+  const [lastExtendedAt, setLastExtendedAt] = useState<string | null>(extendedAt);
+  const [savingDeadline, setSavingDeadline] = useState(false);
   const [waves, setWaves] = useState<api.Wave[]>([]);
   const [cats, setCats] = useState<api.EventCategory[]>([]);
   const [form, setForm] = useState({ athlete_name: "", athlete_document: "", athlete_gender: "M", category_id: "" });
@@ -1487,6 +1503,28 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
       setForm({ athlete_name: "", athlete_document: "", athlete_gender: "M", category_id: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); }
   }
+
+  /** Guardar el plazo. Posponerlo o quitarlo cuando ya estaba fijado es "extenderlo": solo el director (lo valida la base). */
+  async function saveDeadline(value: string, msg: string) {
+    if (value && value > eventDate) { toast.error("La fecha límite de pago no puede ser posterior a la fecha de la carrera"); return; }
+    setSavingDeadline(true);
+    try {
+      await api.updateEvent(eventId, { payment_deadline: value || null });
+      const extended = Boolean(savedDeadline) && (!value || value > (savedDeadline as string));
+      setSavedDeadline(value || null);
+      setDeadline(value);
+      if (extended) setLastExtendedAt(new Date().toISOString());
+      toast.success(msg);
+    } catch (e) { toast.error((e as Error).message); } finally { setSavingDeadline(false); }
+  }
+  /** Cerrar el plazo ya: la fecha límite pasa a ayer (el último día es inclusive). */
+  function closeNow() {
+    const d = new Date(`${bogotaToday()}T12:00:00-05:00`);
+    d.setDate(d.getDate() - 1);
+    saveDeadline(d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" }), "Plazo de pago cerrado");
+  }
+  const window = paymentWindow(savedDeadline);
+  const wantsToExtend = Boolean(savedDeadline) && (!deadline || deadline > (savedDeadline as string));
 
   async function reassignWave(regId: string, waveId: string) {
     try { await api.updateRegistration(regId, { wave_id: waveId || null }); load(); } catch (e) { toast.error((e as Error).message); }
@@ -1519,6 +1557,37 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
   return (
     <div className="grid gap-4">
       {!locked ? (
+        <Card><CardContent className="flex flex-wrap items-end gap-3 p-6">
+          <div className="grid gap-1.5">
+            <Label htmlFor="payment-deadline">Fecha límite de pago</Label>
+            <Input id="payment-deadline" type="date" className="w-48" max={eventDate} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          </div>
+          <Button size="sm" disabled={savingDeadline || deadline === (savedDeadline ?? "") || (wantsToExtend && !canExtend)}
+            onClick={() => saveDeadline(deadline, wantsToExtend ? "Plazo de pago extendido" : "Fecha límite de pago guardada")}>
+            {wantsToExtend ? "Extender plazo" : "Guardar fecha"}
+          </Button>
+          {window === "open" ? (
+            <Button size="sm" variant="outline" onClick={closeNow} disabled={savingDeadline}>Cerrar el plazo ahora</Button>
+          ) : null}
+          {savedDeadline ? (
+            <Button size="sm" variant="outline" onClick={() => saveDeadline("", "Fecha límite de pago quitada")} disabled={savingDeadline || !canExtend}>Quitar fecha</Button>
+          ) : null}
+          <div className="basis-full text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">
+              {!savedDeadline ? "Sin fecha límite: no hay tope para pagar."
+                : window === "open" ? `Plazo abierto: se puede pagar hasta el ${savedDeadline} (inclusive).`
+                : `Plazo vencido el ${savedDeadline}: los atletas pendientes ya no pueden pagar ni inscribirse por su cuenta.`}
+              {lastExtendedAt ? ` Extendido por el director el ${new Date(lastExtendedAt).toLocaleDateString("es-CO")}.` : ""}
+            </p>
+            <p className="mt-1">
+              La fecha aplica a toda la carrera. Si el plazo venció, el director de la liga lo extiende para toda la carrera y, cuando el
+              atleta rezagado ya se inscribió, lo vuelve a cerrar con "Cerrar el plazo ahora". También puede inscribir atletas a mano (abajo),
+              aunque el plazo haya vencido. {canExtend ? "" : "Como gestor puedes fijar o acortar la fecha, pero solo el director puede extenderla."}
+            </p>
+          </div>
+        </CardContent></Card>
+      ) : null}
+      {!locked ? (
         <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
           <Field label="Nombre *" error={errors["athlete_name"]}><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
           <Field label="Documento *" error={errors["athlete_document"]}><Input inputMode="numeric" value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value.replace(/\D/g, "") })} /></Field>
@@ -1548,7 +1617,7 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
         </div>
       </div>
 
-      <SimpleTable head={["Dorsal", "Atleta", "Doc", "Categoría", "Oleada"]}>
+      <SimpleTable head={["Dorsal", "Atleta", "Doc", "Categoría", "Pago", "Oleada"]}>
         {rows.map((r) => (
           <TableRow key={r.id}>
             <TableCell>
@@ -1561,6 +1630,12 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
             <TableCell className="font-medium">{r.athlete_name}</TableCell>
             <TableCell className="text-muted-foreground">{r.athlete_document}</TableCell>
             <TableCell>{catName(r.category_id)}</TableCell>
+            <TableCell>
+              {r.status === "paid" ? <Badge>Pagada</Badge>
+                : r.status === "cancelled" ? <Badge variant="outline">Cancelada</Badge>
+                : window === "closed" ? <Badge variant="destructive">Plazo vencido</Badge>
+                : <Badge variant="outline">Pendiente</Badge>}
+            </TableCell>
             <TableCell className="text-right">
               <Select value={r.wave_id ?? ""} onValueChange={(v) => reassignWave(r.id, v)} disabled={locked}>
                 <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Sin oleada" /></SelectTrigger>
@@ -1569,7 +1644,7 @@ function Inscritos({ tenantId, eventId, locked }: { tenantId: string; eventId: s
             </TableCell>
           </TableRow>
         ))}
-        {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin inscritos aún.</TableCell></TableRow> : null}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin inscritos aún.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );

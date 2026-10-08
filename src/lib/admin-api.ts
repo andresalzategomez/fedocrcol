@@ -102,6 +102,10 @@ export interface EventRow {
   /** Club responsable (solo carreras oficiales); null = la responsable es la liga. */
   club_id: string | null;
   club?: { name: string } | null;
+  /** Último día (inclusive, hora de Colombia) para pagar la inscripción; null = sin fecha límite. */
+  payment_deadline: string | null;
+  /** Cuándo el director extendió el plazo por última vez (posponerlo o quitarlo). */
+  payment_deadline_extended_at?: string | null;
   created_by: string | null;
   visibility: "public" | "private";
 }
@@ -313,9 +317,12 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
 }
 
 export async function createEvent(input: {
-  tenant_id: string; title: string; date: string; location: string; is_official: boolean; club_id?: string | null;
+  tenant_id: string; title: string; date: string; location: string; is_official: boolean; club_id?: string | null; payment_deadline?: string | null;
   distance_km?: number | undefined; obstacles?: number | undefined; max_capacity?: number | undefined; visibility?: "public" | "private";
 }): Promise<EventRow> {
+  if (input.payment_deadline && input.payment_deadline > input.date) {
+    throw new Error("La fecha límite de pago no puede ser posterior a la fecha de la carrera");
+  }
   const { data, error } = await db().from("events").insert({
     tenant_id: input.tenant_id,
     title: input.title,
@@ -323,6 +330,7 @@ export async function createEvent(input: {
     location: input.location,
     is_official: input.is_official,
     club_id: input.is_official ? (input.club_id ?? null) : null,
+    payment_deadline: input.payment_deadline || null,
     visibility: input.visibility ?? "private",
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
@@ -339,7 +347,7 @@ export async function createEvent(input: {
 
 /** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
 export async function updateEvent(id: string, patch: {
-  title?: string; date?: string; location?: string; is_official?: boolean; club_id?: string | null;
+  title?: string; date?: string; location?: string; is_official?: boolean; club_id?: string | null; payment_deadline?: string | null;
   distance_km?: number | null; obstacles?: number | null; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<void> {
   const { error } = await db().from("events").update(patch).eq("id", id);
