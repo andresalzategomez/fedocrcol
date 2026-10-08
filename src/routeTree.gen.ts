@@ -28,6 +28,7 @@ import { Route as ApiPublicRegisterAthleteRouteImport } from './routes/api/publi
 import { Route as ApiPublicRegisterClubRouteImport } from './routes/api/public/register-club'
 import { Route as ApiPublicRegisterLeagueRouteImport } from './routes/api/public/register-league'
 import { Route as ApiPublicRegistrationConfirmationRouteImport } from './routes/api/public/registration-confirmation'
+import { Route as ApiPublicRegistrationPaymentRouteImport } from './routes/api/public/registration-payment'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
@@ -139,6 +140,12 @@ const ApiPublicRegistrationConfirmationRoute =
     path: '/api/public/registration-confirmation',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRegistrationPaymentRoute =
+  ApiPublicRegistrationPaymentRouteImport.update({
+    id: '/api/public/registration-payment',
+    path: '/api/public/registration-payment',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
@@ -216,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/public/registration-confirmation': typeof ApiPublicRegistrationConfirmationRoute
+  '/api/public/registration-payment': typeof ApiPublicRegistrationPaymentRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -248,6 +256,7 @@ export interface FileRoutesByTo {
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/public/registration-confirmation': typeof ApiPublicRegistrationConfirmationRoute
+  '/api/public/registration-payment': typeof ApiPublicRegistrationPaymentRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -281,6 +290,7 @@ export interface FileRoutesById {
   '/api/public/register-club': typeof ApiPublicRegisterClubRoute
   '/api/public/register-league': typeof ApiPublicRegisterLeagueRoute
   '/api/public/registration-confirmation': typeof ApiPublicRegistrationConfirmationRoute
+  '/api/public/registration-payment': typeof ApiPublicRegistrationPaymentRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/public/registration-confirmation'
+    | '/api/public/registration-payment'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/public/registration-confirmation'
+    | '/api/public/registration-payment'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -379,6 +391,7 @@ export interface FileRouteTypes {
     | '/api/public/register-club'
     | '/api/public/register-league'
     | '/api/public/registration-confirmation'
+    | '/api/public/registration-payment'
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
@@ -412,6 +425,7 @@ export interface RootRouteChildren {
   ApiPublicRegisterClubRoute: typeof ApiPublicRegisterClubRoute
   ApiPublicRegisterLeagueRoute: typeof ApiPublicRegisterLeagueRoute
   ApiPublicRegistrationConfirmationRoute: typeof ApiPublicRegistrationConfirmationRoute
+  ApiPublicRegistrationPaymentRoute: typeof ApiPublicRegistrationPaymentRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
@@ -555,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRegistrationConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/registration-payment': {
+      id: '/api/public/registration-payment'
+      path: '/api/public/registration-payment'
+      fullPath: '/api/public/registration-payment'
+      preLoaderRoute: typeof ApiPublicRegistrationPaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/health': {
       id: '/api/v1/health'
       path: '/api/v1/health'
@@ -676,6 +697,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRegisterLeagueRoute: ApiPublicRegisterLeagueRoute,
   ApiPublicRegistrationConfirmationRoute:
     ApiPublicRegistrationConfirmationRoute,
+  ApiPublicRegistrationPaymentRoute: ApiPublicRegistrationPaymentRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,

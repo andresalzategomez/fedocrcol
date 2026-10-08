@@ -1177,7 +1177,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           <TabsTrigger value="resultados"><Trophy className="mr-1 size-4" />Resultados</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={!canManage} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={canManage} locked={!canManage} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} locked={!canManage} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
@@ -1384,7 +1384,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
           </CardContent></Card>
         </TabsContent>
         <TabsContent value="categorias" className="mt-4"><Categorias eventId={event.id} locked={contentLocked} /></TabsContent>
-        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} canExtend={false} locked={contentLocked} /></TabsContent>
+        <TabsContent value="inscritos" className="mt-4"><Inscritos tenantId={tenantId} eventId={event.id} eventDate={event.date} paymentDeadline={event.payment_deadline} extendedAt={event.payment_deadline_extended_at ?? null} locked={contentLocked} /></TabsContent>
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={contentLocked} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={contentLocked} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={contentLocked} /></TabsContent>
@@ -1466,10 +1466,8 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
 }
 
 // ------------------------------ Inscritos ----------------------------
-function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, canExtend, locked }: {
-  tenantId: string; eventId: string; eventDate: string; paymentDeadline: string | null; extendedAt: string | null;
-  /** Director de la liga o federación: pueden extender o quitar el plazo; un gestor solo fijarlo o acortarlo. */
-  canExtend: boolean; locked: boolean;
+function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, locked }: {
+  tenantId: string; eventId: string; eventDate: string; paymentDeadline: string | null; extendedAt: string | null; locked: boolean;
 }) {
   const [rows, setRows] = useState<api.Registration[]>([]);
   const [deadline, setDeadline] = useState(paymentDeadline ?? "");
@@ -1478,8 +1476,6 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, 
   const [savingDeadline, setSavingDeadline] = useState(false);
   const [waves, setWaves] = useState<api.Wave[]>([]);
   const [cats, setCats] = useState<api.EventCategory[]>([]);
-  const [form, setForm] = useState({ athlete_name: "", athlete_document: "", athlete_gender: "M", category_id: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     const [r, w, c] = await Promise.all([api.listRegistrations(eventId), api.listWaves(eventId), api.listEventCategories(eventId)]);
@@ -1487,24 +1483,7 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, 
   }, [eventId]);
   useEffect(() => { load(); }, [load]);
 
-  async function add() {
-    const { ok, errors } = validateForm(form, {
-      athlete_name: [required("El nombre")], athlete_document: [numeric("El documento", 5)], category_id: [required("La categoría")],
-    });
-    setErrors(errors as Record<string, string>); if (!ok) return;
-    try {
-      await api.createRegistration({
-        tenant_id: tenantId, event_id: eventId, category_id: form.category_id,
-        athlete_name: form.athlete_name, athlete_document: form.athlete_document,
-        athlete_gender: form.athlete_gender as "F" | "M" | "X",
-        // bib_number omitido → se asigna automáticamente
-      });
-      toast.success("Atleta inscrito (dorsal automático)");
-      setForm({ athlete_name: "", athlete_document: "", athlete_gender: "M", category_id: "" }); setErrors({}); load();
-    } catch (e) { toast.error((e as Error).message); }
-  }
-
-  /** Guardar el plazo. Posponerlo o quitarlo cuando ya estaba fijado es "extenderlo": solo el director (lo valida la base). */
+  /** Guardar el plazo. Posponerlo o quitarlo cuando ya estaba fijado es "extenderlo": la base deja registrado quién y cuándo. */
   async function saveDeadline(value: string, msg: string) {
     if (value && value > eventDate) { toast.error("La fecha límite de pago no puede ser posterior a la fecha de la carrera"); return; }
     setSavingDeadline(true);
@@ -1562,7 +1541,7 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, 
             <Label htmlFor="payment-deadline">Fecha límite de pago</Label>
             <Input id="payment-deadline" type="date" className="w-48" max={eventDate} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </div>
-          <Button size="sm" disabled={savingDeadline || deadline === (savedDeadline ?? "") || (wantsToExtend && !canExtend)}
+          <Button size="sm" disabled={savingDeadline || deadline === (savedDeadline ?? "")}
             onClick={() => saveDeadline(deadline, wantsToExtend ? "Plazo de pago extendido" : "Fecha límite de pago guardada")}>
             {wantsToExtend ? "Extender plazo" : "Guardar fecha"}
           </Button>
@@ -1570,43 +1549,25 @@ function Inscritos({ tenantId, eventId, eventDate, paymentDeadline, extendedAt, 
             <Button size="sm" variant="outline" onClick={closeNow} disabled={savingDeadline}>Cerrar el plazo ahora</Button>
           ) : null}
           {savedDeadline ? (
-            <Button size="sm" variant="outline" onClick={() => saveDeadline("", "Fecha límite de pago quitada")} disabled={savingDeadline || !canExtend}>Quitar fecha</Button>
+            <Button size="sm" variant="outline" onClick={() => saveDeadline("", "Fecha límite de pago quitada")} disabled={savingDeadline}>Quitar fecha</Button>
           ) : null}
           <div className="basis-full text-xs text-muted-foreground">
             <p className="font-medium text-foreground">
               {!savedDeadline ? "Sin fecha límite: no hay tope para pagar."
                 : window === "open" ? `Plazo abierto: se puede pagar hasta el ${savedDeadline} (inclusive).`
                 : `Plazo vencido el ${savedDeadline}: los atletas pendientes ya no pueden pagar ni inscribirse por su cuenta.`}
-              {lastExtendedAt ? ` Extendido por el director el ${new Date(lastExtendedAt).toLocaleDateString("es-CO")}.` : ""}
+              {lastExtendedAt ? ` Extendido el ${new Date(lastExtendedAt).toLocaleDateString("es-CO")}.` : ""}
             </p>
             <p className="mt-1">
-              La fecha aplica a toda la carrera. Si el plazo venció, el director de la liga lo extiende para toda la carrera y, cuando el
-              atleta rezagado ya se inscribió, lo vuelve a cerrar con "Cerrar el plazo ahora". También puede inscribir atletas a mano (abajo),
-              aunque el plazo haya vencido. {canExtend ? "" : "Como gestor puedes fijar o acortar la fecha, pero solo el director puede extenderla."}
+              La fecha aplica a toda la carrera. Si el plazo venció, el director o el encargado de la liga lo extiende para toda la carrera: el
+              atleta se inscribe y paga por el formulario de siempre y, cuando ya lo hizo, se vuelve a cerrar con "Cerrar el plazo ahora".
             </p>
           </div>
         </CardContent></Card>
       ) : null}
-      {!locked ? (
-        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5">
-          <Field label="Nombre *" error={errors["athlete_name"]}><Input value={form.athlete_name} onChange={(e) => setForm({ ...form, athlete_name: e.target.value })} /></Field>
-          <Field label="Documento *" error={errors["athlete_document"]}><Input inputMode="numeric" value={form.athlete_document} onChange={(e) => setForm({ ...form, athlete_document: e.target.value.replace(/\D/g, "") })} /></Field>
-          <Field label="Sexo">
-            <Select value={form.athlete_gender} onValueChange={(v) => setForm({ ...form, athlete_gender: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="M">M</SelectItem><SelectItem value="F">F</SelectItem><SelectItem value="X">X</SelectItem></SelectContent>
-            </Select>
-          </Field>
-          <Field label="Categoría *" error={errors["category_id"]}>
-            <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-              <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-          </Field>
-          <div className="flex items-end"><Button onClick={add}><Users className="mr-1 size-4" />Inscribir</Button></div>
-          <p className="sm:col-span-5 text-xs text-muted-foreground">El dorsal se asigna automáticamente. Las oleadas se asignan al generarlas o manualmente en la tabla.</p>
-        </CardContent></Card>
-      ) : null}
+      <p className="text-xs text-muted-foreground">
+        Los atletas se inscriben y pagan por el formulario público. El dorsal se asigna automáticamente; las oleadas, al generarlas o manualmente en la tabla.
+      </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-muted-foreground">{rows.length} inscrito(s)</span>

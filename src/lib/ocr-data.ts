@@ -93,14 +93,8 @@ export function computeLeagueStandings(ranking: RankingRow[], leagues: League[])
     .sort((a, b) => b.points - a.points);
 }
 
-/** Tarifa dinámica por fecha (preventa → tarifa plena). */
-export function dynamicPrice(basePrice: number, eventDate: string) {
-  const days = Math.ceil((new Date(`${eventDate}T12:00:00`).getTime() - Date.now()) / 86400000);
-  if (days > 90) return { price: Math.round(basePrice * 0.75), stage: "Preventa 1 (-25%)" };
-  if (days > 45) return { price: Math.round(basePrice * 0.85), stage: "Preventa 2 (-15%)" };
-  if (days > 15) return { price: Math.round(basePrice * 0.95), stage: "Preventa 3 (-5%)" };
-  return { price: basePrice, stage: "Tarifa plena" };
-}
+// La tarifa dinámica vive en lib/pricing.ts (la usa también el servidor al cobrar).
+export { dynamicPrice } from "./pricing";
 
 export function qrUrl(payload: string) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(payload)}`;

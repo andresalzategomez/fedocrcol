@@ -1665,3 +1665,69 @@ end; $$;
 drop trigger if exists trg_events_payment_deadline on public.events;
 create trigger trg_events_payment_deadline before insert or update on public.events
   for each row execute function public.enforce_payment_deadline_rules();
+
+-- =====================================================================
+-- 0034 — Cobro de la inscripción del atleta con un Link de Pagos de Bold.
+--
+-- registration_payment_links guarda el link vigente de cada inscripción
+-- (uno por inscripción: si vence o cambia el monto se reemplaza). Solo el
+-- servidor (service_role) lo lee y escribe: RLS activado sin políticas.
+-- El webhook y la verificación usan este link para consultar a Bold si de
+-- verdad se pagó, en vez de confiar en el cuerpo del aviso.
+-- Idempotente.
+-- =====================================================================
+
+create table if not exists public.registration_payment_links (
+  registration_id uuid primary key references public.registrations(id) on delete cascade,
+  bold_link_id text not null,
+  payment_url text not null,
+  amount numeric(12,2) not null check (amount > 0),
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+grant all on public.registration_payment_links to service_role;
+alter table public.registration_payment_links enable row level security;
+
+-- =====================================================================
+-- 0035 — Cualquier encargado de la carrera puede extender la fecha límite
+-- de pago (admin de la liga, gestor de carreras, o la federación sobre sus
+-- carreras), no solo el director. Reemplaza la función de la 0033: se quita
+-- la restricción de rol; siguen el tope de la fecha de la carrera y el
+-- registro de quién y cuándo extendió. Quién puede editar la carrera ya lo
+-- decide RLS. Idempotente.
+-- =====================================================================
+
+create or replace function public.enforce_payment_deadline_rules()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  -- service_role (API del servidor) o conexión administrativa: sin restricción.
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if new.payment_deadline is not null and new.payment_deadline > new.date then
+    raise exception 'La fecha límite de pago no puede ser posterior a la fecha de la carrera';
+  end if;
+
+  -- Extender = posponer o quitar un plazo ya fijado: queda registrado quién y cuándo.
+  if tg_op = 'UPDATE' and old.payment_deadline is not null
+     and (new.payment_deadline is null or new.payment_deadline > old.payment_deadline) then
+    new.payment_deadline_extended_at := now();
+    new.payment_deadline_extended_by := auth.uid();
+  end if;
+
+  return new;
+end; $$;
+
+-- =====================================================================
+-- 0036 — Referencia única por link de pago de una inscripción.
+--
+-- Bold no acepta reutilizar una referencia ("has been used before"), así
+-- que cada link nuevo de una misma inscripción (porque venció a los 7 días
+-- o cambió el monto) lleva la suya: <código de inscripción>-<sufijo>. El
+-- webhook la usa para volver a encontrar la inscripción. Idempotente.
+-- =====================================================================
+
+alter table public.registration_payment_links add column if not exists reference text;
+create unique index if not exists idx_registration_payment_links_reference on public.registration_payment_links(reference);

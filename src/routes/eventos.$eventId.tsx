@@ -50,8 +50,8 @@ const REGISTRATION_STATUS_LABEL: Record<string, string> = { pending: "pendiente 
 type Ticket = { code: string; amount: number; category: string; status: string; preexisting: boolean };
 
 /** Confirmación con QR -- se muestra igual en el layout completo (barra lateral) y en el minimal (bajo el formulario). */
-function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | null }) {
-  const window = ticket.status === "pending" ? paymentWindow(deadline) : "open";
+function TicketCard({ ticket, deadline, onPay, paying }: { ticket: Ticket; deadline: string | null; onPay: () => void; paying: boolean }) {
+  const payWindow = ticket.status === "pending" ? paymentWindow(deadline) : "open";
   return (
     <Card className="border-secondary/60">
       <CardContent className="p-6 text-center">
@@ -69,16 +69,14 @@ function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | n
           loading="lazy"
         />
         <p className="mt-2 font-mono text-xs text-muted-foreground">{ticket.code}</p>
-        {window === "closed" ? (
+        {payWindow === "closed" ? (
           <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
             El plazo de pago de esta carrera venció el {formatDate(deadline as string)}. Si aún quieres pagar, pide a tu liga que lo extienda.
           </p>
         ) : null}
-        {ticket.status === "pending" && window !== "closed" ? (
-          <Button className="mt-4 w-full" asChild>
-            <a href={`/api/public/pagos/checkout?ref=${ticket.code}&amount=${ticket.amount}`}>
-              Ir a la pasarela de pago
-            </a>
+        {ticket.status === "pending" && payWindow !== "closed" ? (
+          <Button className="mt-4 w-full" onClick={onPay} disabled={paying}>
+            {paying ? "Abriendo el pago..." : "Pagar ahora"}
           </Button>
         ) : null}
       </CardContent>
@@ -87,9 +85,14 @@ function TicketCard({ ticket, deadline }: { ticket: Ticket; deadline: string | n
 }
 
 export const Route = createFileRoute("/eventos/$eventId")({
-  validateSearch: (search: Record<string, unknown>): { minimal?: true } => {
+  validateSearch: (search: Record<string, unknown>): { minimal?: true; ref?: string } => {
     const minimal = search["minimal"] === "1" || search["minimal"] === 1 || search["minimal"] === true || search["minimal"] === "true";
-    return minimal ? { minimal: true } : {};
+    const out: { minimal?: true; ref?: string } = {};
+    if (minimal) out.minimal = true;
+    // Código de inscripción al volver de Bold: permite mostrar el ticket aunque el atleta no haya iniciado sesión.
+    const ref = search["ref"];
+    if (typeof ref === "string" && /^[A-Za-z0-9_-]{5,80}$/.test(ref)) out.ref = ref;
+    return out;
   },
   loader: async ({ params }) => {
     const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
@@ -128,11 +131,12 @@ export const Route = createFileRoute("/eventos/$eventId")({
 
 function EventDetail() {
   const { event, league } = Route.useLoaderData();
-  const { minimal } = Route.useSearch();
+  const { minimal, ref } = Route.useSearch();
   useTenantTheme(league ? { primary_color: league.primary_color, secondary_color: league.secondary_color } : null);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paying, setPaying] = useState(false);
   const { profile, email: sessionEmail } = useSession();
   const [personalDataLocked, setPersonalDataLocked] = useState(false);
   const [quickCategoryId, setQuickCategoryId] = useState("");
@@ -280,6 +284,65 @@ function EventDetail() {
   const deadlinePassed = isDeadlinePassed(event.payment_deadline);
   const registrationsClosed = isPastDate || isFinished || deadlinePassed;
 
+  /** Crea el link de pago en el servidor (el monto lo calcula él) y lleva al atleta a pagar en Bold. */
+  async function startPayment(code: string) {
+    setPaying(true);
+    try {
+      const res = await fetch("/api/public/registration-payment", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ qr_code: code, action: "pay" }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { payment_url?: string; error?: { message?: string } };
+      if (!res.ok || !data.payment_url) {
+        toast.error(data.error?.message ?? "No pudimos abrir el pago. Intenta de nuevo con el botón \"Pagar ahora\".");
+        setPaying(false);
+        return;
+      }
+      window.location.assign(data.payment_url);
+    } catch {
+      toast.error("No pudimos abrir el pago. Revisa tu conexión e intenta de nuevo con el botón \"Pagar ahora\".");
+      setPaying(false);
+    }
+  }
+
+  /** Pregunta al servidor (que pregunta a Bold) si ya se pagó; confirma la inscripción si es así. */
+  async function checkPayment(code: string): Promise<{ status: string; amount: number | null; category: string | null } | null> {
+    try {
+      const res = await fetch("/api/public/registration-payment", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ qr_code: code, action: "check" }),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as { status: string; amount: number | null; category: string | null };
+    } catch {
+      return null;
+    }
+  }
+
+  // Al volver de Bold el cupo debe pasar a "pagada" solo: se verifica al entrar y cada 10 s por 5 minutos.
+  useEffect(() => {
+    const code = ticket?.code ?? ref ?? null;
+    if (!code || (ticket && ticket.status !== "pending")) return;
+    let stopped = false;
+    const startedAt = Date.now();
+    async function poll() {
+      if (stopped || Date.now() - startedAt > 5 * 60_000) return;
+      const r = await checkPayment(code as string);
+      if (stopped || !r) return;
+      if (r.status === "paid" && ticket?.status !== "paid") toast.success("¡Pago confirmado! Tu cupo quedó asegurado.");
+      setTicket((t) => t
+        ? { ...t, status: r.status }
+        : { code: code as string, amount: r.amount ?? 0, category: r.category ?? "—", status: r.status, preexisting: true });
+      if (r.status !== "pending") stopped = true;
+    }
+    poll();
+    const timer = setInterval(poll, 10_000);
+    return () => { stopped = true; clearInterval(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.code, ticket?.status, ref]);
+
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
     social_media?: string | undefined; eps: string; blood_type: string; emergency_contact_name: string;
@@ -305,13 +368,14 @@ function EventDetail() {
         amount: dynamicPrice(category.price, event.date).price,
       });
       setTicket({ code: result.qr_code, amount: result.amount, category: category.name, status: result.status, preexisting: false });
-      toast.success("Inscripción creada. Continúa con el pago.");
+      toast.success("Inscripción creada. Te llevamos a pagar…");
 
       // Best-effort: la inscripción ya quedó creada, así que un correo que
       // falla no debe interrumpir la pantalla de éxito -- solo se registra
       // en consola para depurar.
       fetch("/api/public/registration-confirmation", {
         method: "POST",
+        keepalive: true, // sobrevive a la redirección al pago de Bold
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: athlete.email,
@@ -324,6 +388,8 @@ function EventDetail() {
       })
         .then((res) => { if (!res.ok) console.error("No se pudo enviar el correo de confirmación de inscripción:", res.status); })
         .catch((e) => console.error("No se pudo enviar el correo de confirmación de inscripción:", e));
+
+      void startPayment(result.qr_code);
     } catch (e) {
       const message = e instanceof Error && e.message.includes("Ya existe una inscripción")
         ? e.message
@@ -657,7 +723,7 @@ function EventDetail() {
         </Card>
 
         {minimal ? (
-          ticket ? <div className="mt-6"><TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} /></div> : null
+          ticket ? <div className="mt-6"><TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} onPay={() => startPayment(ticket.code)} paying={paying} /></div> : null
         ) : (
           <div className="space-y-5">
             <Card className="border-border/70">
@@ -691,7 +757,7 @@ function EventDetail() {
               </CardContent>
             </Card>
 
-            {ticket ? <TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} /> : null}
+            {ticket ? <TicketCard ticket={ticket} deadline={event.payment_deadline ?? null} onPay={() => startPayment(ticket.code)} paying={paying} /> : null}
           </div>
         )}
       </div>
