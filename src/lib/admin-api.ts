@@ -75,6 +75,8 @@ export interface Tenant {
   primary_color: string;
   secondary_color: string;
   status: "active" | "suspended" | "pending" | "awaiting_payment" | "rejected";
+  /** false en el tenant de un club independiente: no puede crear carreras, solo ser club responsable. */
+  allows_events?: boolean;
 }
 export interface PublicClub { id: string; name: string; tenant_id: string | null; }
 export interface AdminClub {
@@ -97,6 +99,9 @@ export interface EventRow {
   league_approved: boolean;
   federation_approved: boolean;
   is_official: boolean | null;
+  /** Club responsable (solo carreras oficiales); null = la responsable es la liga. */
+  club_id: string | null;
+  club?: { name: string } | null;
   created_by: string | null;
   visibility: "public" | "private";
 }
@@ -253,7 +258,7 @@ export async function approveIndependentClub(club: AdminClub): Promise<void> {
   while (taken.has(slug)) slug = `${base}-${n++}`;
 
   const { data: tenant, error: tenantErr } = await db().from("tenants")
-    .insert({ name: club.name, slug, department: club.department ?? "Nacional", city: club.city ?? null, status: "active" })
+    .insert({ name: club.name, slug, department: club.department ?? "Nacional", city: club.city ?? null, status: "active", allows_events: false })
     .select("id").single();
   if (tenantErr) throw tenantErr;
 
@@ -302,13 +307,13 @@ export async function setTenantStatus(id: string, status: "active" | "suspended"
 
 // ------------------------------ Eventos ------------------------------
 export async function listEvents(tenantId: string): Promise<EventRow[]> {
-  const { data, error } = await db().from("events").select("*").eq("tenant_id", tenantId).order("date", { ascending: false });
+  const { data, error } = await db().from("events").select("*, club:clubs(name)").eq("tenant_id", tenantId).order("date", { ascending: false });
   if (error) throw error;
   return data as EventRow[];
 }
 
 export async function createEvent(input: {
-  tenant_id: string; title: string; date: string; location: string; is_official: boolean;
+  tenant_id: string; title: string; date: string; location: string; is_official: boolean; club_id?: string | null;
   distance_km?: number | undefined; obstacles?: number | undefined; max_capacity?: number | undefined; visibility?: "public" | "private";
 }): Promise<EventRow> {
   const { data, error } = await db().from("events").insert({
@@ -317,6 +322,7 @@ export async function createEvent(input: {
     date: input.date,
     location: input.location,
     is_official: input.is_official,
+    club_id: input.is_official ? (input.club_id ?? null) : null,
     visibility: input.visibility ?? "private",
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
@@ -333,11 +339,30 @@ export async function createEvent(input: {
 
 /** Edita los datos propios de la carrera (no su estado/aprobación). Usado por admin y por race_manager. */
 export async function updateEvent(id: string, patch: {
-  title?: string; date?: string; location?: string; is_official?: boolean;
+  title?: string; date?: string; location?: string; is_official?: boolean; club_id?: string | null;
   distance_km?: number | null; obstacles?: number | null; max_capacity?: number; visibility?: "public" | "private";
 }): Promise<void> {
   const { error } = await db().from("events").update(patch).eq("id", id);
   if (error) throw error;
+}
+
+export interface ResponsibleClub { id: string; name: string; independent: boolean; }
+/**
+ * Clubes que pueden ser responsables de una carrera oficial de esta liga: los
+ * clubes activos de la liga y los clubes independientes (su tenant no puede crear
+ * carreras: allows_events = false), que lo pueden ser en cualquier liga.
+ */
+export async function listEligibleResponsibleClubs(tenantId: string): Promise<ResponsibleClub[]> {
+  const own = await db().from("clubs").select("id, name")
+    .eq("tenant_id", tenantId).eq("approval_status", "active").eq("status", "active");
+  if (own.error) throw own.error;
+  const independent = await db().from("clubs").select("id, name, tenants!inner(allows_events)")
+    .eq("tenants.allows_events", false).eq("approval_status", "active").eq("status", "active");
+  const byId = new Map<string, ResponsibleClub>();
+  (own.data ?? []).forEach((c) => byId.set(c.id as string, { id: c.id as string, name: c.name as string, independent: false }));
+  // Sin la migración 0031 la columna no existe: la lista queda solo con los clubes de la liga.
+  (independent.data ?? []).forEach((c) => byId.set(c.id as string, { id: c.id as string, name: c.name as string, independent: true }));
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Copia el catálogo nacional de categorías al maestro de esta carrera. */
