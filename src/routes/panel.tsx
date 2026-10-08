@@ -1445,7 +1445,10 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
       <SimpleTable head={["Categoría", "Género", "Edad", "Precio (COP)", "Cupos", ""]}>
         {rows.map((c) => (
           <TableRow key={c.id}>
-            <TableCell className="font-medium">{c.name}</TableCell>
+            <TableCell className="font-medium">
+              {c.name}
+              {c.price <= 0 ? <span className="mt-0.5 block text-xs font-normal text-muted-foreground">Sin precio: no aparece en el formulario hasta que le pongas uno</span> : null}
+            </TableCell>
             <TableCell>{c.gender ?? "Todos"}</TableCell>
             <TableCell>{c.min_age ?? "—"}{c.max_age ? `–${c.max_age}` : c.min_age ? "+" : ""}</TableCell>
             <TableCell>

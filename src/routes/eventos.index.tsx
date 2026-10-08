@@ -96,7 +96,7 @@ function EventsPage() {
         ) : null}
         {events.map((event) => {
           const league = leagueById(event.tenant_id);
-          const cheapest = Math.min(...event.categories.map((c) => dynamicPrice(c.price, event.date).price));
+          const cheapest = event.categories.length ? Math.min(...event.categories.map((c) => dynamicPrice(c.price, event.date).price)) : null;
           const totalSlots = event.categories.reduce((sum, c) => sum + c.slots_available, 0);
           const fill = totalSlots > 0 ? Math.round((event.registered / totalSlots) * 100) : 0;
           return (
@@ -122,7 +122,7 @@ function EventsPage() {
                   </div>
                   <div className="lg:text-right">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">Desde</p>
-                    <p className="font-display text-3xl text-primary">{formatCOP(cheapest)}</p>
+                    <p className="font-display text-3xl text-primary">{cheapest === null ? "Próximamente" : formatCOP(cheapest)}</p>
                     <Button className="mt-3 w-full lg:w-auto">Ver</Button>
                   </div>
                 </CardContent>
