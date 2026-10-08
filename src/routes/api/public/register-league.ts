@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { json, apiError, preflight, handler } from "../../../lib/server/api";
+import { json, apiError, preflight, handler, siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
+import { sendEmail } from "../../../lib/server/resend-server";
+import { leagueRequestFederationHtml, leagueRequestFederationSubject } from "../../../lib/server/email-templates/league-request-federation";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -33,6 +35,10 @@ function slugify(value: string): string {
  * apruebe (panel de aprobaciones, fase D). El usuario ya puede iniciar
  * sesión, pero el panel le muestra que está pendiente en vez del
  * contenido real (ver panel.tsx).
+ *
+ * Al registrarse, la federación (todos los superadmin) recibe un correo para
+ * que sepa que hay una solicitud por aprobar. Si ese correo falla, el registro
+ * no se cae: la liga ya quedó creada y aparece igual en Aprobaciones.
  */
 export const Route = createFileRoute("/api/public/register-league")({
   server: {
@@ -77,6 +83,24 @@ export const Route = createFileRoute("/api/public/register-league")({
           .update({ role: "admin", tenant_id: tenant.id, full_name, email })
           .eq("id", userId);
         if (profErr) return apiError("DB_ERROR", `La liga se creó, pero no se pudo vincular tu cuenta: ${profErr.message}`, 500);
+
+        const { data: federation } = await admin.from("profiles").select("email").eq("role", "superadmin");
+        const recipients = [...new Set((federation ?? []).map((f) => f.email as string | null).filter((e): e is string => Boolean(e)))];
+        for (const to of recipients) {
+          const sent = await sendEmail({
+            to,
+            subject: leagueRequestFederationSubject(league_name),
+            html: leagueRequestFederationHtml({
+              leagueName: league_name,
+              department,
+              city: city ?? null,
+              applicantName: full_name,
+              applicantEmail: email,
+              panelUrl: `${siteUrl(request)}/panel`,
+            }),
+          });
+          if (!sent.ok) console.error("No se pudo avisar a la federación de la nueva solicitud de liga:", sent.error);
+        }
 
         return json({ tenant_id: tenant.id, user_id: userId });
       }),
