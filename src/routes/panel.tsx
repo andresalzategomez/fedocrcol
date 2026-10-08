@@ -400,6 +400,35 @@ const TENANT_STATUS_LABEL: Record<Tenant["status"], { label: string; variant: "d
   rejected: { label: "Rechazada", variant: "destructive" },
   suspended: { label: "Suspendida", variant: "destructive" },
 };
+/** Responsable de una carrera oficial: el club asignado, o la liga si no tiene club. */
+function ResponsableText({ event }: { event: EventRow }) {
+  if (!event.is_official) return null;
+  return <span className="text-xs text-muted-foreground">Responsable: {event.club?.name ?? "la liga"}</span>;
+}
+
+/** Solo aplica a carreras oficiales: elegir el club responsable (por defecto, la liga). */
+function ResponsableField({ tenantId, isOfficial, value, onChange, disabled }: {
+  tenantId: string; isOfficial: string; value: string; onChange: (clubId: string) => void; disabled?: boolean;
+}) {
+  const [clubs, setClubs] = useState<api.ResponsibleClub[]>([]);
+  useEffect(() => {
+    if (isOfficial !== "true") return;
+    api.listEligibleResponsibleClubs(tenantId).then(setClubs).catch(() => setClubs([]));
+  }, [tenantId, isOfficial]);
+  if (isOfficial !== "true") return null;
+  return (
+    <Field label="Responsable de la carrera">
+      <Select disabled={disabled ?? false} value={value || "league"} onValueChange={(v) => onChange(v === "league" ? "" : v)}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="league">La liga</SelectItem>
+          {clubs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.independent ? " (independiente)" : ""}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+}
+
 function OficialBadge({ value }: { value: boolean | null }) {
   if (value == null) return <Badge variant="outline">Sin definir</Badge>;
   return <Badge variant={value ? "default" : "secondary"}>{value ? "Oficial" : "No oficial"}</Badge>;
@@ -415,12 +444,12 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
     try {
       const t = await api.listTenants();
       setTenants(t);
-      const active = t.filter((x) => x.status === "active");
+      const active = t.filter((x) => x.status === "active" && x.allows_events !== false);
       if (isSuper && !activeTenant && active[0]) setActiveTenant(active[0].id);
     } catch (e) { toast.error((e as Error).message); }
   }, [isSuper, activeTenant]);
   useEffect(() => { loadTenants(); }, [loadTenants]);
-  const selectableTenants = tenants.filter((t) => t.status === "active");
+  const selectableTenants = tenants.filter((t) => t.status === "active" && t.allows_events !== false);
 
   return (
     <Tabs defaultValue={isSuper ? "ligas" : "carreras"}>
@@ -975,7 +1004,7 @@ async function copyRegistrationLink(eventId: string) {
 function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSuper: boolean; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -994,13 +1023,14 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
       await api.createEvent({
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
+        club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
         visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
@@ -1035,11 +1065,12 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
         <Field label="Fecha *" error={errors["date"]}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         <Field label="Lugar *" error={errors["location"]}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
         <Field label="¿Es oficial? *" error={errors["is_official"]}>
-          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v, club_id: v === "true" ? form.club_id : "" })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
           </Select>
         </Field>
+        <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} onChange={(v) => setForm({ ...form, club_id: v })} />
         <Field label="Visibilidad">
           <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1068,7 +1099,7 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
             <TableCell className="font-medium">{e.title}</TableCell>
             <TableCell className="text-muted-foreground">{e.date}</TableCell>
             <TableCell><StatusBadge status={e.status} /></TableCell>
-            <TableCell><OficialBadge value={e.is_official} /></TableCell>
+            <TableCell><div className="flex flex-col items-start gap-1"><OficialBadge value={e.is_official} /><ResponsableText event={e} /></div></TableCell>
             <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
               {e.status === "draft" && canManage ? <Button size="sm" variant="secondary" onClick={() => act(e.id, api.submitEvent, "Enviado a aprobación")}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
               {e.status === "pending_federation" && isSuper ? (<>
@@ -1114,6 +1145,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <h2 className="font-display text-3xl">{event.title}</h2>
         <StatusBadge status={event.status} />
         <OficialBadge value={event.is_official} />
+        <ResponsableText event={event} />
         {canManage && event.status === "approved" ? (
           <Button size="sm" onClick={() => changeStatus("in_progress", "Carrera marcada en curso")} disabled={busy}>Marcar en curso</Button>
         ) : null}
@@ -1166,7 +1198,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 function GestorConsole({ tenantId }: { tenantId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -1185,13 +1217,14 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
       await api.createEvent({
         tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
         is_official: form.is_official === "true",
+        club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
         visibility: form.visibility === "public" ? "public" : "private",
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
@@ -1206,11 +1239,12 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
         <Field label="Fecha *" error={errors["date"]}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         <Field label="Lugar *" error={errors["location"]}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
         <Field label="¿Es oficial? *" error={errors["is_official"]}>
-          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v, club_id: v === "true" ? form.club_id : "" })}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
           </Select>
         </Field>
+        <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} onChange={(v) => setForm({ ...form, club_id: v })} />
         <Field label="Visibilidad">
           <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1229,7 +1263,7 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
             <TableCell className="font-medium">{e.title}</TableCell>
             <TableCell className="text-muted-foreground">{e.date}</TableCell>
             <TableCell><StatusBadge status={e.status} /></TableCell>
-            <TableCell><OficialBadge value={e.is_official} /></TableCell>
+            <TableCell><div className="flex flex-col items-start gap-1"><OficialBadge value={e.is_official} /><ResponsableText event={e} /></div></TableCell>
             <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
               <Button size="sm" variant="outline" onClick={() => copyRegistrationLink(e.id)}><Link2 className="mr-1 size-4" />Copiar link de inscripción</Button>
               <Button size="sm" variant="outline" onClick={() => setSelected(e)}><Timer className="mr-1 size-4" />Abrir</Button>
@@ -1250,6 +1284,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
   const [form, setForm] = useState({
     title: event.title, date: event.date, location: event.location,
     is_official: event.is_official == null ? "" : String(event.is_official),
+    club_id: event.club_id ?? "",
     visibility: event.visibility ?? "private",
     distance_km: event.distance_km != null ? String(event.distance_km) : "",
     obstacles: event.obstacles != null ? String(event.obstacles) : "",
@@ -1269,6 +1304,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
     const patch = {
       title: form.title, date: form.date, location: form.location,
       is_official: form.is_official === "true",
+        club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
       visibility: (form.visibility === "public" ? "public" : "private") as "public" | "private",
       distance_km: form.distance_km ? Number(form.distance_km) : null,
       obstacles: form.obstacles ? Number(form.obstacles) : null,
@@ -1277,7 +1313,8 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
     try {
       await api.updateEvent(event.id, patch);
       toast.success("Carrera actualizada");
-      onEventChanged({ ...event, ...patch });
+      const fresh = (await api.listEvents(tenantId)).find((e) => e.id === event.id);
+      onEventChanged(fresh ?? { ...event, ...patch });
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
@@ -1297,6 +1334,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
         <h2 className="font-display text-3xl">{event.title}</h2>
         <StatusBadge status={event.status} />
         <OficialBadge value={event.is_official} />
+        <ResponsableText event={event} />
       </div>
       {locked ? (
         <Note>Esta carrera ya se envió a revisión — no puedes seguir editando sus datos. Habla con el admin de tu liga si necesitas cambiar algo.</Note>
@@ -1316,11 +1354,12 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
             <Field label="Fecha *" error={errors["date"]}><Input disabled={locked} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
             <Field label="Lugar *" error={errors["location"]}><Input disabled={locked} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field>
             <Field label="¿Es oficial? *" error={errors["is_official"]}>
-              <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v })}>
+              <Select disabled={locked} value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v, club_id: v === "true" ? form.club_id : "" })}>
                 <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
                 <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
               </Select>
             </Field>
+            <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} disabled={locked} onChange={(v) => setForm({ ...form, club_id: v })} />
             <Field label="Visibilidad">
               <Select disabled={locked} value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v as "private" | "public" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
