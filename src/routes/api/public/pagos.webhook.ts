@@ -3,7 +3,7 @@ import { siteUrl } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
 import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold";
 import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
-import { activateRegistrationIfPaid } from "../../../lib/server/registration-payment";
+import { activateRegistrationIfPaid, qrCodeFromReference } from "../../../lib/server/registration-payment";
 
 /**
  * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
@@ -142,10 +142,11 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
   if (type !== "SALE_APPROVED") return reply(log, "inscripcion:evento_ignorado", 200, "ignorado");
 
   // La inscripción solo pasa a pagada si Bold confirma el link (no se confía en el cuerpo del aviso).
-  let result = await activateRegistrationIfPaid(admin, reference);
+  const qrCode = await qrCodeFromReference(admin, reference);
+  let result = await activateRegistrationIfPaid(admin, qrCode);
   if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    result = await activateRegistrationIfPaid(admin, reference);
+    result = await activateRegistrationIfPaid(admin, qrCode);
   }
   switch (result.state) {
     case "paid":

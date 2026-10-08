@@ -14,6 +14,23 @@ const MIN_USEFUL_LINK_MS = 10 * 60 * 1000;
 /** Bold exige que la referencia sea alfanumérica, guion o guion bajo, de máximo 60 caracteres. */
 const REFERENCE_RE = /^[A-Za-z0-9_-]{1,60}$/;
 
+/**
+ * Bold NO acepta reutilizar una referencia ("has been used before"), así que cada link lleva la suya:
+ * <código de inscripción>-<sufijo>. Se guarda en registration_payment_links.reference, que es lo que
+ * el webhook usa para volver a encontrar la inscripción.
+ */
+function newPaymentReference(qrCode: string): string {
+  return `${qrCode}-${Date.now().toString(36).slice(-6)}`;
+}
+
+/** Inscripción a la que pertenece la referencia de un aviso de Bold (o el propio código si no hay link con esa referencia). */
+export async function qrCodeFromReference(admin: SupabaseClient, reference: string): Promise<string> {
+  const { data: row } = await admin.from("registration_payment_links").select("registration_id").eq("reference", reference).maybeSingle();
+  if (!row) return reference;
+  const { data: reg } = await admin.from("registrations").select("qr_code").eq("id", row.registration_id as string).maybeSingle();
+  return (reg?.qr_code as string | undefined) ?? reference;
+}
+
 export type PrepareResult =
   | { ok: true; url: string; amount: number }
   | { ok: false; code: string; message: string; status: number };
@@ -100,9 +117,11 @@ export async function prepareRegistrationPayment(admin: SupabaseClient, qrCode: 
     return fail("PAYMENT_CLOSED", "El plazo de pago está por vencer y ya no se puede generar un link. Comunícate con tu liga.", 409);
   }
 
+  const reference = newPaymentReference(qrCode);
+  if (!REFERENCE_RE.test(reference)) return fail("BAD_REQUEST", "Código de inscripción demasiado largo para generar el pago", 400);
   const created = await createPaymentLink({
     amount,
-    reference: qrCode,
+    reference,
     description: plain(`Inscripcion ${event.title} - ${category.name}`).slice(0, 100),
     expiresAt,
     callbackUrl: `${siteOrigin}/eventos/${event.id}?ref=${qrCode}`,
@@ -114,6 +133,7 @@ export async function prepareRegistrationPayment(admin: SupabaseClient, qrCode: 
     bold_link_id: created.linkId,
     payment_url: created.url,
     amount,
+    reference,
     expires_at: expiresAt.toISOString(),
   }, { onConflict: "registration_id" });
   if (upsertErr) return fail("DB_ERROR", upsertErr.message, 500);
@@ -145,7 +165,7 @@ export async function activateRegistrationIfPaid(admin: SupabaseClient, qrCode: 
 
   const { data: row } = await admin
     .from("registration_payment_links")
-    .select("bold_link_id, amount")
+    .select("bold_link_id, amount, reference")
     .eq("registration_id", reg.id as string)
     .maybeSingle();
   if (!row) return { state: "no_link" };
@@ -153,7 +173,7 @@ export async function activateRegistrationIfPaid(admin: SupabaseClient, qrCode: 
   const res = await getPaymentLink(row.bold_link_id as string);
   if (!res.ok) return { state: "error", error: res.error };
   if (res.link.status !== "PAID") return { state: "not_paid", boldStatus: res.link.status };
-  if (res.link.total !== Number(row.amount) || res.link.reference !== qrCode) {
+  if (res.link.total !== Number(row.amount) || res.link.reference !== ((row.reference as string | null) ?? qrCode)) {
     return { state: "error", error: "El pago en Bold no coincide con el monto o la referencia esperados" };
   }
   if (reg.status === "cancelled") return { state: "paid_but_cancelled" };
