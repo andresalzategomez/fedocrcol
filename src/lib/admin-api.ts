@@ -631,34 +631,6 @@ export async function nextBib(eventId: string): Promise<number> {
   return max + 1;
 }
 
-export async function createRegistration(input: {
-  tenant_id: string; event_id: string; category_id: string;
-  athlete_name: string; athlete_document: string; athlete_gender: "F" | "M" | "X";
-  bib_number?: number | null; wave_id?: string | null; ranking_category_id?: string | null;
-}): Promise<void> {
-  // Dorsal automático si no viene uno explícito (reintenta ante colisión).
-  let bib = input.bib_number ?? (await nextBib(input.event_id));
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const bibStr = formatBib(bib);
-    const qr = `OCR-${input.event_id.slice(0, 6).toUpperCase()}-${bibStr}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-    const { data, error } = await db().from("registrations").insert({
-      tenant_id: input.tenant_id, event_id: input.event_id, category_id: input.category_id,
-      status: "pending", qr_code: qr,
-      athlete_name: input.athlete_name, athlete_document: input.athlete_document,
-      athlete_gender: input.athlete_gender, amount: 0,
-      bib_number: bibStr, wave_id: input.wave_id ?? null, ranking_category_id: input.ranking_category_id ?? null,
-    }).select("id").single();
-    if (!error) {
-      await db().from("registrations").update({ status: "paid" }).eq("id", (data as { id: string }).id);
-      return;
-    }
-    // 23505 = dorsal ya usado: reintenta con el siguiente.
-    if ((error as { code?: string }).code === "23505" && input.bib_number == null) { bib += 1; continue; }
-    throw error;
-  }
-  throw new Error("No se pudo asignar un dorsal disponible");
-}
-
 export async function updateRegistration(id: string, patch: {
   bib_number?: number | null; wave_id?: string | null; status?: string; category_id?: string;
 }) {
