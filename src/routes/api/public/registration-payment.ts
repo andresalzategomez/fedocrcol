@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/registration-payment")({
         const admin = serviceClient();
 
         if (parsed.data.action === "check") {
-          const result = await activateRegistrationIfPaid(admin, parsed.data.qr_code);
+          const result = await activateRegistrationIfPaid(admin, parsed.data.qr_code, `${siteUrl(request)}/panel`);
           // Datos mínimos del ticket para mostrarlo al volver de Bold aunque el atleta no haya iniciado sesión.
           const ticket = async (status: string) => {
             const { data: reg } = await admin.from("registrations").select("amount, category_id").eq("qr_code", parsed.data.qr_code).maybeSingle();
