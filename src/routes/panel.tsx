@@ -71,7 +71,7 @@ function PanelPage() {
           </div>
           <Button variant="outline" onClick={signOut}>Salir</Button>
         </div>
-        <GestorConsole tenantId={profile.tenant_id} />
+        <GestorConsole tenantId={profile.tenant_id} userId={profile.id} />
       </Shell>
     );
   }
@@ -1327,10 +1327,10 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
  * finished: crear otros gestores y esas transiciones siguen siendo
  * terreno exclusivo de admin/superadmin.
  */
-function GestorConsole({ tenantId }: { tenantId: string }) {
+function GestorConsole({ tenantId, userId }: { tenantId: string; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const load = useCallback(async () => { try { setEvents(await api.listEvents(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  const load = useCallback(async () => { try { setEvents(await api.listAssignedEvents(tenantId, userId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId, userId]);
   useEffect(() => { setSelected(null); load(); }, [load]);
 
   if (selected) return (
