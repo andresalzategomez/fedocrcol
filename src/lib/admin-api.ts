@@ -318,6 +318,17 @@ export async function listEvents(tenantId: string): Promise<EventRow[]> {
   return data as EventRow[];
 }
 
+/**
+ * Carreras que un gestor tiene asignadas. No basta con listEvents(): las carreras publicadas son de
+ * lectura pública, así que el gestor las vería todas aunque no las gestione.
+ */
+export async function listAssignedEvents(tenantId: string, userId: string): Promise<EventRow[]> {
+  const { data, error } = await db().from("event_managers").select("event_id").eq("user_id", userId);
+  if (error) throw error;
+  const assigned = new Set((data ?? []).map((r) => (r as { event_id: string }).event_id));
+  return (await listEvents(tenantId)).filter((e) => assigned.has(e.id));
+}
+
 export async function createEvent(input: {
   tenant_id: string; title: string; date: string; location: string; is_official: boolean; club_id?: string | null; payment_deadline?: string | null;
   distance_km?: number | undefined; obstacles?: number | undefined; max_capacity?: number | undefined; visibility?: "public" | "private";
