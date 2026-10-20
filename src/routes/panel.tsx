@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette, Link2, Banknote } from "lucide-react";
+import { Building2, CalendarPlus, Flag, Users, Timer, Plus, Trash2, Send, CheckCircle2, XCircle, ClipboardCheck, Wand2, Layers, GripVertical, ArrowUp, ArrowDown, FileSpreadsheet, FileText, Hash, RefreshCw, Trophy, Gavel, Mail, UserCog, Palette, Link2, Banknote } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SimpleTable } from "@/components/simple-table";
@@ -372,7 +372,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 const STATUS_LABEL: Record<EventStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Borrador", variant: "secondary" },
-  pending_federation: { label: "Pend. federación", variant: "outline" },
+  pending_federation: { label: "Pend. aprobación", variant: "outline" },
   approved: { label: "Aprobado", variant: "default" },
   in_progress: { label: "En curso", variant: "default" },
   finished: { label: "Finalizado", variant: "secondary" },
@@ -393,6 +393,13 @@ function canManageEvent(event: EventRow, isSuper: boolean, userId: string): bool
   if (event.status === "in_progress" || event.status === "finished") return false;
   if (isSuper) return event.created_by === userId;
   return true;
+}
+/**
+ * Quién aprueba una carrera enviada a revisión: el director de la liga, o la federación si ella la creó.
+ * Espejo de la regla de la base de datos (trigger enforce_events_write_rules).
+ */
+function canApproveEvent(event: EventRow, isSuper: boolean): boolean {
+  return event.approval_by === "federation" ? isSuper : !isSuper;
 }
 const TENANT_STATUS_LABEL: Record<Tenant["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Activa", variant: "default" },
@@ -841,7 +848,7 @@ function AprobacionesCarreras({ tenants }: { tenants: Tenant[] }) {
           </div></TableCell>
         </TableRow>
       ))}
-      {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay carreras pendientes de aprobación.</TableCell></TableRow> : null}
+      {rows.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay carreras de la federación pendientes de aprobación. (Las carreras de las ligas las aprueba el director de cada liga.)</TableCell></TableRow> : null}
     </SimpleTable>
   );
 }
@@ -1220,9 +1227,13 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
             <TableCell><StatusBadge status={e.status} /></TableCell>
             <TableCell><div className="flex flex-col items-start gap-1"><OficialBadge value={e.is_official} /><ResponsableText event={e} /></div></TableCell>
             <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
-              {e.status === "draft" && canManage ? <Button size="sm" variant="secondary" onClick={() => act(e.id, api.submitEvent, "Enviado a aprobación")}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
-              {e.status === "pending_federation" && isSuper ? (<>
-                <Button size="sm" disabled={e.is_official == null} title={e.is_official == null ? "La liga debe indicar si es oficial antes de aprobar" : undefined}
+              {e.status === "draft" && canManage && canApproveEvent(e, isSuper) ? (
+                <Button size="sm" disabled={e.is_official == null} title={e.is_official == null ? "Indica si es oficial antes de aprobar" : undefined}
+                  onClick={() => act(e.id, api.approveEvent, "Carrera aprobada y publicada")}><CheckCircle2 className="mr-1 size-4" />Aprobar y publicar</Button>
+              ) : null}
+              {e.status === "draft" && canManage && !canApproveEvent(e, isSuper) ? <Button size="sm" variant="secondary" onClick={() => act(e.id, api.submitEvent, "Enviado a aprobación")}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}
+              {e.status === "pending_federation" && canApproveEvent(e, isSuper) ? (<>
+                <Button size="sm" disabled={e.is_official == null} title={e.is_official == null ? "Indica si es oficial antes de aprobar" : undefined}
                   onClick={() => act(e.id, api.approveEvent, "Aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
                 <Button size="sm" variant="outline" onClick={() => act(e.id, api.rejectEvent, "Rechazado")}><XCircle className="mr-1 size-4" />Rechazar</Button>
               </>) : null}
@@ -1280,7 +1291,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
           {event.status === "finished" ? "." : " hasta finalizarla."}
         </Note>
       ) : foreignEvent ? (
-        <Note>Esta carrera no la creaste tú. Como superadmin solo puedes ver su información y aprobarla o rechazarla, no modificarla.</Note>
+        <Note>Esta carrera no la creaste tú. Como superadmin solo puedes ver su información, no modificarla (la aprueba el director de su liga).</Note>
       ) : null}
       <Tabs defaultValue="categorias" className="mt-2">
         <TabsList>
@@ -1299,7 +1310,7 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <TabsContent value="oleadas" className="mt-4"><Oleadas tenantId={tenantId} eventId={event.id} eventDate={event.date} locked={!canManage} /></TabsContent>
         <TabsContent value="checkpoints" className="mt-4"><Checkpoints tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="jueces" className="mt-4"><Jueces tenantId={tenantId} locked={!canManage} /></TabsContent>
-        <TabsContent value="gestores" className="mt-4"><Gestores tenantId={tenantId} locked={!canManage} /></TabsContent>
+        <TabsContent value="gestores" className="mt-4"><Gestores tenantId={tenantId} eventId={event.id} locked={!canManage} /></TabsContent>
         <TabsContent value="resultados" className="mt-4"><Resultados event={event} /></TabsContent>
       </Tabs>
     </div>
@@ -1308,8 +1319,8 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 
 // ------------------- Panel restringido: race_manager ------------------
 /**
- * Vista para el rol race_manager: crea carreras, edita sus datos básicos
- * mientras siguen en borrador, y las envía a aprobación. También administra
+ * Vista para el rol race_manager: ve solo las carreras que le asignaron, edita sus datos
+ * básicos mientras siguen en borrador, y las envía a aprobación. También administra
  * categorías, inscritos, oleadas, checkpoints y jueces de sus propias
  * carreras (mismos componentes que usa el admin de liga). A propósito NO
  * incluye la pestaña de Gestores ni el control de estado in_progress/
@@ -1319,36 +1330,8 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
 function GestorConsole({ tenantId }: { tenantId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-
   const load = useCallback(async () => { try { setEvents(await api.listEvents(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
   useEffect(() => { setSelected(null); load(); }, [load]);
-
-  async function create() {
-    const { ok, errors } = validateForm(form, {
-      title: [required("El nombre")], date: [required("La fecha")], location: [required("El lugar")],
-      is_official: [required("Indica si es oficial")], distance_km: [decimalNonNeg("La distancia")],
-    });
-    setErrors(errors as Record<string, string>);
-    if (!ok) return;
-    setBusy(true);
-    try {
-      await api.createEvent({
-        tenant_id: tenantId, title: form.title, date: form.date, location: form.location,
-        is_official: form.is_official === "true",
-        club_id: form.is_official === "true" && form.club_id ? form.club_id : null,
-        payment_deadline: form.payment_deadline || null,
-        visibility: form.visibility === "public" ? "public" : "private",
-        distance_km: form.distance_km ? Number(form.distance_km) : undefined,
-        obstacles: form.obstacles ? Number(form.obstacles) : undefined,
-        max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
-      });
-      toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
-  }
 
   if (selected) return (
     <GestorEventoDetalle tenantId={tenantId} event={selected} onBack={() => setSelected(null)} onEventChanged={(updated) => { setSelected(updated); load(); }} />
@@ -1356,29 +1339,10 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="grid gap-6">
-      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-        <Field label="Nombre *" error={errors["title"]}><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Reto OCR Cali 2026" /></Field>
-        <Field label="Fecha *" error={errors["date"]}><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-        <Field label="Lugar *" error={errors["location"]}><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Parque del Río" /></Field>
-        <Field label="¿Es oficial? *" error={errors["is_official"]}>
-          <Select value={form.is_official} onValueChange={(v) => setForm({ ...form, is_official: v, club_id: v === "true" ? form.club_id : "" })}>
-            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
-            <SelectContent><SelectItem value="true">Sí, oficial</SelectItem><SelectItem value="false">No oficial</SelectItem></SelectContent>
-          </Select>
-        </Field>
-        <ResponsableField tenantId={tenantId} isOfficial={form.is_official} value={form.club_id} onChange={(v) => setForm({ ...form, club_id: v })} />
-        <Field label="Fecha límite de pago"><Input type="date" value={form.payment_deadline} onChange={(e) => setForm({ ...form, payment_deadline: e.target.value })} /></Field>
-        <Field label="Visibilidad">
-          <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="private">Privada</SelectItem><SelectItem value="public">Pública (resultados en vivo)</SelectItem></SelectContent>
-          </Select>
-        </Field>
-        <Field label="Distancia (km)" error={errors["distance_km"]}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
-        <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
-        <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
-        <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
-      </CardContent></Card>
+      <Note>
+        Aquí ves solo las carreras que el director de tu liga te asignó. Tú no creas carreras: preparas su contenido
+        (datos, categorías, oleadas, checkpoints) y la envías a aprobación.
+      </Note>
 
       <SimpleTable head={["Carrera", "Fecha", "Estado", "Oficial", "Acciones"]}>
         {events.map((e) => (
@@ -1393,7 +1357,7 @@ function GestorConsole({ tenantId }: { tenantId: string }) {
             </div></TableCell>
           </TableRow>
         ))}
-        {events.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Aún no has creado carreras.</TableCell></TableRow> : null}
+        {events.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Todavía no tienes carreras asignadas. Pídele al director de tu liga que te asigne una.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -1462,7 +1426,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
         <ResponsableText event={event} />
       </div>
       {locked ? (
-        <Note>Esta carrera ya se envió a revisión — no puedes seguir editando sus datos. Habla con el admin de tu liga si necesitas cambiar algo.</Note>
+        <Note>Esta carrera ya se envió a revisión — no puedes seguir editando sus datos. Habla con el director de tu liga si necesitas cambiar algo.</Note>
       ) : null}
       <Tabs defaultValue="datos">
         <TabsList>
@@ -1536,6 +1500,10 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
     const price = Number(value.replace(/\D/g, "")) || 0;
     try { await api.updateEventCategory(id, { price }); load(); } catch (e) { toast.error((e as Error).message); load(); }
   }
+  async function setAge(id: string, field: "min_age" | "max_age", value: string) {
+    const age = value.replace(/\D/g, "");
+    try { await api.updateEventCategory(id, { [field]: age ? Number(age) : null }); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
   async function setSlots(id: string, value: string) {
     const slots_available = Number(value.replace(/\D/g, "")) || 0;
     try { await api.updateEventCategory(id, { slots_available }); load(); } catch (e) { toast.error((e as Error).message); load(); }
@@ -1568,7 +1536,15 @@ function Categorias({ eventId, locked }: { eventId: string; locked: boolean }) {
               {c.price <= 0 ? <span className="mt-0.5 block text-xs font-normal text-muted-foreground">Sin precio: no aparece en el formulario hasta que le pongas uno</span> : null}
             </TableCell>
             <TableCell>{c.gender ?? "Todos"}</TableCell>
-            <TableCell>{c.min_age ?? "—"}{c.max_age ? `–${c.max_age}` : c.min_age ? "+" : ""}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-1">
+                <Input className="h-8 w-16" inputMode="numeric" placeholder="mín" disabled={locked} defaultValue={c.min_age ?? ""} key={`min-${c.min_age}`}
+                  onBlur={(e) => { if ((e.target.value || null) !== (c.min_age == null ? null : String(c.min_age))) setAge(c.id, "min_age", e.target.value); }} />
+                <span className="text-muted-foreground">–</span>
+                <Input className="h-8 w-16" inputMode="numeric" placeholder="máx" disabled={locked} defaultValue={c.max_age ?? ""} key={`max-${c.max_age}`}
+                  onBlur={(e) => { if ((e.target.value || null) !== (c.max_age == null ? null : String(c.max_age))) setAge(c.id, "max_age", e.target.value); }} />
+              </div>
+            </TableCell>
             <TableCell>
               <Input className="h-8 w-28" inputMode="numeric" disabled={locked} defaultValue={c.price} key={c.price}
                 onBlur={(e) => { if (Number(e.target.value) !== c.price) setPrice(c.id, e.target.value); }} />
@@ -1969,8 +1945,10 @@ function Checkpoints({ tenantId, eventId, locked }: { tenantId: string; eventId:
   const [rows, setRows] = useState<api.Checkpoint[]>([]);
   const [judges, setJudges] = useState<api.Judge[]>([]);
   const [checkpointJudge, setCheckpointJudge] = useState<Record<string, string>>({}); // checkpoint_id -> judge_id
-  const [form, setForm] = useState({ name: "", ord: "1", is_start: false, is_finish: false, judge_id: "" });
+  const [form, setForm] = useState({ name: "", judge_id: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [cps, js, byJudge] = await Promise.all([api.listCheckpoints(eventId), api.listJudges(tenantId), api.listCheckpointJudges(eventId)]);
@@ -1985,32 +1963,63 @@ function Checkpoints({ tenantId, eventId, locked }: { tenantId: string; eventId:
   }, [eventId, tenantId]);
   useEffect(() => { load(); }, [load]);
 
+  /** Salida = primero de la lista, Meta = último; lo demás es intermedio. */
+  const typeOf = (index: number) => (index === 0 ? "Salida" : index === rows.length - 1 ? "Meta" : "Intermedio");
+
+  /** Un juez puede tener máximo 2 checkpoints por carrera: avisa antes del segundo y bloquea el tercero. */
+  function confirmJudgeLimit(judgeId: string, exceptCheckpointId?: string): boolean {
+    const judge = judges.find((j) => j.id === judgeId);
+    const name = judge?.full_name ?? "Este juez";
+    const current = Object.entries(checkpointJudge).filter(([cpId, jId]) => jId === judgeId && cpId !== exceptCheckpointId).length;
+    if (current >= 2) {
+      toast.error(`${name} ya tiene 2 checkpoints en esta carrera. El máximo por juez es 2.`);
+      return false;
+    }
+    if (current === 1) {
+      return confirm(`${name} ya tiene un checkpoint en esta carrera. ¿Seguro que quieres asignarle un segundo? (Máximo 2 por juez)`);
+    }
+    return true;
+  }
+
   async function add() {
-    const { ok, errors } = validateForm(form, { name: [required("El nombre")], ord: [positiveInt("El orden")] });
+    const { ok, errors } = validateForm(form, { name: [required("El nombre")] });
     setErrors(errors as Record<string, string>); if (!ok) return;
+    if (form.judge_id && !confirmJudgeLimit(form.judge_id)) return;
     try {
-      const id = await api.createCheckpoint(tenantId, eventId, { name: form.name, ord: Number(form.ord), is_start: form.is_start, is_finish: form.is_finish });
+      const id = await api.createCheckpoint(tenantId, eventId, { name: form.name });
       if (form.judge_id) await api.assignJudgeToCheckpoint(tenantId, id, form.judge_id);
-      toast.success("Checkpoint agregado");
-      setForm({ name: "", ord: String(Number(form.ord) + 1), is_start: false, is_finish: false, judge_id: "" }); setErrors({}); load();
-    } catch (e) { toast.error((e as Error).message); }
+      toast.success("Checkpoint agregado al final de la lista");
+      setForm({ name: "", judge_id: "" }); setErrors({}); load();
+    } catch (e) { toast.error((e as Error).message); load(); }
   }
   async function setJudgeFor(checkpointId: string, newJudgeId: string) {
     const prev = checkpointJudge[checkpointId];
+    if (newJudgeId && newJudgeId !== prev && !confirmJudgeLimit(newJudgeId, checkpointId)) return;
     try {
       if (prev && prev !== newJudgeId) await api.unassignJudgeFromCheckpoint(checkpointId, prev);
       if (newJudgeId) await api.assignJudgeToCheckpoint(tenantId, checkpointId, newJudgeId);
       load();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { toast.error((e as Error).message); load(); }
   }
+  async function move(fromId: string, toIndex: number) {
+    const from = rows.findIndex((r) => r.id === fromId);
+    if (from < 0 || from === toIndex || toIndex < 0 || toIndex >= rows.length) return;
+    const next = [...rows];
+    const item = next.splice(from, 1)[0]!;
+    next.splice(toIndex, 0, item);
+    setRows(next.map((r, i) => ({ ...r, ord: i + 1, is_start: i === 0, is_finish: i === next.length - 1 && next.length > 1 })));
+    try { await api.reorderCheckpoints(eventId, next.map((r) => r.id)); } catch (e) { toast.error((e as Error).message); }
+    load();
+  }
+  async function remove(id: string) {
+    try { await api.deleteCheckpoint(id, eventId); load(); } catch (e) { toast.error((e as Error).message); load(); }
+  }
+
   return (
     <div className="grid gap-4">
       {!locked ? (
-        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-6">
-          <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Meta" /></Field>
-          <Field label="Orden *" error={errors["ord"]}><Input inputMode="numeric" value={form.ord} onChange={(e) => setForm({ ...form, ord: e.target.value.replace(/\D/g, "") })} /></Field>
-          <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_start} onCheckedChange={(v) => setForm({ ...form, is_start: v })} />Salida</label>
-          <label className="flex items-center gap-2 text-sm"><Switch checked={form.is_finish} onCheckedChange={(v) => setForm({ ...form, is_finish: v })} />Meta</label>
+        <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-4">
+          <Field label="Nombre *" error={errors["name"]}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Obstáculo 1" /></Field>
           <Field label="Juez">
             <Select value={form.judge_id} onValueChange={(v) => setForm({ ...form, judge_id: v })}>
               <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
@@ -2018,22 +2027,42 @@ function Checkpoints({ tenantId, eventId, locked }: { tenantId: string; eventId:
             </Select>
           </Field>
           <div className="flex items-end"><Button onClick={add}><Plus className="mr-1 size-4" />Agregar</Button></div>
+          <p className="text-xs text-muted-foreground sm:col-span-4">
+            El primer checkpoint de la lista es la <strong>Salida</strong> y el último es la <strong>Meta</strong>; el resto son intermedios.
+            Arrastra las filas (o usa las flechas) para cambiar el orden. Un juez puede atender máximo 2 checkpoints por carrera.
+          </p>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Orden", "Nombre", "Tipo", "Juez", ""]}>
-        {rows.map((c) => (
-          <TableRow key={c.id}>
+      <SimpleTable head={["", "Orden", "Nombre", "Tipo", "Juez", ""]}>
+        {rows.map((c, i) => (
+          <TableRow
+            key={c.id}
+            draggable={!locked}
+            onDragStart={() => setDragId(c.id)}
+            onDragOver={(e) => { if (dragId) { e.preventDefault(); setOverId(c.id); } }}
+            onDrop={(e) => { e.preventDefault(); if (dragId) move(dragId, i); setDragId(null); setOverId(null); }}
+            onDragEnd={() => { setDragId(null); setOverId(null); }}
+            className={[dragId === c.id ? "opacity-40" : "", overId === c.id && dragId !== c.id ? "bg-primary/10" : ""].join(" ")}
+          >
+            <TableCell className="w-10">{!locked ? <GripVertical className="size-4 cursor-grab text-muted-foreground" /> : null}</TableCell>
             <TableCell>{c.ord}</TableCell><TableCell className="font-medium">{c.name}</TableCell>
-            <TableCell>{c.is_start ? "Salida" : c.is_finish ? "Meta" : "Intermedio"}</TableCell>
+            <TableCell>{typeOf(i)}</TableCell>
             <TableCell>
               <Select value={checkpointJudge[c.id] ?? ""} onValueChange={(v) => setJudgeFor(c.id, v)} disabled={locked}>
                 <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                 <SelectContent>{judges.map((j) => <SelectItem key={j.id} value={j.id}>{j.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </TableCell>
-            <TableCell className="text-right">{!locked ? <Button size="sm" variant="ghost" onClick={async () => { await api.deleteCheckpoint(c.id); load(); }}><Trash2 className="size-4" /></Button> : null}</TableCell>
+            <TableCell className="text-right">{!locked ? (
+              <div className="flex justify-end gap-1">
+                <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => move(c.id, i - 1)} aria-label="Subir"><ArrowUp className="size-4" /></Button>
+                <Button size="sm" variant="ghost" disabled={i === rows.length - 1} onClick={() => move(c.id, i + 1)} aria-label="Bajar"><ArrowDown className="size-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="size-4" /></Button>
+              </div>
+            ) : null}</TableCell>
           </TableRow>
         ))}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Aún no hay checkpoints. El primero que agregues será la Salida.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -2139,16 +2168,28 @@ function Jueces({ tenantId, locked }: { tenantId: string; locked: boolean }) {
   );
 }
 
-function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
+function Gestores({ tenantId, eventId, locked }: { tenantId: string; eventId: string; locked: boolean }) {
   const [managers, setManagers] = useState<api.RaceManager[]>([]);
+  const [assigned, setAssigned] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({ full_name: "", email: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => setManagers(await api.listRaceManagers(tenantId)), [tenantId]);
+  const load = useCallback(async () => {
+    const [list, ids] = await Promise.all([api.listRaceManagers(tenantId), api.listEventManagerIds(eventId)]);
+    setManagers(list); setAssigned(new Set(ids));
+  }, [tenantId, eventId]);
   useEffect(() => { load(); }, [load]);
+
+  async function toggleAssigned(m: api.RaceManager, on: boolean) {
+    try {
+      if (on) await api.assignEventManager(eventId, m.id); else await api.unassignEventManager(eventId, m.id);
+      toast.success(on ? `${m.full_name ?? m.email} ahora gestiona esta carrera` : `${m.full_name ?? m.email} ya no gestiona esta carrera`);
+      load();
+    } catch (e) { toast.error((e as Error).message); load(); }
+  }
 
   async function invite() {
     const { ok, errors } = validateForm(form, { full_name: [required("El nombre")], email: [required("El correo")] });
@@ -2191,14 +2232,18 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
           <Field label="Correo *" error={errors["email"]}><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <div className="flex items-end sm:col-span-2"><Button onClick={invite} disabled={inviting}><Mail className="mr-1 size-4" />Invitar gestor</Button></div>
           <p className="sm:col-span-4 text-xs text-muted-foreground">
-            Un gestor de carreras solo puede crear y editar carreras de tu liga (oficiales o no) — no puede aprobar
-            eventos, ni gestionar categorías, inscritos, checkpoints, jueces u otros usuarios.
+            Un gestor de carreras solo ve y prepara las carreras que le asignes aquí (datos, categorías, oleadas, checkpoints) y las
+            envía a aprobación; no crea carreras ni gestiona otros usuarios. Marca "Asignado" en los gestores que trabajarán esta carrera.
           </p>
         </CardContent></Card>
       ) : null}
-      <SimpleTable head={["Nombre", "Correo", "Estado", "Acciones"]}>
+      <SimpleTable head={["Asignado a esta carrera", "Nombre", "Correo", "Estado", "Acciones"]}>
         {managers.map((m) => (
           <TableRow key={m.id}>
+            <TableCell>
+              <Switch checked={assigned.has(m.id)} disabled={locked || !m.password_set_at} onCheckedChange={(v) => toggleAssigned(m, v)}
+                title={!m.password_set_at ? "Podrás asignarlo cuando cree su contraseña" : undefined} />
+            </TableCell>
             <TableCell className="font-medium">{m.full_name ?? "—"}</TableCell>
             <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
             <TableCell>
@@ -2218,7 +2263,7 @@ function Gestores({ tenantId, locked }: { tenantId: string; locked: boolean }) {
             </TableCell>
           </TableRow>
         ))}
-        {managers.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin gestores de carreras aún. Invita al primero arriba.</TableCell></TableRow> : null}
+        {managers.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin gestores de carreras aún. Invita al primero arriba.</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
