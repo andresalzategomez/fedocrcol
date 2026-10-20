@@ -488,6 +488,11 @@ function EventDetail() {
                     ? " -- la fecha de la carrera ya pasó."
                     : ` -- el plazo de pago venció el ${formatDate(event.payment_deadline as string)}. Si necesitas inscribirte, comunícate con tu liga.`}
               </div>
+            ) : profile && profile.role !== "athlete" ? (
+              <div className="mt-6 rounded-lg border border-border/70 bg-accent/40 p-5 text-sm text-muted-foreground">
+                Este formulario es solo para atletas. Con tu cuenta de administración no puedes inscribirte: comparte el link de inscripción
+                con los atletas desde el panel (botón “Copiar link de inscripción”).
+              </div>
             ) : hasCompleteProfile ? (
               <form onSubmit={onQuickSubmit} className="mt-6 grid gap-5">
                 <div className="rounded-lg border border-border/70 bg-accent/40 p-4 text-sm">

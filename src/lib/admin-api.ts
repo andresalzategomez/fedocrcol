@@ -107,6 +107,8 @@ export interface EventRow {
   /** Cuándo el director extendió el plazo por última vez (posponerlo o quitarlo). */
   payment_deadline_extended_at?: string | null;
   created_by: string | null;
+  /** Quién aprueba la carrera cuando un gestor la envía: el director de la liga o la federación (si ella la creó). */
+  approval_by?: "league" | "federation";
   visibility: "public" | "private";
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
@@ -451,12 +453,22 @@ export async function listCollectionsReport(): Promise<CobroCarrera[]> {
   });
 }
 
+/** "18-29 Femenino" → 18–29; "50+ Masculino" → desde 50; sin edad en el nombre → sin rango. */
+export function ageRangeFromName(name: string): { min_age: number | null; max_age: number | null } {
+  const range = name.match(/(\d{1,2})\s*-\s*(\d{1,2})/);
+  if (range) return { min_age: Number(range[1]), max_age: Number(range[2]) };
+  const open = name.match(/(\d{1,2})\s*\+/);
+  if (open) return { min_age: Number(open[1]), max_age: null };
+  return { min_age: null, max_age: null };
+}
+
 /** Copia el catálogo nacional de categorías al maestro de esta carrera. */
 export async function seedStandardCategories(eventId: string): Promise<void> {
   const cats = await listCategories();
   if (!cats.length) return;
   const rows = cats.map((c) => ({
     event_id: eventId, name: c.name, gender: (c as unknown as { gender: string }).gender ?? null,
+    ...ageRangeFromName(c.name),
     price: 0, slots_available: 0,
   }));
   // Evitar duplicados si ya hay categorías con esos nombres.
@@ -469,25 +481,25 @@ export async function seedStandardCategories(eventId: string): Promise<void> {
   }
 }
 
-/** Eventos pendientes de aprobación de la federación (todas las ligas). */
+/** Carreras pendientes de aprobación de la federación: solo las que ella misma creó (las de las ligas las aprueba su director). */
 export async function listPendingFederation(): Promise<EventRow[]> {
-  const { data, error } = await db().from("events").select("*").eq("status", "pending_federation").order("date");
+  const { data, error } = await db().from("events").select("*").eq("status", "pending_federation").eq("approval_by", "federation").order("date");
   if (error) throw error;
   return data as EventRow[];
 }
 
-/** La liga envía el evento a aprobación de la federación. */
+/** Envía la carrera a aprobación (la aprueba el director de la liga, o la federación si ella la creó). */
 export async function submitEvent(id: string) {
   const { error } = await db().from("events")
-    .update({ status: "pending_federation", league_approved: true, submitted_at: new Date().toISOString() })
+    .update({ status: "pending_federation", submitted_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
 }
 
-/** La federación aprueba el evento (queda publicado y descargable por el Timer). */
+/** Aprueba el evento (queda publicado y descargable por el Timer). Lo hace quien corresponde según approval_by. */
 export async function approveEvent(id: string) {
   const { error } = await db().from("events")
-    .update({ status: "approved", federation_approved: true, published: true, approved_at: new Date().toISOString() })
+    .update({ status: "approved", league_approved: true, federation_approved: true, published: true, approved_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
 }
@@ -525,7 +537,7 @@ export async function createEventCategory(eventId: string, input: {
 }
 
 /** Precio y cupos de una categoría -- sin esto quedan en 0 y el formulario público nunca la deja seleccionar. */
-export async function updateEventCategory(id: string, patch: { price?: number; slots_available?: number }) {
+export async function updateEventCategory(id: string, patch: { price?: number; slots_available?: number; min_age?: number | null; max_age?: number | null }) {
   const { error } = await db().from("event_categories").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -546,28 +558,34 @@ export async function listCheckpoints(eventId: string): Promise<Checkpoint[]> {
   if (error) throw error;
   return data as Checkpoint[];
 }
-export async function createCheckpoint(tenantId: string, eventId: string, input: {
-  name: string; ord: number; is_start: boolean; is_finish: boolean;
-}): Promise<string> {
-  // Regla de negocio: solo puede haber un checkpoint de salida por carrera.
-  if (input.is_start) {
-    const existing = await listCheckpoints(eventId);
-    if (existing.some((c) => c.is_start)) {
-      throw new Error("Ya existe un checkpoint de salida para esta carrera");
-    }
-  }
-  const { data, error } = await db().from("checkpoints").insert({ tenant_id: tenantId, event_id: eventId, ...input }).select("id").single();
-  if (error) {
-    if ((error as { code?: string }).code === "23505") {
-      throw new Error(`Ya existe un checkpoint con el orden ${input.ord} en esta carrera`);
-    }
-    throw error;
-  }
-  return (data as { id: string }).id;
+/**
+ * Crea el checkpoint al final de la lista. Salida (primero) y Meta (último) ya no se marcan a mano:
+ * se deducen del orden (ver reorder_checkpoints en la base de datos).
+ */
+export async function createCheckpoint(tenantId: string, eventId: string, input: { name: string }): Promise<string> {
+  const existing = await listCheckpoints(eventId);
+  const ord = existing.reduce((m, c) => Math.max(m, c.ord), 0) + 1;
+  const { data, error } = await db().from("checkpoints")
+    .insert({ tenant_id: tenantId, event_id: eventId, name: input.name, ord, is_start: false, is_finish: false })
+    .select("id").single();
+  if (error) throw error;
+  const id = (data as { id: string }).id;
+  await reorderCheckpoints(eventId, [...existing.map((c) => c.id), id]);
+  return id;
 }
-export async function deleteCheckpoint(id: string) {
+
+/** Fija el orden consecutivo (1..N) según la lista y recalcula Salida (primero) y Meta (último). */
+export async function reorderCheckpoints(eventId: string, orderedIds: string[]): Promise<void> {
+  const { error } = await db().rpc("reorder_checkpoints", { p_event_id: eventId, p_ids: orderedIds });
+  if (error) throw error;
+}
+
+/** Elimina el checkpoint y reacomoda el orden para que quede consecutivo. */
+export async function deleteCheckpoint(id: string, eventId: string) {
   const { error } = await db().from("checkpoints").delete().eq("id", id);
   if (error) throw error;
+  const remaining = await listCheckpoints(eventId);
+  if (remaining.length) await reorderCheckpoints(eventId, remaining.map((c) => c.id));
 }
 
 // ------------------------------- Jueces -------------------------------
@@ -614,6 +632,24 @@ export async function listRaceManagers(tenantId: string): Promise<RaceManager[]>
 /** Invita a un gestor de carreras por correo (crea su cuenta vía service_role en el servidor). Requiere sesión activa. */
 export async function inviteRaceManager(input: { full_name: string; email: string }): Promise<RaceManager> {
   return (await authFetch("/api/admin/race-managers", input)) as RaceManager;
+}
+
+/** IDs de los gestores asignados a una carrera. */
+export async function listEventManagerIds(eventId: string): Promise<string[]> {
+  const { data, error } = await db().from("event_managers").select("user_id").eq("event_id", eventId);
+  if (error) throw error;
+  return (data ?? []).map((r) => (r as { user_id: string }).user_id);
+}
+
+/** Asigna un gestor a la carrera (lo hace el director de la liga, o la federación si ella la creó). */
+export async function assignEventManager(eventId: string, userId: string): Promise<void> {
+  const { error } = await db().from("event_managers").insert({ event_id: eventId, user_id: userId, tenant_id: "00000000-0000-0000-0000-000000000000" });
+  if (error && (error as { code?: string }).code !== "23505") throw error;
+}
+
+export async function unassignEventManager(eventId: string, userId: string): Promise<void> {
+  const { error } = await db().from("event_managers").delete().eq("event_id", eventId).eq("user_id", userId);
+  if (error) throw error;
 }
 
 /** Elimina la cuenta de un gestor de carreras (invitación pendiente o ya aceptada). Requiere sesión activa. */
