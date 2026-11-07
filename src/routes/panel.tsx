@@ -190,7 +190,7 @@ function AffiliationPaymentNote({ tenantId, onActivated }: { tenantId: string; o
       <p className="mb-1">Tu liga fue <strong>aprobada</strong> por la federación. Para activarla falta pagar la cuota de afiliación:</p>
       <p className="mb-3 font-display text-2xl">{formatCOP(payment.amount)}</p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => window.open(payment.payment_url, "_blank", "noopener,noreferrer")}>Pagar la afiliación</Button>
+        <Button size="sm" onClick={() => payment.payment_url && window.open(payment.payment_url, "_blank", "noopener,noreferrer")}>Pagar la afiliación</Button>
         <Button size="sm" variant="outline" onClick={check} disabled={checking}>{checking ? "Verificando..." : "Ya pagué, verificar"}</Button>
       </div>
       {payment.expires_at ? (
@@ -858,6 +858,7 @@ function AprobacionesLigas() {
   const [payments, setPayments] = useState<Record<string, api.LeaguePayment>>({});
   const [approving, setApproving] = useState<Tenant | null>(null);
   const [amount, setAmount] = useState("");
+  const [exempt, setExempt] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -871,11 +872,22 @@ function AprobacionesLigas() {
 
   function openApprove(t: Tenant) {
     setApproving(t);
-    setAmount(payments[t.id] ? String(payments[t.id]!.amount) : "");
+    setExempt(false);
+    setAmount(payments[t.id] && payments[t.id]!.amount > 0 ? String(payments[t.id]!.amount) : "");
   }
 
   async function confirmApprove() {
     if (!approving) return;
+    if (exempt) {
+      setBusy(approving.id);
+      try {
+        await api.approveLeagueExempt(approving.id);
+        toast.success("Liga aprobada sin cobro: ya está activa y se avisó a su administrador");
+        setApproving(null);
+        load();
+      } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+      return;
+    }
     const value = Number(amount.replace(/\D/g, ""));
     if (!Number.isInteger(value) || value < 1000 || value > 10_000_000) {
       toast.error("Ingresa un monto entre $1.000 y $10.000.000");
@@ -935,7 +947,7 @@ function AprobacionesLigas() {
               <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
                 {waiting ? (<>
                   <Button size="sm" disabled={busy === t.id} onClick={() => verify(t)}><RefreshCw className="mr-1 size-4" />Verificar pago</Button>
-                  {pay ? <Button size="sm" variant="outline" onClick={() => copyLink(pay.payment_url)}><Link2 className="mr-1 size-4" />Copiar link</Button> : null}
+                  {pay?.payment_url ? <Button size="sm" variant="outline" onClick={() => copyLink(pay.payment_url as string)}><Link2 className="mr-1 size-4" />Copiar link</Button> : null}
                   <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => openApprove(t)}><Mail className="mr-1 size-4" />Reenviar</Button>
                 </>) : (
                   <Button size="sm" disabled={busy === t.id} onClick={() => openApprove(t)}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
@@ -957,13 +969,20 @@ function AprobacionesLigas() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="affiliation-amount">Cuota de afiliación (COP)</Label>
-            <Input id="affiliation-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500000" />
-            <p className="text-xs text-muted-foreground">Entre $1.000 y $10.000.000 (tarjeta y PSE llegan hasta $5.000.000 en Bold).</p>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={exempt} onCheckedChange={setExempt} />Eximir del pago de afiliación
+            </label>
+            {exempt ? (
+              <p className="text-xs text-muted-foreground">La liga queda activa de inmediato y su administrador recibe un correo. No se crea link de pago.</p>
+            ) : (<>
+              <Label htmlFor="affiliation-amount">Cuota de afiliación (COP)</Label>
+              <Input id="affiliation-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500000" />
+              <p className="text-xs text-muted-foreground">Entre $1.000 y $10.000.000 (tarjeta y PSE llegan hasta $5.000.000 en Bold).</p>
+            </>)}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproving(null)}>Cancelar</Button>
-            <Button onClick={confirmApprove} disabled={busy !== null}>{busy ? "Enviando..." : "Aprobar y enviar link"}</Button>
+            <Button onClick={confirmApprove} disabled={busy !== null}>{busy ? "Enviando..." : exempt ? "Aprobar sin cobro" : "Aprobar y enviar link"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1128,7 +1147,7 @@ function ReporteCobros() {
 function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSuper: boolean; userId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selected, setSelected] = useState<EventRow | null>(null);
-  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" });
+  const [form, setForm] = useState({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "", includes_shirt: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -1153,9 +1172,10 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
         distance_km: form.distance_km ? Number(form.distance_km) : undefined,
         obstacles: form.obstacles ? Number(form.obstacles) : undefined,
         max_capacity: form.max_capacity ? Number(form.max_capacity) : undefined,
+        includes_shirt: form.includes_shirt,
       });
       toast.success("Carrera creada (en borrador)");
-      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "" }); setErrors({}); load();
+      setForm({ title: "", date: "", location: "", is_official: "", club_id: "", payment_deadline: "", visibility: "private", distance_km: "", obstacles: "", max_capacity: "", includes_shirt: false }); setErrors({}); load();
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
@@ -1206,6 +1226,7 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
         <Field label="Distancia (km)" error={errors["distance_km"]}><Input inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} placeholder="5" /></Field>
         <Field label="Obstáculos"><Input inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} placeholder="20" /></Field>
         <Field label="Cupos"><Input inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} placeholder="300" /></Field>
+        <label className="flex items-center gap-2 text-sm sm:col-span-3"><Switch checked={form.includes_shirt} onCheckedChange={(v) => setForm({ ...form, includes_shirt: v })} />La carrera incluye camiseta (el formulario pedirá nombre y talla)</label>
         <div className="sm:col-span-3"><Button onClick={create} disabled={busy}><CalendarPlus className="mr-1 size-4" />Crear carrera</Button></div>
       </CardContent></Card>
 
@@ -1258,6 +1279,16 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
   const locked = event.status === "in_progress" || event.status === "finished";
   const foreignEvent = isSuper && event.created_by !== userId && !locked;
 
+  async function toggleShirt(value: boolean) {
+    setBusy(true);
+    try {
+      await api.updateEvent(event.id, { includes_shirt: value });
+      const fresh = (await api.listEvents(tenantId)).find((e) => e.id === event.id);
+      toast.success(value ? "La inscripción ahora pide camiseta" : "La inscripción ya no pide camiseta");
+      if (fresh) onEventChanged(fresh);
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
   async function changeStatus(status: api.EventStatus, msg: string) {
     setBusy(true);
     try {
@@ -1284,6 +1315,10 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         ) : null}
       </div>
       <p className="text-sm text-muted-foreground">{event.date} · {event.location}</p>
+      <label className="flex items-center gap-2 text-sm">
+        <Switch disabled={!canManage || busy} checked={Boolean(event.includes_shirt)} onCheckedChange={toggleShirt} />
+        La carrera incluye camiseta (el formulario de inscripción pide nombre y talla)
+      </label>
       {locked ? (
         <Note>
           Esta carrera ya está <strong>{event.status === "finished" ? "finalizada" : "en curso"}</strong>: no se
@@ -1377,6 +1412,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
     distance_km: event.distance_km != null ? String(event.distance_km) : "",
     obstacles: event.obstacles != null ? String(event.obstacles) : "",
     max_capacity: String(event.max_capacity ?? ""),
+    includes_shirt: Boolean(event.includes_shirt),
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -1398,6 +1434,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
       distance_km: form.distance_km ? Number(form.distance_km) : null,
       obstacles: form.obstacles ? Number(form.obstacles) : null,
       max_capacity: form.max_capacity ? Number(form.max_capacity) : 0,
+      includes_shirt: form.includes_shirt,
     };
     try {
       await api.updateEvent(event.id, patch);
@@ -1459,6 +1496,7 @@ function GestorEventoDetalle({ tenantId, event, onBack, onEventChanged }: { tena
             <Field label="Distancia (km)" error={errors["distance_km"]}><Input disabled={locked} inputMode="decimal" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} /></Field>
             <Field label="Obstáculos"><Input disabled={locked} inputMode="numeric" value={form.obstacles} onChange={(e) => setForm({ ...form, obstacles: e.target.value.replace(/\D/g, "") })} /></Field>
             <Field label="Cupos"><Input disabled={locked} inputMode="numeric" value={form.max_capacity} onChange={(e) => setForm({ ...form, max_capacity: e.target.value.replace(/\D/g, "") })} /></Field>
+            <label className="flex items-center gap-2 text-sm sm:col-span-3"><Switch disabled={locked} checked={form.includes_shirt} onCheckedChange={(v) => setForm({ ...form, includes_shirt: v })} />La carrera incluye camiseta (el formulario pedirá nombre y talla)</label>
             <div className="flex gap-2 sm:col-span-3">
               {!locked ? <Button onClick={save} disabled={busy}>Guardar cambios</Button> : null}
               {event.status === "draft" ? <Button variant="secondary" onClick={submit} disabled={busy}><Send className="mr-1 size-4" />Enviar a aprobación</Button> : null}

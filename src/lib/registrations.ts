@@ -17,8 +17,9 @@ export type RegistrationInput = {
     blood_type: string;
     emergency_contact_name: string;
     emergency_contact_phone: string;
-    shirt_name: string;
-    shirt_size: string;
+    /** Solo en carreras que entregan camiseta. */
+    shirt_name?: string | undefined;
+    shirt_size?: string | undefined;
   };
 };
 
@@ -56,8 +57,8 @@ export async function createRegistration(input: RegistrationInput) {
       athlete_blood_type: input.athlete.blood_type,
       athlete_emergency_contact_name: input.athlete.emergency_contact_name,
       athlete_emergency_contact_phone: input.athlete.emergency_contact_phone,
-      athlete_shirt_name: input.athlete.shirt_name,
-      athlete_shirt_size: input.athlete.shirt_size,
+      athlete_shirt_name: input.athlete.shirt_name || null,
+      athlete_shirt_size: input.athlete.shirt_size || null,
     });
     if (error) {
       if (error.code === "23505") {
@@ -73,8 +74,8 @@ export async function createRegistration(input: RegistrationInput) {
         blood_type: input.athlete.blood_type,
         emergency_contact_name: input.athlete.emergency_contact_name,
         emergency_contact_phone: input.athlete.emergency_contact_phone,
-        shirt_name: input.athlete.shirt_name,
-        shirt_size: input.athlete.shirt_size,
+        // Sin camiseta en esta carrera: no se pisan los datos de camiseta ya guardados en el perfil.
+        ...(input.athlete.shirt_name ? { shirt_name: input.athlete.shirt_name, shirt_size: input.athlete.shirt_size || null } : {}),
       }).eq("id", userData.user.id);
     }
   }

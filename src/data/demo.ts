@@ -35,6 +35,7 @@ export type OcrEvent = {
   categories: EventCategory[];
   visibility?: "public" | "private";
   payment_deadline?: string | null;
+  includes_shirt?: boolean;
   status?: "draft" | "pending_federation" | "approved" | "in_progress" | "finished" | "cancelled";
 };
 

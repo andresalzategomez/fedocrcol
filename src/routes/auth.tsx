@@ -196,11 +196,11 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
   const [tenant, setTenant] = useState("");
-  const [club, setClub] = useState(INDEPENDIENTE);
+  const [club, setClub] = useState("");
   const [clubs, setClubs] = useState<PublicClub[]>([]);
 
   useEffect(() => {
-    setClub(INDEPENDIENTE);
+    setClub("");
     if (!tenant) { setClubs([]); return; }
     listClubsForTenant(tenant).then(setClubs).catch(() => setClubs([]));
   }, [tenant]);
@@ -210,6 +210,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
     if (!tenant) { toast.error("Selecciona tu liga"); return; }
     if (!documentType) { toast.error("Selecciona el tipo de documento"); return; }
     if (!gender) { toast.error("Selecciona el género"); return; }
+    if (!club) { toast.error("Elige tu club o marca que eres independiente"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/public/register-athlete", {
@@ -218,6 +219,7 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
         body: JSON.stringify({
           email, password, full_name: fullName, tenant_id: tenant,
           club_id: club === INDEPENDIENTE ? undefined : club,
+          independent: club === INDEPENDIENTE,
           document_type: documentType, document_id: documentId, birth_date: birthDate, phone, gender,
         }),
       });
@@ -288,9 +290,9 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
       </div>
       {tenant ? (
         <div className="grid gap-2 sm:col-span-2">
-          <Label>Club (opcional)</Label>
+          <Label>Club</Label>
           <Select value={club} onValueChange={setClub}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Elige tu club o Independiente" /></SelectTrigger>
             <SelectContent>
               <SelectItem value={INDEPENDIENTE}>Independiente</SelectItem>
               {clubs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -305,15 +307,16 @@ function AthleteSignupForm({ tenants }: { tenants: Tenant[] }) {
 
 function ClubSignupForm({ tenants }: { tenants: Tenant[] }) {
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<"league" | "federation" | null>(null);
+  const [done, setDone] = useState<"league" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [clubName, setClubName] = useState("");
-  const [tenant, setTenant] = useState(INDEPENDIENTE);
+  const [tenant, setTenant] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!tenant) { toast.error("Selecciona la liga a la que pertenece tu club"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/public/register-club", {
@@ -321,12 +324,12 @@ function ClubSignupForm({ tenants }: { tenants: Tenant[] }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email, password, full_name: fullName, club_name: clubName,
-          tenant_id: tenant === INDEPENDIENTE ? undefined : tenant,
+          tenant_id: tenant,
         }),
       });
-      const body = await res.json().catch(() => ({}) as { error?: { message?: string }; pending_approval_by?: "league" | "federation" });
+      const body = await res.json().catch(() => ({}) as { error?: { message?: string } });
       if (!res.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "No se pudo registrar el club");
-      setDone((body as { pending_approval_by?: "league" | "federation" }).pending_approval_by ?? "federation");
+      setDone("league");
     } catch (err) { toast.error((err as Error).message); } finally { setLoading(false); }
   }
 
@@ -336,8 +339,8 @@ function ClubSignupForm({ tenants }: { tenants: Tenant[] }) {
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
         <p>
           Tu club quedó registrado. Ya puedes iniciar sesión, pero está{" "}
-          <strong>pendiente de aprobación</strong>{" "}
-          {done === "league" ? "de la liga que elegiste" : "de la federación"} antes de poder operar.
+          <strong>pendiente de aprobación</strong> de la liga que elegiste antes de poder operar.
+          Le avisamos a la liga y te enviamos un correo de confirmación.
         </p>
       </div>
     );
@@ -362,16 +365,15 @@ function ClubSignupForm({ tenants }: { tenants: Tenant[] }) {
         <Input id="c-club" required value={clubName} onChange={(e) => setClubName(e.target.value)} />
       </div>
       <div className="grid gap-2">
-        <Label>Liga (opcional)</Label>
+        <Label>Liga</Label>
         <Select value={tenant} onValueChange={setTenant}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Selecciona la liga de tu club" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={INDEPENDIENTE}>Ninguna — club independiente</SelectItem>
             {tenants.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Si eliges una liga, ella debe aprobar tu club. Si no, la federación decide.
+          La liga que elijas debe aprobar tu club antes de que quede activo.
         </p>
       </div>
       <Button type="submit" disabled={loading}>{loading ? "Registrando..." : "Registrar club"}</Button>
