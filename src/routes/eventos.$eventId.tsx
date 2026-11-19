@@ -39,8 +39,9 @@ const schema = z.object({
   blood_type: z.enum(BLOOD_TYPES, { message: "Selecciona tu RH" }),
   emergency_contact_name: z.string().min(3, "Escribe el nombre de contacto"),
   emergency_contact_phone: z.string().min(7, "Teléfono inválido"),
-  shirt_name: z.string().min(1, "Escribe el nombre para la camiseta"),
-  shirt_size: z.enum(SHIRT_SIZES, { message: "Selecciona la talla" }),
+  // Solo se exigen en carreras que entregan camiseta (event.includes_shirt): se valida en onSubmit.
+  shirt_name: z.string().optional(),
+  shirt_size: z.enum(SHIRT_SIZES).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -346,7 +347,7 @@ function EventDetail() {
   async function registerForCategory(categoryId: string, athlete: {
     full_name: string; document_id: string; email: string; phone: string; birth_date: string; gender: "F" | "M";
     social_media?: string | undefined; eps: string; blood_type: string; emergency_contact_name: string;
-    emergency_contact_phone: string; shirt_name: string; shirt_size: string;
+    emergency_contact_phone: string; shirt_name?: string | undefined; shirt_size?: string | undefined;
   }) {
     if (registrationsClosed) {
       toast.error("Las inscripciones para esta carrera están cerradas.");
@@ -401,7 +402,11 @@ function EventDetail() {
   }
 
   async function onSubmit(values: FormValues) {
-    await registerForCategory(values.category_id, values);
+    if (event.includes_shirt) {
+      if (!values.shirt_name?.trim()) { form.setError("shirt_name", { message: "Escribe el nombre para la camiseta" }); return; }
+      if (!values.shirt_size) { form.setError("shirt_size", { message: "Selecciona la talla" }); return; }
+    }
+    await registerForCategory(values.category_id, event.includes_shirt ? values : { ...values, shirt_name: undefined, shirt_size: undefined });
   }
 
   async function onQuickSubmit(e: React.FormEvent) {
@@ -412,8 +417,8 @@ function EventDetail() {
     if (!quickExtra.blood_type) { toast.error("Selecciona tu RH"); return; }
     if (!quickExtra.emergency_contact_name.trim()) { toast.error("Escribe el contacto de emergencia"); return; }
     if (!quickExtra.emergency_contact_phone.trim()) { toast.error("Escribe el celular del contacto de emergencia"); return; }
-    if (!quickExtra.shirt_name.trim()) { toast.error("Escribe el nombre para la camiseta"); return; }
-    if (!quickExtra.shirt_size) { toast.error("Selecciona la talla de camiseta"); return; }
+    if (event.includes_shirt && !quickExtra.shirt_name.trim()) { toast.error("Escribe el nombre para la camiseta"); return; }
+    if (event.includes_shirt && !quickExtra.shirt_size) { toast.error("Selecciona la talla de camiseta"); return; }
     await registerForCategory(quickCategoryId, {
       full_name: profile.full_name ?? "",
       document_id: profile.document_id ?? "",
@@ -426,8 +431,7 @@ function EventDetail() {
       blood_type: quickExtra.blood_type,
       emergency_contact_name: quickExtra.emergency_contact_name,
       emergency_contact_phone: quickExtra.emergency_contact_phone,
-      shirt_name: quickExtra.shirt_name,
-      shirt_size: quickExtra.shirt_size,
+      ...(event.includes_shirt ? { shirt_name: quickExtra.shirt_name, shirt_size: quickExtra.shirt_size } : {}),
     });
   }
 
@@ -541,20 +545,22 @@ function EventDetail() {
                     <Input id="quick-ec-phone" placeholder="3001234567" value={quickExtra.emergency_contact_phone}
                       onChange={(e) => setQuickExtra((v) => ({ ...v, emergency_contact_phone: e.target.value }))} />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="quick-shirt-name">Nombre para camiseta</Label>
-                    <Input id="quick-shirt-name" placeholder="Como quieres que salga" value={quickExtra.shirt_name}
-                      onChange={(e) => setQuickExtra((v) => ({ ...v, shirt_name: e.target.value }))} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="quick-shirt-size">Talla para camiseta</Label>
-                    <Select value={quickExtra.shirt_size} onValueChange={(v) => setQuickExtra((s) => ({ ...s, shirt_size: v }))}>
-                      <SelectTrigger id="quick-shirt-size"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                      <SelectContent>
-                        {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {event.includes_shirt ? (<>
+                    <div className="grid gap-2">
+                      <Label htmlFor="quick-shirt-name">Nombre para camiseta</Label>
+                      <Input id="quick-shirt-name" placeholder="Como quieres que salga" value={quickExtra.shirt_name}
+                        onChange={(e) => setQuickExtra((v) => ({ ...v, shirt_name: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="quick-shirt-size">Talla para camiseta</Label>
+                      <Select value={quickExtra.shirt_size} onValueChange={(v) => setQuickExtra((s) => ({ ...s, shirt_size: v }))}>
+                        <SelectTrigger id="quick-shirt-size"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                        <SelectContent>
+                          {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>) : null}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="quick-category">Categoría</Label>
@@ -676,25 +682,27 @@ function EventDetail() {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="shirt_name" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre para camiseta</FormLabel>
-                        <FormControl><Input placeholder="Como quieres que salga" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="shirt_size" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Talla para camiseta</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    {event.includes_shirt ? (<>
+                      <FormField control={form.control} name="shirt_name" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre para camiseta</FormLabel>
+                          <FormControl><Input placeholder="Como quieres que salga" {...field} value={field.value ?? ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="shirt_size" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Talla para camiseta</FormLabel>
+                          <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {SHIRT_SIZES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </>) : null}
                     <FormField control={form.control} name="category_id" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoría</FormLabel>

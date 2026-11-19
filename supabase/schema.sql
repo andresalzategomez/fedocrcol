@@ -2006,3 +2006,73 @@ update public.event_categories
 update public.event_categories
    set min_age = (regexp_match(name, '(\d{1,2})\s*\+'))[1]::int
  where min_age is null and max_age is null and name ~ '(\d{1,2})\s*\+';
+
+-- =====================================================================
+-- 0038 — Camiseta por carrera y liga eximida del pago de afiliación.
+-- Idempotente.
+--
+-- 1) events.includes_shirt: no todas las carreras llevan camiseta; el
+--    formulario de inscripción solo pide nombre y talla si está activo. Las
+--    carreras que ya existían quedan en true (hoy ya piden esos datos).
+-- 2) league_affiliation_payments.exempt: la federación puede aprobar una liga
+--    sin cobro. Ese registro queda con monto 0, sin link de Bold y con estado
+--    'exempt' (sirve para el reporte de cobros: aparece como "exonerada").
+-- =====================================================================
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'events' and column_name = 'includes_shirt'
+  ) then
+    alter table public.events add column includes_shirt boolean not null default false;
+    update public.events set includes_shirt = true;
+  end if;
+end $$;
+
+alter table public.league_affiliation_payments add column if not exists exempt boolean not null default false;
+alter table public.league_affiliation_payments alter column bold_link_id drop not null;
+alter table public.league_affiliation_payments alter column payment_url drop not null;
+
+alter table public.league_affiliation_payments drop constraint if exists league_affiliation_payments_amount_check;
+alter table public.league_affiliation_payments
+  add constraint league_affiliation_payments_amount_check check (amount >= 0 and (exempt or amount > 0));
+
+alter table public.league_affiliation_payments drop constraint if exists league_affiliation_payments_status_check;
+alter table public.league_affiliation_payments
+  add constraint league_affiliation_payments_status_check check (status in ('pending', 'paid', 'exempt'));
+
+-- =====================================================================
+-- 0039 — Latido para que Supabase no pause el proyecto gratuito.
+-- Idempotente.
+--
+-- Supabase pausa los proyectos del plan gratuito tras ~7 días sin actividad
+-- en la base de datos, y una simple lectura por la API no bastó (el proyecto
+-- se pausó aunque el flujo diario recibía HTTP 200). Este latido ESCRIBE una
+-- marca de tiempo; lo llama el flujo .github/workflows/keep-supabase-awake.yml
+-- con la llave pública. La función no recibe datos y solo actualiza una fecha,
+-- así que exponerla a anon no abre ningún permiso delicado.
+-- =====================================================================
+
+create table if not exists public.keepalive (
+  id         int primary key default 1 check (id = 1),
+  touched_at timestamptz not null default now()
+);
+
+alter table public.keepalive enable row level security;
+revoke all on public.keepalive from anon, authenticated;
+grant all on public.keepalive to service_role;
+
+insert into public.keepalive (id) values (1) on conflict (id) do nothing;
+
+create or replace function public.keepalive_touch()
+returns timestamptz language plpgsql security definer set search_path = public as $$
+declare
+  v timestamptz := now();
+begin
+  update public.keepalive set touched_at = v where id = 1;
+  return v;
+end; $$;
+
+revoke all on function public.keepalive_touch() from public;
+grant execute on function public.keepalive_touch() to anon, authenticated, service_role;

@@ -11,12 +11,14 @@ const bodySchema = z.object({
   full_name: z.string().min(1),
   tenant_id: z.string().uuid(),
   club_id: z.string().uuid().optional(),
+  /** El atleta debe elegir un club o declararse independiente de forma explícita. */
+  independent: z.boolean().optional(),
   document_type: z.enum(["CC", "TI", "CE", "PA"]),
   document_id: z.string().min(5).max(20),
   birth_date: z.string().min(4),
   phone: z.string().min(7),
   gender: z.enum(["F", "M"]),
-});
+}).refine((d) => Boolean(d.club_id) !== (d.independent === true), { message: "Elige un club o indica que eres independiente" });
 
 /**
  * POST /api/public/register-athlete
@@ -59,6 +61,12 @@ export const Route = createFileRoute("/api/public/register-athlete")({
 
         const { data: tenant } = await admin.from("tenants").select("id, status").eq("id", tenant_id).maybeSingle();
         if (!tenant || tenant.status !== "active") return apiError("BAD_REQUEST", "La liga seleccionada no existe o no está activa", 400);
+
+        if (club_id) {
+          const { data: club } = await admin.from("clubs").select("id")
+            .eq("id", club_id).eq("tenant_id", tenant_id).eq("approval_status", "active").eq("status", "active").maybeSingle();
+          if (!club) return apiError("BAD_REQUEST", "El club seleccionado no existe o no es de esa liga", 400);
+        }
 
         const redirectTo = `${siteUrl(request)}/panel`;
         const { data, error } = await admin.auth.admin.generateLink({

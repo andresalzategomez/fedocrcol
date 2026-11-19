@@ -127,7 +127,7 @@ export async function activateLeagueIfPaid(admin: SupabaseClient, tenantId: stri
     .maybeSingle();
   if (payErr) return { state: "error", error: payErr.message };
   if (!pay) return { state: "no_payment" };
-  if (pay.status === "paid") return { state: "activated" };
+  if (pay.status === "paid" || pay.status === "exempt") return { state: "activated" };
 
   const res = await getPaymentLink(pay.bold_link_id as string);
   if (!res.ok) return { state: "error", error: res.error };

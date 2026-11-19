@@ -109,6 +109,8 @@ export interface EventRow {
   created_by: string | null;
   /** Quién aprueba la carrera cuando un gestor la envía: el director de la liga o la federación (si ella la creó). */
   approval_by?: "league" | "federation";
+  /** La carrera entrega camiseta: el formulario de inscripción pide nombre y talla. */
+  includes_shirt?: boolean;
   visibility: "public" | "private";
 }
 export interface EventCategory { id: string; event_id: string; name: string; price: number; slots_available: number; gender: string | null; min_age: number | null; max_age: number | null; }
@@ -168,8 +170,9 @@ export async function listPendingLeagues(): Promise<Tenant[]> {
 export interface LeaguePayment {
   tenant_id: string;
   amount: number;
-  payment_url: string;
-  status: "pending" | "paid";
+  /** null cuando la federación eximió a la liga del pago. */
+  payment_url: string | null;
+  status: "pending" | "paid" | "exempt";
   expires_at: string | null;
 }
 export async function getLeaguePayment(tenantId: string): Promise<LeaguePayment | null> {
@@ -194,6 +197,10 @@ export async function listLeaguePayments(): Promise<Record<string, LeaguePayment
  */
 export async function approveLeague(id: string, amount: number): Promise<{ payment_url: string; emails_sent: number; email_error: string | null }> {
   return (await authFetch("/api/admin/league-approve", { id, amount })) as { payment_url: string; emails_sent: number; email_error: string | null };
+}
+/** Solo la federación. Aprueba la liga eximiéndola del pago de afiliación: queda activa de inmediato. */
+export async function approveLeagueExempt(id: string): Promise<{ emails_sent: number }> {
+  return (await authFetch("/api/admin/league-approve", { id, exempt: true })) as { emails_sent: number };
 }
 export interface LeaguePaymentCheck {
   activated: boolean;
@@ -332,6 +339,7 @@ export async function listAssignedEvents(tenantId: string, userId: string): Prom
 export async function createEvent(input: {
   tenant_id: string; title: string; date: string; location: string; is_official: boolean; club_id?: string | null; payment_deadline?: string | null;
   distance_km?: number | undefined; obstacles?: number | undefined; max_capacity?: number | undefined; visibility?: "public" | "private";
+  includes_shirt?: boolean;
 }): Promise<EventRow> {
   if (input.payment_deadline && input.payment_deadline > input.date) {
     throw new Error("La fecha límite de pago no puede ser posterior a la fecha de la carrera");
@@ -345,6 +353,7 @@ export async function createEvent(input: {
     club_id: input.is_official ? (input.club_id ?? null) : null,
     payment_deadline: input.payment_deadline || null,
     visibility: input.visibility ?? "private",
+    includes_shirt: input.includes_shirt ?? false,
     distance_km: input.distance_km ?? null,
     obstacles: input.obstacles ?? null,
     max_capacity: input.max_capacity ?? 0,
@@ -362,6 +371,7 @@ export async function createEvent(input: {
 export async function updateEvent(id: string, patch: {
   title?: string; date?: string; location?: string; is_official?: boolean; club_id?: string | null; payment_deadline?: string | null;
   distance_km?: number | null; obstacles?: number | null; max_capacity?: number; visibility?: "public" | "private";
+  includes_shirt?: boolean;
 }): Promise<void> {
   const { error } = await db().from("events").update(patch).eq("id", id);
   if (error) throw error;
