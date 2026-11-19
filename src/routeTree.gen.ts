@@ -24,6 +24,7 @@ import { Route as ApiAdminLeagueCheckPaymentRouteImport } from './routes/api/adm
 import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
 import { Route as ApiAdminSeasonRouteImport } from './routes/api/admin/season'
+import { Route as ApiAthleteMembershipRouteImport } from './routes/api/athlete/membership'
 import { Route as ApiClubMembershipRouteImport } from './routes/api/club/membership'
 import { Route as ApiPublicForgotPasswordRouteImport } from './routes/api/public/forgot-password'
 import { Route as ApiPublicRegisterAthleteRouteImport } from './routes/api/public/register-athlete'
@@ -118,6 +119,11 @@ const ApiAdminRecalculatePositionsRoute =
 const ApiAdminSeasonRoute = ApiAdminSeasonRouteImport.update({
   id: '/api/admin/season',
   path: '/api/admin/season',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAthleteMembershipRoute = ApiAthleteMembershipRouteImport.update({
+  id: '/api/athlete/membership',
+  path: '/api/athlete/membership',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiClubMembershipRoute = ApiClubMembershipRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
+  '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
   '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
+  '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
   '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
+  '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
   '/api/public/forgot-password': typeof ApiPublicForgotPasswordRoute
   '/api/public/register-athlete': typeof ApiPublicRegisterAthleteRoute
@@ -339,6 +348,7 @@ export interface FileRouteTypes {
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/admin/season'
+    | '/api/athlete/membership'
     | '/api/club/membership'
     | '/api/public/forgot-password'
     | '/api/public/register-athlete'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/admin/season'
+    | '/api/athlete/membership'
     | '/api/club/membership'
     | '/api/public/forgot-password'
     | '/api/public/register-athlete'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
     | '/api/admin/season'
+    | '/api/athlete/membership'
     | '/api/club/membership'
     | '/api/public/forgot-password'
     | '/api/public/register-athlete'
@@ -445,6 +457,7 @@ export interface RootRouteChildren {
   ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
   ApiAdminSeasonRoute: typeof ApiAdminSeasonRoute
+  ApiAthleteMembershipRoute: typeof ApiAthleteMembershipRoute
   ApiClubMembershipRoute: typeof ApiClubMembershipRoute
   ApiPublicForgotPasswordRoute: typeof ApiPublicForgotPasswordRoute
   ApiPublicRegisterAthleteRoute: typeof ApiPublicRegisterAthleteRoute
@@ -565,6 +578,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/season'
       fullPath: '/api/admin/season'
       preLoaderRoute: typeof ApiAdminSeasonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/athlete/membership': {
+      id: '/api/athlete/membership'
+      path: '/api/athlete/membership'
+      fullPath: '/api/athlete/membership'
+      preLoaderRoute: typeof ApiAthleteMembershipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/club/membership': {
@@ -732,6 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
   ApiAdminSeasonRoute: ApiAdminSeasonRoute,
+  ApiAthleteMembershipRoute: ApiAthleteMembershipRoute,
   ApiClubMembershipRoute: ApiClubMembershipRoute,
   ApiPublicForgotPasswordRoute: ApiPublicForgotPasswordRoute,
   ApiPublicRegisterAthleteRoute: ApiPublicRegisterAthleteRoute,

@@ -309,10 +309,74 @@ export async function getClubMembership(clubId: string, season: number): Promise
   return data ? toMembership(data) : null;
 }
 
+// ------------------------ Afiliación del atleta (por temporada) ------------------------
+export interface AthleteMembership {
+  id: string; athlete_id: string; tenant_id: string; season: number; amount: number;
+  status: "awaiting_payment" | "paid" | "exempt"; exempt_reason: string | null; payment_url: string | null; paid_at: string | null;
+}
+const ATHLETE_MEMBERSHIP_COLS = "id, athlete_id, tenant_id, season, amount, status, exempt_reason, payment_url, paid_at";
+const toAthleteMembership = (r: Record<string, unknown>): AthleteMembership => ({ ...(r as unknown as AthleteMembership), amount: Number(r["amount"]) });
+
+/** La afiliación de un atleta en una temporada (null si aún no existe). */
+export async function getAthleteMembership(athleteId: string, tenantId: string, season: number): Promise<AthleteMembership | null> {
+  const { data, error } = await db().from("athlete_season_memberships").select(ATHLETE_MEMBERSHIP_COLS)
+    .eq("athlete_id", athleteId).eq("tenant_id", tenantId).eq("season", season).maybeSingle();
+  if (error) throw error;
+  return data ? toAthleteMembership(data) : null;
+}
+/** El atleta genera/reutiliza el link de pago de su afiliación a su liga en la temporada actual. */
+export async function payAthleteMembership(): Promise<{ payment_url?: string; amount?: number; season: number; already_current?: boolean }> {
+  return (await authFetch("/api/athlete/membership", { action: "pay" })) as never;
+}
+/** Pregunta a Bold si ya se pagó la afiliación y, si es así, la deja activa. */
+export async function checkAthleteMembership(): Promise<{ status: "none" | "awaiting_payment" | "paid" | "exempt"; season: number; bold_status?: string | null }> {
+  return (await authFetch("/api/athlete/membership", { action: "check" })) as never;
+}
+/** La liga (o la federación) exonera a un atleta de la afiliación de la temporada actual (motivo obligatorio). */
+export async function exemptAthlete(athleteId: string, reason: string): Promise<{ season: number }> {
+  return (await authFetch("/api/athlete/membership", { action: "exempt", athlete_id: athleteId, reason })) as never;
+}
+
+export interface LeagueAthlete {
+  id: string; full_name: string | null; email: string | null; document_id: string | null; phone: string | null;
+  gender: string | null; club_name: string | null; membership: AthleteMembership | null;
+}
+/** Atletas de la liga con el estado de su afiliación en la temporada indicada (para la pestaña Atletas de la liga). */
+export async function listLeagueAthletes(tenantId: string, season: number | null): Promise<LeagueAthlete[]> {
+  type P = { id: string; full_name: string | null; email: string | null; document_id: string | null; phone: string | null; gender: string | null };
+  const profiles = await fetchAllRows<P>((f, t) => db().from("profiles")
+    .select("id, full_name, email, document_id, phone, gender").eq("tenant_id", tenantId).eq("role", "athlete").order("full_name").range(f, t) as unknown as PromiseLike<{ data: P[] | null; error: unknown }>);
+  const memberships = season == null ? [] : await fetchAllRows<AthleteMembership>((f, t) => db().from("athlete_season_memberships")
+    .select(ATHLETE_MEMBERSHIP_COLS).eq("tenant_id", tenantId).eq("season", season).range(f, t) as unknown as PromiseLike<{ data: AthleteMembership[] | null; error: unknown }>);
+  const byAthlete = new Map(memberships.map((m) => [m.athlete_id, toAthleteMembership(m as unknown as Record<string, unknown>)]));
+  type A = { athlete_id: string; club: { name: string } | null };
+  const affiliations = await fetchAllRows<A>((f, t) => db().from("affiliations")
+    .select("athlete_id, club:clubs(name)").eq("tenant_id", tenantId).not("club_id", "is", null).range(f, t) as unknown as PromiseLike<{ data: A[] | null; error: unknown }>);
+  const clubByAthlete = new Map(affiliations.map((a) => [a.athlete_id, a.club?.name ?? null]));
+  return profiles.map((p) => ({ ...p, club_name: clubByAthlete.get(p.id) ?? null, membership: byAthlete.get(p.id) ?? null }));
+}
+
+// ------------------------ Acuerdo federación - liga ------------------------
+/** Porcentaje de la afiliación de atletas que la federación le liquida a cada liga (por liga; solo lo edita la federación). */
+export async function listLeagueAgreements(): Promise<Record<string, number | null>> {
+  const { data, error } = await db().from("league_agreements").select("tenant_id, athlete_fee_league_pct");
+  if (error) throw error;
+  const byTenant: Record<string, number | null> = {};
+  (data ?? []).forEach((r) => { byTenant[r.tenant_id as string] = r.athlete_fee_league_pct == null ? null : Number(r.athlete_fee_league_pct); });
+  return byTenant;
+}
+export async function setLeagueAthleteFeePct(tenantId: string, pct: number | null): Promise<void> {
+  if (pct != null && (pct < 0 || pct > 100)) throw new Error("El porcentaje debe estar entre 0 y 100");
+  const { data: userData } = await db().auth.getUser();
+  const { error } = await db().from("league_agreements")
+    .upsert({ tenant_id: tenantId, athlete_fee_league_pct: pct, updated_by: userData.user?.id ?? null, updated_at: new Date().toISOString() }, { onConflict: "tenant_id" });
+  if (error) throw error;
+}
+
 // ----------------------- Reporte de cobros por concepto -----------------------
-export type ChargeConcept = "liga" | "club" | "inscripcion";
+export type ChargeConcept = "liga" | "club" | "atleta" | "inscripcion";
 export const CHARGE_CONCEPT_LABEL: Record<ChargeConcept, string> = {
-  liga: "Afiliación de liga", club: "Cuota de club", inscripcion: "Inscripción a carrera",
+  liga: "Afiliación de liga", club: "Cuota de club", atleta: "Afiliación de atleta", inscripcion: "Inscripción a carrera",
 };
 export interface Charge {
   key: string;
@@ -327,6 +391,10 @@ export interface Charge {
   detail: string;
   amount: number;
   exempt: boolean;
+  /** Lo que la federación debe liquidar al beneficiario: el total, salvo en la afiliación de atleta (porcentaje acordado con la liga). */
+  payout: number;
+  /** Afiliación de atleta: % acordado para la liga; null si la federación aún no lo definió. */
+  share_pct: number | null;
   /** A quién le corresponde el dinero (quien liquida la federación). */
   beneficiary: string;
   beneficiary_kind: "federacion" | "liga" | "club";
@@ -344,7 +412,8 @@ export async function listChargesReport(): Promise<Charge[]> {
     id: string; amount: number; created_at: string;
     registration: { athlete_name: string | null; event: { title: string; is_official: boolean | null; club: { name: string } | null; league: { name: string } | null } | null } | null;
   };
-  const [leagues, clubs, pays] = await Promise.all([
+  type AthleteRaw = { id: string; tenant_id: string; season: number; amount: number; status: string; paid_at: string | null; athlete: { full_name: string | null } | null; tenant: { name: string } | null };
+  const [leagues, clubs, pays, athletes, agreements] = await Promise.all([
     fetchAllRows<LeagueRaw>((f, t) => db().from("league_affiliation_payments")
       .select("tenant_id, amount, exempt, paid_at, tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: LeagueRaw[] | null; error: unknown }>),
     fetchAllRows<ClubRaw>((f, t) => db().from("club_season_memberships")
@@ -352,25 +421,38 @@ export async function listChargesReport(): Promise<Charge[]> {
     fetchAllRows<PayRaw>((f, t) => db().from("payments")
       .select("id, amount, created_at, registration:registrations(athlete_name, event:events(title, is_official, club:clubs(name), league:tenants(name)))")
       .eq("status", "approved").range(f, t) as unknown as PromiseLike<{ data: PayRaw[] | null; error: unknown }>),
+    fetchAllRows<AthleteRaw>((f, t) => db().from("athlete_season_memberships")
+      .select("id, tenant_id, season, amount, status, paid_at, athlete:profiles(full_name), tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: AthleteRaw[] | null; error: unknown }>),
+    listLeagueAgreements(),
   ]);
 
   const out: Charge[] = [];
   leagues.forEach((r) => out.push({
     key: `liga:${r.tenant_id}`, concept: "liga", date: r.paid_at ?? "", payer: r.tenant?.name ?? "—", league: r.tenant?.name ?? "—",
     detail: r.exempt ? "Exonerada por la federación" : "Cuota de afiliación", amount: Number(r.amount), exempt: Boolean(r.exempt),
-    beneficiary: "Federación", beneficiary_kind: "federacion",
+    payout: Number(r.amount), share_pct: null, beneficiary: "Federación", beneficiary_kind: "federacion",
   }));
   clubs.forEach((r) => out.push({
     key: `club:${r.id}`, concept: "club", date: r.paid_at ?? "", payer: r.club?.name ?? "—", league: r.tenant?.name ?? "—",
     detail: `Temporada ${r.season}${r.status === "exempt" ? " (exonerado)" : ""}`, amount: Number(r.amount), exempt: r.status === "exempt",
-    beneficiary: r.tenant?.name ?? "—", beneficiary_kind: "liga",
+    payout: Number(r.amount), share_pct: null, beneficiary: r.tenant?.name ?? "—", beneficiary_kind: "liga",
   }));
+  athletes.forEach((r) => {
+    const pct = agreements[r.tenant_id] ?? null;
+    out.push({
+      key: `atleta:${r.id}`, concept: "atleta", date: r.paid_at ?? "", payer: r.athlete?.full_name ?? "—", league: r.tenant?.name ?? "—",
+      detail: `Temporada ${r.season}${r.status === "exempt" ? " (exonerado)" : ""}`, amount: Number(r.amount), exempt: r.status === "exempt",
+      // La federación recauda y liquida a la liga el % acordado; sin % definido no hay nada que liquidar todavía.
+      payout: pct == null ? 0 : Math.round((Number(r.amount) * pct) / 100), share_pct: pct,
+      beneficiary: r.tenant?.name ?? "—", beneficiary_kind: "liga",
+    });
+  });
   pays.forEach((r) => {
     const ev = r.registration?.event;
     const byClub = Boolean(ev?.is_official && ev.club);
     out.push({
       key: `pago:${r.id}`, concept: "inscripcion", date: r.created_at, payer: r.registration?.athlete_name ?? "—", league: ev?.league?.name ?? "—",
-      detail: ev?.title ?? "—", amount: Number(r.amount), exempt: false,
+      detail: ev?.title ?? "—", amount: Number(r.amount), exempt: false, payout: Number(r.amount), share_pct: null,
       beneficiary: byClub ? (ev?.club?.name ?? "—") : (ev?.league?.name ?? "—"), beneficiary_kind: byClub ? "club" : "liga",
     });
   });
