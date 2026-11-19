@@ -202,15 +202,44 @@ function AffiliationPaymentNote({ tenantId, onActivated }: { tenantId: string; o
 
 /** Para un club: muestra su estado de aprobación, o le permite reintentar si fue rechazado. */
 function ClubStatusNote({ userId }: { userId: string }) {
-  const [club, setClub] = useState<{ id: string; approval_status: string } | "loading" | "none">("loading");
+  const [club, setClub] = useState<{ id: string; name: string; tenant_id: string | null; approval_status: string } | "loading" | "none">("loading");
+  const [season, setSeason] = useState<api.LeagueSeason | null>(null);
+  const [membership, setMembership] = useState<api.ClubMembership | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase) { setClub("none"); return; }
-    const { data } = await supabase.from("clubs").select("id, approval_status").eq("owner_id", userId).maybeSingle();
-    setClub(data ? { id: data.id as string, approval_status: data.approval_status as string } : "none");
+    const { data } = await supabase.from("clubs").select("id, name, tenant_id, approval_status").eq("owner_id", userId).maybeSingle();
+    if (!data) { setClub("none"); return; }
+    const c = { id: data.id as string, name: data.name as string, tenant_id: data.tenant_id as string | null, approval_status: data.approval_status as string };
+    setClub(c);
+    if (c.approval_status === "active" && c.tenant_id) {
+      try {
+        const current = (await api.listLeagueSeasons(c.tenant_id)).find((s) => s.is_current) ?? null;
+        setSeason(current);
+        setMembership(current ? await api.getClubMembership(c.id, current.season) : null);
+      } catch { setSeason(null); setMembership(null); }
+    }
   }, [userId]);
   useEffect(() => { load(); }, [load]);
+
+  const awaiting = club !== "loading" && club !== "none" && club.approval_status === "active" && !!season && !(membership && (membership.status === "paid" || membership.status === "exempt"));
+
+  // Bold devuelve al club a este panel al terminar de pagar: mientras haya un pago pendiente se pregunta a Bold cada 10 s.
+  useEffect(() => {
+    if (!awaiting || !membership || membership.status !== "awaiting_payment") return;
+    let stopped = false;
+    async function poll() {
+      try {
+        const r = await api.checkClubMembership();
+        if (!stopped && (r.status === "paid" || r.status === "exempt")) { toast.success("¡Pago confirmado! Tu club ya está activo."); load(); }
+      } catch { /* sin red: se reintenta */ }
+    }
+    const timer = setInterval(poll, 10_000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [awaiting, membership, load]);
 
   async function retry() {
     if (!supabase || club === "loading" || club === "none") return;
@@ -223,9 +252,28 @@ function ClubStatusNote({ userId }: { userId: string }) {
     } catch (e) { toast.error((e as Error).message); } finally { setRetrying(false); }
   }
 
+  async function pay() {
+    setPaying(true);
+    try {
+      const r = await api.payClubMembership();
+      if (r.already_current) { toast.success("Tu club ya está al día"); load(); return; }
+      if (r.payment_url) window.open(r.payment_url, "_blank", "noopener,noreferrer");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setPaying(false); }
+  }
+
+  async function check() {
+    setChecking(true);
+    try {
+      const r = await api.checkClubMembership();
+      if (r.status === "paid" || r.status === "exempt") { toast.success("¡Pago confirmado! Tu club ya está activo."); load(); }
+      else toast.info("Todavía no vemos el pago. Si ya pagaste, espera unos minutos y vuelve a verificar.");
+    } catch (e) { toast.error((e as Error).message); } finally { setChecking(false); }
+  }
+
   if (club === "loading") return <Note>Cargando…</Note>;
   if (club === "none") return <Note>No encontramos tu club. Contacta a soporte.</Note>;
-  if (club.approval_status === "pending") return <Note>Tu club está <strong>pendiente de aprobación</strong>.</Note>;
+  if (club.approval_status === "pending") return <Note>Tu club <strong>{club.name}</strong> está <strong>pendiente de aprobación</strong> de la liga. Te avisaremos por correo cuando responda.</Note>;
   if (club.approval_status === "rejected") {
     return (
       <Note>
@@ -234,7 +282,31 @@ function ClubStatusNote({ userId }: { userId: string }) {
       </Note>
     );
   }
-  return <Note>Tu club ya fue aprobado. Esta vista todavía no está lista.</Note>;
+  if (!season) return <Note>Tu club <strong>{club.name}</strong> fue aprobado, pero tu liga aún no definió la temporada actual. Te avisaremos por correo.</Note>;
+  if (membership && (membership.status === "paid" || membership.status === "exempt")) {
+    return (
+      <Note>
+        <p className="mb-1">Tu club <strong>{club.name}</strong> está <strong>activo</strong> en la temporada <strong>{season.season}</strong>.</p>
+        <p className="text-xs">
+          {membership.status === "exempt"
+            ? "Tu liga te exoneró de la cuota de esta temporada."
+            : `Cuota pagada: ${formatCOP(membership.amount)}${membership.paid_at ? ` el ${new Date(membership.paid_at).toLocaleDateString("es-CO")}` : ""}.`}
+        </p>
+      </Note>
+    );
+  }
+  const fee = membership?.amount ?? season.club_fee;
+  return (
+    <Note>
+      <p className="mb-1">Tu club <strong>{club.name}</strong> fue <strong>aprobado</strong> por la liga. Para dejarlo activo en la temporada <strong>{season.season}</strong> falta pagar la cuota:</p>
+      {fee ? <p className="mb-3 font-display text-2xl">{formatCOP(fee)}</p> : <p className="mb-3 text-xs">Tu liga aún no definió el valor de la cuota.</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={pay} disabled={paying || !fee}>{paying ? "Generando link..." : "Pagar la cuota"}</Button>
+        <Button size="sm" variant="outline" onClick={check} disabled={checking || !membership}>{checking ? "Verificando..." : "Ya pagué, verificar"}</Button>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">Sin el pago, tu club no aparece en la liga y tus atletas no pueden elegirlo. Se activa solo cuando Bold confirma el pago.</p>
+    </Note>
+  );
 }
 
 const PROFILE_DOCUMENT_TYPES = [
@@ -510,6 +582,74 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
 }
 
 // ------------------- Identidad de la liga (admin de liga) -------------
+/** Temporada actual de la liga y valor de las cuotas (club y atleta). Cambiar la temporada deja a los clubes "por renovar". */
+function TemporadaCard({ tenantId }: { tenantId: string }) {
+  const [seasons, setSeasons] = useState<api.LeagueSeason[] | null>(null);
+  const [form, setForm] = useState({ season: "", club_fee: "", athlete_fee: "" });
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const list = await api.listLeagueSeasons(tenantId);
+      setSeasons(list);
+      const cur = list.find((s) => s.is_current);
+      setForm({
+        season: String(cur?.season ?? new Date().getFullYear()),
+        club_fee: cur?.club_fee != null ? String(cur.club_fee) : "",
+        athlete_fee: cur?.athlete_fee != null ? String(cur.athlete_fee) : "",
+      });
+    } catch (e) { toast.error((e as Error).message); setSeasons([]); }
+  }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  const current = seasons?.find((s) => s.is_current) ?? null;
+  const digits = (v: string) => v.replace(/\D/g, "");
+  const fee = (v: string) => (v ? Number(v) : null);
+
+  async function save() {
+    const season = Number(form.season);
+    if (!Number.isInteger(season) || season < 2000 || season > 2100) { toast.error("Escribe una temporada válida (el año, por ejemplo 2026)"); return; }
+    const club_fee = fee(form.club_fee);
+    const athlete_fee = fee(form.athlete_fee);
+    for (const [label, v] of [["de club", club_fee], ["del atleta", athlete_fee]] as const) {
+      if (v != null && v !== 0 && (v < 1000 || v > 10_000_000)) { toast.error(`La cuota ${label} debe estar entre $1.000 y $10.000.000`); return; }
+    }
+    const changing = current != null && current.season !== season;
+    if (changing && !confirm(
+      `¿Cambiar la temporada actual de ${current?.season} a ${season}?\n\nTodos los clubes pasarán a "por renovar" y recibirán un correo con el link para pagar la cuota de ${season}. Los de la temporada anterior quedan en el historial.`,
+    )) return;
+    setSaving(true);
+    try {
+      const r = await api.saveSeason({ season, club_fee, athlete_fee, make_current: true });
+      if (r.current_changed) {
+        toast.success(`Temporada ${season} activa. Avisamos a ${r.notified} club(es)${r.failed ? ` (${r.failed} sin avisar: revisa Clubes → Pendientes)` : ""}.`);
+      } else toast.success("Cuotas guardadas");
+      await load();
+    } catch (e) { toast.error((e as Error).message); } finally { setSaving(false); }
+  }
+
+  if (seasons === null) return <Note>Cargando…</Note>;
+
+  return (
+    <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+      <div className="sm:col-span-3">
+        <h3 className="font-display text-2xl">Temporada y cuotas</h3>
+        <p className="text-sm text-muted-foreground">
+          {current ? <>Temporada actual: <strong>{current.season}</strong>.</> : "Aún no hay una temporada actual."} Los clubes y atletas pagan su cuota cada temporada;
+          el valor lo fijas tú.
+        </p>
+      </div>
+      <Field label="Temporada actual (año)"><Input inputMode="numeric" value={form.season} onChange={(e) => setForm({ ...form, season: digits(e.target.value).slice(0, 4) })} placeholder="2026" /></Field>
+      <Field label="Cuota de club (COP)"><Input inputMode="numeric" value={form.club_fee} onChange={(e) => setForm({ ...form, club_fee: digits(e.target.value) })} placeholder="200000" /></Field>
+      <Field label="Cuota de atleta (COP)"><Input inputMode="numeric" value={form.athlete_fee} onChange={(e) => setForm({ ...form, athlete_fee: digits(e.target.value) })} placeholder="Aún sin definir" /></Field>
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+        <Button onClick={save} disabled={saving}>{saving ? "Guardando..." : current && String(current.season) !== form.season ? "Guardar y cambiar de temporada" : "Guardar"}</Button>
+        <span className="text-xs text-muted-foreground">Mínimo $1.000 por cuota (límite de Bold). La cuota del atleta se usará en la afiliación de atletas.</span>
+      </div>
+    </CardContent></Card>
+  );
+}
+
 function MiLigaSection({ tenantId }: { tenantId: string }) {
   const [tenant, setTenant] = useState<Tenant | "loading" | "none">("loading");
   const [form, setForm] = useState({ name: "", description: "", primary_color: "", secondary_color: "" });
@@ -566,6 +706,7 @@ function MiLigaSection({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="grid gap-6">
+      <TemporadaCard tenantId={tenantId} />
       <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-2">
         <Field label="Nombre de la liga *"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
         <Field label="Departamento *">
@@ -624,28 +765,99 @@ function MiLigaSection({ tenantId }: { tenantId: string }) {
 // ------------------- Solicitudes de club (admin de liga) --------------
 function SolicitudesClub({ tenantId }: { tenantId: string }) {
   const [rows, setRows] = useState<api.AdminClub[]>([]);
-  const load = useCallback(async () => { try { setRows(await api.listPendingClubRequests(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  const [season, setSeason] = useState<api.LeagueSeason | null | "loading">("loading");
+  const [approving, setApproving] = useState<api.AdminClub | null>(null);
+  const [exempt, setExempt] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [clubs, seasons] = await Promise.all([api.listPendingClubRequests(tenantId), api.listLeagueSeasons(tenantId)]);
+      setRows(clubs);
+      setSeason(seasons.find((s) => s.is_current) ?? null);
+    } catch (e) { toast.error((e as Error).message); }
+  }, [tenantId]);
   useEffect(() => { load(); }, [load]);
 
-  async function act(id: string, fn: (id: string) => Promise<void>, msg: string) {
-    try { await fn(id); toast.success(msg); load(); } catch (e) { toast.error((e as Error).message); }
+  function openApprove(c: api.AdminClub) { setApproving(c); setExempt(false); setReason(""); }
+
+  async function confirmApprove() {
+    if (!approving) return;
+    setBusy(approving.id);
+    try {
+      const r = await api.approveClub(approving.id, exempt ? { exempt: true, ...(reason.trim() ? { reason: reason.trim() } : {}) } : {});
+      if (exempt) toast.success("Club aprobado sin cobro: ya está activo");
+      else if (r.email_sent) toast.success("Club aprobado: le enviamos el link de pago de la cuota");
+      else {
+        if (r.payment_url) await navigator.clipboard?.writeText(r.payment_url).catch(() => undefined);
+        toast.warning("Club aprobado, pero no se pudo enviar el correo. El link de pago quedó copiado: envíaselo al club.");
+      }
+      setApproving(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
   }
 
+  async function reject(id: string) {
+    setBusy(id);
+    try { await api.rejectClubRequest(id); toast.success("Club rechazado"); load(); }
+    catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+
+  const fee = season && season !== "loading" ? season.club_fee : null;
+
   return (
-    <SimpleTable head={["Club", "Ciudad", "Correo", "Acciones"]}>
-      {rows.map((c) => (
-        <TableRow key={c.id}>
-          <TableCell className="font-medium">{c.name}</TableCell>
-          <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
-          <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
-          <TableCell className="text-right"><div className="flex justify-end gap-2">
-            <Button size="sm" onClick={() => act(c.id, api.approveClubRequest, "Club aprobado")}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
-            <Button size="sm" variant="outline" onClick={() => act(c.id, api.rejectClubRequest, "Club rechazado")}><XCircle className="mr-1 size-4" />Rechazar</Button>
-          </div></TableCell>
-        </TableRow>
-      ))}
-      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes pidiendo afiliarse a tu liga.</TableCell></TableRow> : null}
-    </SimpleTable>
+    <>
+      {season !== "loading" ? (
+        season && fee ? (
+          <p className="mb-3 text-sm text-muted-foreground">Temporada <strong>{season.season}</strong> · cuota de club <strong>{formatCOP(fee)}</strong>. Al aprobar, el club recibe el link de pago por correo y queda activo cuando se confirme.</p>
+        ) : (
+          <div className="mb-3"><Note>Antes de aprobar clubes con cobro define la <strong>temporada actual</strong> y la <strong>cuota de club</strong> en la pestaña <strong>Mi liga</strong>. También puedes aprobarlos sin cobro.</Note></div>
+        )
+      ) : null}
+      <SimpleTable head={["Club", "Ciudad", "Correo", "Acciones"]}>
+        {rows.map((c) => (
+          <TableRow key={c.id}>
+            <TableCell className="font-medium">{c.name}</TableCell>
+            <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+            <TableCell className="text-right"><div className="flex justify-end gap-2">
+              <Button size="sm" disabled={busy === c.id} onClick={() => openApprove(c)}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
+              <Button size="sm" variant="outline" disabled={busy === c.id} onClick={() => reject(c.id)}><XCircle className="mr-1 size-4" />Rechazar</Button>
+            </div></TableCell>
+          </TableRow>
+        ))}
+        {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes pidiendo afiliarse a tu liga.</TableCell></TableRow> : null}
+      </SimpleTable>
+
+      <Dialog open={approving !== null} onOpenChange={(open) => { if (!open) setApproving(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aprobar club</DialogTitle>
+            <DialogDescription>
+              {exempt
+                ? <>El club <strong>{approving?.name}</strong> queda activo en la temporada {season && season !== "loading" ? season.season : "actual"} sin pagar cuota.</>
+                : <>El club <strong>{approving?.name}</strong> recibe por correo el link para pagar la cuota de la temporada {season && season !== "loading" ? season.season : "actual"}{fee ? <> (<strong>{formatCOP(fee)}</strong>)</> : null}. Queda activo cuando Bold confirme el pago.</>}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <label className="flex items-center gap-2 text-sm font-medium"><Switch checked={exempt} onCheckedChange={setExempt} />Aprobar sin cobro (exonerar la cuota)</label>
+            {exempt ? (
+              <div className="grid gap-2">
+                <Label htmlFor="club-exempt-reason">Motivo (opcional)</Label>
+                <Input id="club-exempt-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej.: club fundador de la liga" />
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproving(null)}>Cancelar</Button>
+            <Button onClick={confirmApprove} disabled={busy !== null || (!exempt && !fee)}>
+              {busy ? "Enviando..." : exempt ? "Aprobar sin cobro" : "Aprobar y enviar link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -667,9 +879,34 @@ function ClubStatusBadge({ map, value }: { map: Record<string, { label: string; 
 
 function ClubesSection({ tenantId }: { tenantId: string }) {
   const [rows, setRows] = useState<api.AdminClub[]>([]);
+  const [seasons, setSeasons] = useState<api.LeagueSeason[]>([]);
+  const [memberships, setMemberships] = useState<api.ClubMembership[]>([]);
   const [filters, setFilters] = useState({ name: "", city: "", approval: "all" });
-  const load = useCallback(async () => { try { setRows(await api.listClubs(tenantId)); } catch (e) { toast.error((e as Error).message); } }, [tenantId]);
+  const [historySeason, setHistorySeason] = useState("");
+  const [exempting, setExempting] = useState<api.AdminClub | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [clubs, ss, ms] = await Promise.all([api.listClubs(tenantId), api.listLeagueSeasons(tenantId), api.listClubMemberships(tenantId)]);
+      setRows(clubs); setSeasons(ss); setMemberships(ms);
+      setHistorySeason((cur) => cur || String(ss.find((s) => !s.is_current)?.season ?? ss[0]?.season ?? ""));
+    } catch (e) { toast.error((e as Error).message); }
+  }, [tenantId]);
   useEffect(() => { load(); }, [load]);
+
+  const current = seasons.find((s) => s.is_current) ?? null;
+  const clubById = new Map(rows.map((c) => [c.id, c]));
+  const membersOf = (season: number) => memberships.filter((m) => m.season === season);
+  const currentMembers = current ? membersOf(current.season) : [];
+  const isPaid = (m: api.ClubMembership) => m.status === "paid" || m.status === "exempt";
+  const paidNow = currentMembers.filter(isPaid);
+  const paidClubIds = new Set(paidNow.map((m) => m.club_id));
+  // Aprobados que aún no tienen vigente la temporada actual: sin cobro generado, esperando el pago o por renovar.
+  const pendingClubs = rows.filter((c) => c.approval_status === "active" && !paidClubIds.has(c.id));
+  const memberOfCurrent = (clubId: string) => currentMembers.find((m) => m.club_id === clubId);
+  const hadBefore = (clubId: string) => memberships.some((m) => m.club_id === clubId && (!current || m.season !== current.season) && isPaid(m));
 
   const filtered = rows.filter((c) => {
     if (filters.name && !c.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
@@ -678,42 +915,178 @@ function ClubesSection({ tenantId }: { tenantId: string }) {
     return true;
   });
 
+  async function run(id: string, fn: () => Promise<string>) {
+    setBusy(id);
+    try { toast.success(await fn()); await load(); } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+  }
+  const resend = (c: api.AdminClub) => run(c.id, async () => {
+    const r = await api.approveClub(c.id);
+    if (r.already_current) return "Ese club ya está al día";
+    if (r.email_sent) return "Link de pago enviado al club";
+    if (r.payment_url) await navigator.clipboard?.writeText(r.payment_url).catch(() => undefined);
+    return "No se pudo enviar el correo: el link de pago quedó copiado";
+  });
+  const verify = (c: api.AdminClub) => run(c.id, async () => {
+    const r = await api.checkClubMembership(c.id);
+    return r.status === "paid" || r.status === "exempt" ? "Pago confirmado: el club quedó activo" : "Bold aún no registra el pago";
+  });
+  async function copyLink(url: string) {
+    try { await navigator.clipboard.writeText(url); toast.success("Link de pago copiado"); } catch { toast.error("No se pudo copiar el link"); }
+  }
+  async function confirmExempt() {
+    if (!exempting) return;
+    if (reason.trim().length < 3) { toast.error("Escribe el motivo de la exoneración"); return; }
+    const club = exempting;
+    setExempting(null);
+    await run(club.id, async () => { await api.exemptClub(club.id, reason.trim()); setReason(""); return "Club exonerado: ya está activo en la temporada"; });
+  }
+
+  const memberLabel = (m: api.ClubMembership) => (m.status === "exempt" ? "Exonerado" : "Pagado");
+  const memberRows = (list: api.ClubMembership[]) => list.map((m) => ({ m, club: clubById.get(m.club_id) }));
+
   return (
     <div className="grid gap-6">
-      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-        <Field label="Club"><Input value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Buscar por nombre" /></Field>
-        <Field label="Ciudad"><Input value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} placeholder="Buscar por ciudad" /></Field>
-        <Field label="Estado">
-          <Select value={filters.approval} onValueChange={(v) => setFilters({ ...filters, approval: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {Object.entries(CLUB_APPROVAL_LABEL).map(([value, { label }]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      </CardContent></Card>
-      <SimpleTable head={["Club", "Ciudad", "Departamento", "Correo", "Estado", "Habilitado"]}>
-        {filtered.map((c) => (
-          <TableRow key={c.id}>
-            <TableCell className="font-medium">{c.name}</TableCell>
-            <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
-            <TableCell className="text-muted-foreground">{c.department ?? "—"}</TableCell>
-            <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
-            <TableCell><ClubStatusBadge map={CLUB_APPROVAL_LABEL} value={c.approval_status} /></TableCell>
-            <TableCell>{c.status ? <ClubStatusBadge map={CLUB_STATUS_LABEL} value={c.status} /> : "—"}</TableCell>
-          </TableRow>
-        ))}
-        {filtered.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground">
-              {rows.length === 0 ? "Esta liga aún no tiene clubes." : "Ningún club coincide con los filtros."}
-            </TableCell>
-          </TableRow>
-        ) : null}
-      </SimpleTable>
+      {current ? (
+        <p className="text-sm text-muted-foreground">Temporada actual: <strong>{current.season}</strong>{current.club_fee ? <> · cuota de club <strong>{formatCOP(current.club_fee)}</strong></> : null}. Se cambia en <strong>Mi liga</strong>.</p>
+      ) : (
+        <Note>Esta liga aún no tiene una temporada actual definida (se define en Mi liga).</Note>
+      )}
+      <Tabs defaultValue="vigentes">
+        <TabsList>
+          <TabsTrigger value="vigentes">Temporada actual ({paidNow.length})</TabsTrigger>
+          <TabsTrigger value="pendientes">Pendientes de pago ({pendingClubs.length})</TabsTrigger>
+          <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="todos">Todos los clubes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="vigentes" className="mt-4">
+          <SimpleTable head={["Club", "Ciudad", "Correo", "Pago", "Valor", "Fecha"]}>
+            {memberRows(paidNow).map(({ m, club }) => (
+              <TableRow key={m.id}>
+                <TableCell className="font-medium">{club?.name ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{club?.city ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{club?.contact_email ?? "—"}</TableCell>
+                <TableCell><Badge variant={m.status === "exempt" ? "secondary" : "default"}>{memberLabel(m)}</Badge></TableCell>
+                <TableCell>{m.status === "exempt" ? "—" : formatCOP(m.amount)}</TableCell>
+                <TableCell className="text-muted-foreground">{m.paid_at ? new Date(m.paid_at).toLocaleDateString("es-CO") : "—"}</TableCell>
+              </TableRow>
+            ))}
+            {paidNow.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Ningún club ha pagado la temporada actual.</TableCell></TableRow> : null}
+          </SimpleTable>
+        </TabsContent>
+
+        <TabsContent value="pendientes" className="mt-4">
+          <SimpleTable head={["Club", "Correo", "Estado", "Acciones"]}>
+            {pendingClubs.map((c) => {
+              const m = memberOfCurrent(c.id);
+              return (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+                  <TableCell>
+                    {m ? <Badge variant="secondary">Falta el pago · {formatCOP(m.amount)}</Badge>
+                      : hadBefore(c.id) ? <Badge variant="outline">Por renovar</Badge>
+                      : <Badge variant="outline">Sin cobro generado</Badge>}
+                  </TableCell>
+                  <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-2">
+                    <Button size="sm" disabled={busy === c.id} onClick={() => verify(c)}><RefreshCw className="mr-1 size-4" />Verificar pago</Button>
+                    {m?.payment_url ? <Button size="sm" variant="outline" onClick={() => copyLink(m.payment_url as string)}><Link2 className="mr-1 size-4" />Copiar link</Button> : null}
+                    <Button size="sm" variant="outline" disabled={busy === c.id} onClick={() => resend(c)}><Mail className="mr-1 size-4" />{m ? "Reenviar link" : "Enviar link"}</Button>
+                    <Button size="sm" variant="outline" disabled={busy === c.id} onClick={() => { setExempting(c); setReason(""); }}>Exonerar</Button>
+                  </div></TableCell>
+                </TableRow>
+              );
+            })}
+            {pendingClubs.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes pendientes de pago.</TableCell></TableRow> : null}
+          </SimpleTable>
+        </TabsContent>
+
+        <TabsContent value="historial" className="mt-4 grid gap-4">
+          <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+            <Field label="Temporada">
+              <Select value={historySeason} onValueChange={setHistorySeason}>
+                <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                <SelectContent>{seasons.map((s) => <SelectItem key={s.season} value={String(s.season)}>{s.season}{s.is_current ? " (actual)" : ""}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+          </CardContent></Card>
+          <SimpleTable head={["Club", "Estado", "Valor", "Fecha"]}>
+            {memberRows(historySeason ? membersOf(Number(historySeason)) : []).map(({ m, club }) => (
+              <TableRow key={m.id}>
+                <TableCell className="font-medium">{club?.name ?? "—"}</TableCell>
+                <TableCell><Badge variant={m.status === "paid" ? "default" : m.status === "exempt" ? "secondary" : "outline"}>{m.status === "awaiting_payment" ? "Sin pagar" : memberLabel(m)}</Badge></TableCell>
+                <TableCell>{m.status === "paid" ? formatCOP(m.amount) : "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{m.paid_at ? new Date(m.paid_at).toLocaleDateString("es-CO") : "—"}</TableCell>
+              </TableRow>
+            ))}
+            {!historySeason || membersOf(Number(historySeason)).length === 0
+              ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin cuotas registradas en esa temporada.</TableCell></TableRow> : null}
+          </SimpleTable>
+        </TabsContent>
+
+        <TabsContent value="todos" className="mt-4 grid gap-4">
+          <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-3">
+            <Field label="Club"><Input value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} placeholder="Buscar por nombre" /></Field>
+            <Field label="Ciudad"><Input value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} placeholder="Buscar por ciudad" /></Field>
+            <Field label="Estado">
+              <Select value={filters.approval} onValueChange={(v) => setFilters({ ...filters, approval: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Object.entries(CLUB_APPROVAL_LABEL).map(([value, { label }]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </CardContent></Card>
+          <SimpleTable head={["Club", "Ciudad", "Departamento", "Correo", "Estado", "Temporada actual"]}>
+            {filtered.map((c) => {
+              const m = memberOfCurrent(c.id);
+              return (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.department ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
+                  <TableCell><ClubStatusBadge map={CLUB_APPROVAL_LABEL} value={c.approval_status} /></TableCell>
+                  <TableCell>
+                    {c.approval_status !== "active" ? "—"
+                      : m && isPaid(m) ? <Badge variant="default">{memberLabel(m)}</Badge>
+                      : <Badge variant="outline">Sin pagar</Badge>}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  {rows.length === 0 ? "Esta liga aún no tiene clubes." : "Ningún club coincide con los filtros."}
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </SimpleTable>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={exempting !== null} onOpenChange={(open) => { if (!open) setExempting(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exonerar cuota</DialogTitle>
+            <DialogDescription>
+              <strong>{exempting?.name}</strong> queda activo en la temporada {current?.season} sin pagar. El motivo queda registrado y se le avisa al club.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="club-exempt-reason2">Motivo *</Label>
+            <Input id="club-exempt-reason2" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej.: convenio con la liga" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExempting(null)}>Cancelar</Button>
+            <Button onClick={confirmExempt}>Exonerar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -816,11 +1189,9 @@ function Aprobaciones({ tenants }: { tenants: Tenant[] }) {
       <TabsList>
         <TabsTrigger value="carreras">Carreras</TabsTrigger>
         <TabsTrigger value="ligas">Ligas</TabsTrigger>
-        <TabsTrigger value="clubes">Clubes independientes</TabsTrigger>
       </TabsList>
       <TabsContent value="carreras" className="mt-4"><AprobacionesCarreras tenants={tenants} /></TabsContent>
       <TabsContent value="ligas" className="mt-4"><AprobacionesLigas /></TabsContent>
-      <TabsContent value="clubes" className="mt-4"><AprobacionesClubesIndependientes /></TabsContent>
     </Tabs>
   );
 }
@@ -990,34 +1361,6 @@ function AprobacionesLigas() {
   );
 }
 
-function AprobacionesClubesIndependientes() {
-  const [rows, setRows] = useState<api.AdminClub[]>([]);
-  const load = useCallback(async () => { try { setRows(await api.listPendingIndependentClubs()); } catch (e) { toast.error((e as Error).message); } }, []);
-  useEffect(() => { load(); }, [load]);
-  async function approve(club: api.AdminClub) {
-    try { await api.approveIndependentClub(club); toast.success("Club aprobado — se creó como club independiente"); load(); } catch (e) { toast.error((e as Error).message); }
-  }
-  async function reject(id: string) {
-    try { await api.rejectClubRequest(id); toast.success("Club rechazado"); load(); } catch (e) { toast.error((e as Error).message); }
-  }
-  return (
-    <SimpleTable head={["Club", "Ciudad", "Correo", "Acciones"]}>
-      {rows.map((c) => (
-        <TableRow key={c.id}>
-          <TableCell className="font-medium">{c.name}</TableCell>
-          <TableCell className="text-muted-foreground">{c.city ?? "—"}</TableCell>
-          <TableCell className="text-muted-foreground">{c.contact_email ?? "—"}</TableCell>
-          <TableCell className="text-right"><div className="flex justify-end gap-2">
-            <Button size="sm" onClick={() => approve(c)}><CheckCircle2 className="mr-1 size-4" />Aprobar</Button>
-            <Button size="sm" variant="outline" onClick={() => reject(c.id)}><XCircle className="mr-1 size-4" />Rechazar</Button>
-          </div></TableCell>
-        </TableRow>
-      ))}
-      {rows.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No hay clubes independientes pendientes de aprobación.</TableCell></TableRow> : null}
-    </SimpleTable>
-  );
-}
-
 /** Link público de inscripción: solo el formulario, sin el resto del sitio (para compartir en bio/anuncios). */
 async function copyRegistrationLink(eventId: string) {
   const url = `${window.location.origin}/eventos/${eventId}?minimal=1`;
@@ -1030,12 +1373,177 @@ async function copyRegistrationLink(eventId: string) {
 }
 
 // ------------------------------ Cobros -------------------------------
+function CobrosPorConcepto() {
+  const [rows, setRows] = useState<api.Charge[] | null>(null);
+  const [concept, setConcept] = useState("all");
+  const [league, setLeague] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(async () => {
+    try { setRows(await api.listChargesReport()); } catch (e) { toast.error((e as Error).message); setRows([]); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (rows === null) return <Note>Cargando…</Note>;
+
+  const leagues = [...new Set(rows.map((r) => r.league))].sort((a, b) => a.localeCompare(b));
+  const needle = search.trim().toLowerCase();
+  const shown = rows.filter((r) =>
+    (concept === "all" || r.concept === concept) &&
+    (league === "all" || r.league === league) &&
+    (!from || r.date.slice(0, 10) >= from) &&
+    (!to || r.date.slice(0, 10) <= to) &&
+    (!needle || [r.payer, r.detail, r.beneficiary, r.league].some((v) => v.toLowerCase().includes(needle))));
+
+  const byConcept = (Object.keys(api.CHARGE_CONCEPT_LABEL) as api.ChargeConcept[]).map((c) => {
+    const list = shown.filter((r) => r.concept === c);
+    return { concept: c, label: api.CHARGE_CONCEPT_LABEL[c], count: list.length, exempt: list.filter((r) => r.exempt).length, total: list.reduce((s, r) => s + r.amount, 0) };
+  });
+  const benef = new Map<string, { name: string; kind: "federacion" | "liga" | "club"; count: number; total: number }>();
+  shown.forEach((r) => {
+    const key = `${r.beneficiary_kind}:${r.beneficiary}`;
+    const cur = benef.get(key) ?? { name: r.beneficiary, kind: r.beneficiary_kind, count: 0, total: 0 };
+    cur.count += 1; cur.total += r.amount;
+    benef.set(key, cur);
+  });
+  const byBeneficiary = [...benef.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  const total = shown.reduce((s, r) => s + r.amount, 0);
+  const kindLabel = (k: "federacion" | "liga" | "club") => (k === "federacion" ? "Federación" : k === "liga" ? "Liga" : "Club");
+  const dateLabel = (iso: string) => (iso ? new Date(iso).toLocaleDateString("es-CO") : "—");
+
+  function exportReport(kind: "excel" | "pdf") {
+    const detCols: Column[] = [
+      { header: "Fecha", key: "date" }, { header: "Concepto", key: "concept" }, { header: "Pagó", key: "payer" }, { header: "Liga", key: "league" },
+      { header: "Detalle", key: "detail" }, { header: "Valor (COP)", key: "amount" }, { header: "Corresponde a", key: "beneficiary" }, { header: "Tipo", key: "kind" },
+    ];
+    const detRows = shown.map((r) => ({
+      date: dateLabel(r.date), concept: api.CHARGE_CONCEPT_LABEL[r.concept], payer: r.payer, league: r.league, detail: r.detail,
+      amount: r.amount, beneficiary: r.beneficiary, kind: kindLabel(r.beneficiary_kind),
+    }));
+    if (kind === "pdf") {
+      exportPDF("cobros-por-concepto", "Cobros por concepto", detCols, [...detRows, { date: "", concept: "TOTAL", payer: "", league: "", detail: "", amount: total, beneficiary: "", kind: "" }]);
+      return;
+    }
+    const conceptCols: Column[] = [{ header: "Concepto", key: "label" }, { header: "Cobros", key: "count" }, { header: "Exonerados", key: "exempt" }, { header: "Total (COP)", key: "total" }];
+    const benefCols: Column[] = [{ header: "Corresponde a", key: "name" }, { header: "Tipo", key: "kind" }, { header: "Cobros", key: "count" }, { header: "Total (COP)", key: "total" }];
+    exportExcel("cobros-por-concepto", [
+      { name: "Por concepto", columns: conceptCols, rows: byConcept.map((c) => ({ label: c.label, count: c.count, exempt: c.exempt, total: c.total })) },
+      { name: "Por beneficiario", columns: benefCols, rows: byBeneficiary.map((b) => ({ name: b.name, kind: kindLabel(b.kind), count: b.count, total: b.total })) },
+      { name: "Detalle", columns: detCols, rows: detRows },
+    ]);
+  }
+
+  return (
+    <div className="grid gap-6">
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-5 sm:items-end">
+        <Field label="Concepto">
+          <Select value={concept} onValueChange={setConcept}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {(Object.keys(api.CHARGE_CONCEPT_LABEL) as api.ChargeConcept[]).map((c) => <SelectItem key={c} value={c}>{api.CHARGE_CONCEPT_LABEL[c]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Liga">
+          <Select value={league} onValueChange={setLeague}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {leagues.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Desde"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+        <Field label="Hasta"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+        <Field label="Buscar"><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Quién pagó o detalle" /></Field>
+        <div className="flex gap-2 sm:col-span-5">
+          <Button size="sm" variant="outline" onClick={() => exportReport("excel")}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => exportReport("pdf")}><FileText className="mr-1 size-4" />PDF</Button>
+        </div>
+        <p className="text-xs text-muted-foreground sm:col-span-5">
+          Cada cobro dice a quién le corresponde el dinero: la <strong>afiliación de liga</strong> es de la federación; la <strong>cuota de club</strong>, de la liga;
+          la <strong>inscripción</strong>, del club responsable (carrera oficial con club) o, si no, de la liga. Suma solo pagos aprobados por Bold; las exoneraciones salen en $0.
+          La liquidación la haces tú por fuera del sistema.
+        </p>
+      </CardContent></Card>
+
+      <div>
+        <h3 className="mb-2 font-display text-2xl">Por concepto</h3>
+        <SimpleTable head={["Concepto", "Cobros", "Exonerados", "Total"]}>
+          {byConcept.map((c) => (
+            <TableRow key={c.concept}>
+              <TableCell className="font-medium">{c.label}</TableCell>
+              <TableCell>{c.count}</TableCell>
+              <TableCell>{c.exempt}</TableCell>
+              <TableCell className="text-right font-medium">{formatCOP(c.total)}</TableCell>
+            </TableRow>
+          ))}
+          <TableRow>
+            <TableCell colSpan={3} className="text-right font-semibold">Total cobrado</TableCell>
+            <TableCell className="text-right font-semibold">{formatCOP(total)}</TableCell>
+          </TableRow>
+        </SimpleTable>
+      </div>
+
+      <div>
+        <h3 className="mb-2 font-display text-2xl">Por beneficiario (a quién liquidar)</h3>
+        <SimpleTable head={["Corresponde a", "Tipo", "Cobros", "Total"]}>
+          {byBeneficiary.map((b) => (
+            <TableRow key={`${b.kind}:${b.name}`}>
+              <TableCell className="font-medium">{b.name}</TableCell>
+              <TableCell><Badge variant={b.kind === "federacion" ? "default" : "outline"}>{kindLabel(b.kind)}</Badge></TableCell>
+              <TableCell>{b.count}</TableCell>
+              <TableCell className="text-right font-medium">{formatCOP(b.total)}</TableCell>
+            </TableRow>
+          ))}
+          {byBeneficiary.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin cobros para mostrar.</TableCell></TableRow> : null}
+        </SimpleTable>
+      </div>
+
+      <div>
+        <h3 className="mb-2 font-display text-2xl">Detalle</h3>
+        <SimpleTable head={["Fecha", "Concepto", "Pagó", "Liga", "Detalle", "Valor", "Corresponde a"]}>
+          {shown.map((r) => (
+            <TableRow key={r.key}>
+              <TableCell className="text-muted-foreground">{dateLabel(r.date)}</TableCell>
+              <TableCell><Badge variant="outline">{api.CHARGE_CONCEPT_LABEL[r.concept]}</Badge></TableCell>
+              <TableCell className="font-medium">{r.payer}</TableCell>
+              <TableCell className="text-muted-foreground">{r.league}</TableCell>
+              <TableCell className="text-muted-foreground">{r.detail}</TableCell>
+              <TableCell className="text-right">{r.exempt ? <Badge variant="secondary">Exonerado</Badge> : formatCOP(r.amount)}</TableCell>
+              <TableCell>{r.beneficiary}<div className="text-xs text-muted-foreground">{kindLabel(r.beneficiary_kind)}</div></TableCell>
+            </TableRow>
+          ))}
+          {shown.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin cobros para mostrar.</TableCell></TableRow> : null}
+        </SimpleTable>
+      </div>
+    </div>
+  );
+}
+
+/** Reporte de cobros (solo la federación): por concepto y, aparte, el detalle de las inscripciones por carrera. */
+function ReporteCobros() {
+  return (
+    <Tabs defaultValue="concepto">
+      <TabsList>
+        <TabsTrigger value="concepto">Por concepto</TabsTrigger>
+        <TabsTrigger value="carrera">Inscripciones por carrera</TabsTrigger>
+      </TabsList>
+      <TabsContent value="concepto" className="mt-4"><CobrosPorConcepto /></TabsContent>
+      <TabsContent value="carrera" className="mt-4"><CobrosPorCarrera /></TabsContent>
+    </Tabs>
+  );
+}
+
 /**
  * Reporte para la federación: quién es el responsable de cada carrera (club si es oficial y tiene club
  * responsable; la liga si no) y cuánto se recaudó con pagos aprobados. La liquidación se hace a mano
  * por fuera del sistema: este reporte solo dice a quién le corresponde cada peso.
  */
-function ReporteCobros() {
+function CobrosPorCarrera() {
   const [rows, setRows] = useState<api.CobroCarrera[] | null>(null);
   const [withActivity, setWithActivity] = useState(true);
   const [search, setSearch] = useState("");
