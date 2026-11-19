@@ -63,9 +63,9 @@ export const Route = createFileRoute("/api/public/register-athlete")({
         if (!tenant || tenant.status !== "active") return apiError("BAD_REQUEST", "La liga seleccionada no existe o no está activa", 400);
 
         if (club_id) {
-          const { data: club } = await admin.from("clubs").select("id")
-            .eq("id", club_id).eq("tenant_id", tenant_id).eq("approval_status", "active").eq("status", "active").maybeSingle();
-          if (!club) return apiError("BAD_REQUEST", "El club seleccionado no existe o no es de esa liga", 400);
+          // Solo clubes VIGENTES: aprobados y con la cuota de la temporada actual de su liga al día.
+          const { data: club } = await admin.from("clubs_current").select("id").eq("id", club_id).eq("tenant_id", tenant_id).maybeSingle();
+          if (!club) return apiError("BAD_REQUEST", "El club seleccionado no existe, no es de esa liga o no tiene su cuota de la temporada al día", 400);
         }
 
         const redirectTo = `${siteUrl(request)}/panel`;

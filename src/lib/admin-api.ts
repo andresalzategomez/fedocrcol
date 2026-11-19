@@ -148,11 +148,11 @@ export async function listTenants(): Promise<Tenant[]> {
   return data as Tenant[];
 }
 
-/** Clubs aprobados y afiliados a una liga -- para el combo opcional del registro de atleta. */
+/** Clubes VIGENTES de una liga (aprobados y con la cuota de la temporada actual al día) -- para el combo del registro de atleta. */
 export async function listClubsForTenant(tenantId: string): Promise<PublicClub[]> {
-  const { data, error } = await db().from("clubs")
+  const { data, error } = await db().from("clubs_current")
     .select("id, name, tenant_id")
-    .eq("tenant_id", tenantId).eq("approval_status", "active").eq("status", "active")
+    .eq("tenant_id", tenantId)
     .order("name");
   if (error) throw error;
   return data as PublicClub[];
@@ -223,14 +223,6 @@ export async function retryLeague(id: string) {
   if (error) throw error;
 }
 
-/** Clubes sin liga (tenant_id null) pendientes de que el superadmin los apruebe. */
-export async function listPendingIndependentClubs(): Promise<AdminClub[]> {
-  const { data, error } = await db().from("clubs")
-    .select("id, name, tenant_id, owner_id, approval_status, contact_email, city, department")
-    .is("tenant_id", null).eq("approval_status", "pending").order("name");
-  if (error) throw error;
-  return data as AdminClub[];
-}
 /** Clubes que pidieron afiliarse a esta liga, pendientes de que su admin los apruebe. */
 export async function listPendingClubRequests(tenantId: string): Promise<AdminClub[]> {
   const { data, error } = await db().from("clubs")
@@ -251,40 +243,138 @@ export async function rejectClubRequest(id: string) {
   const { error } = await db().from("clubs").update({ approval_status: "rejected" }).eq("id", id);
   if (error) throw error;
 }
-/** Aprobación por el admin de la liga a la que el club ya pertenece (tenant_id no cambia). */
-export async function approveClubRequest(id: string) {
-  const { data: userData } = await db().auth.getUser();
-  const { error } = await db().from("clubs")
-    .update({ approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+/**
+ * Aprobación de un club por su liga (o la federación). Con cobro: el servidor crea el link de pago de la cuota de la
+ * temporada actual y se lo envía al club; con `exempt` queda activo sin cobro. Sobre un club ya aprobado y sin pagar,
+ * reenvía el link.
+ */
+export async function approveClub(id: string, opts: { exempt?: boolean; reason?: string } = {}): Promise<{
+  payment_url?: string; amount?: number; season: number; email_sent?: boolean; email_error?: string | null; exempt?: boolean; already_current?: boolean;
+}> {
+  return (await authFetch("/api/club/membership", { action: "approve", club_id: id, ...opts })) as never;
 }
-/** Aprobación por el superadmin de un club sin liga: se le crea su propio tenant ("club independiente"). */
-export async function approveIndependentClub(club: AdminClub): Promise<void> {
-  const base = club.name
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "club";
-  const { data: existingSlugs } = await db().from("tenants").select("slug").like("slug", `${base}%`);
-  const taken = new Set((existingSlugs ?? []).map((r) => r.slug as string));
-  let slug = base;
-  let n = 2;
-  while (taken.has(slug)) slug = `${base}-${n++}`;
+/** Exonera a un club aprobado de la cuota de la temporada actual (motivo obligatorio). */
+export async function exemptClub(id: string, reason: string): Promise<{ season: number }> {
+  return (await authFetch("/api/club/membership", { action: "exempt", club_id: id, reason })) as never;
+}
+/** El club (o su liga) genera/reutiliza el link de pago de la temporada actual. */
+export async function payClubMembership(clubId?: string): Promise<{ payment_url?: string; amount?: number; season: number; already_current?: boolean }> {
+  return (await authFetch("/api/club/membership", { action: "pay", ...(clubId ? { club_id: clubId } : {}) })) as never;
+}
+/** Pregunta a Bold si ya se pagó la cuota y, si es así, deja el club activo. */
+export async function checkClubMembership(clubId?: string): Promise<{ status: "none" | "awaiting_payment" | "paid" | "exempt"; season: number; bold_status?: string | null }> {
+  return (await authFetch("/api/club/membership", { action: "check", ...(clubId ? { club_id: clubId } : {}) })) as never;
+}
 
-  const { data: tenant, error: tenantErr } = await db().from("tenants")
-    .insert({ name: club.name, slug, department: club.department ?? "Nacional", city: club.city ?? null, status: "active", allows_events: false })
-    .select("id").single();
-  if (tenantErr) throw tenantErr;
+// ------------------------- Temporadas y cuotas -------------------------
+export interface LeagueSeason {
+  id: string; tenant_id: string; season: number; is_current: boolean; club_fee: number | null; athlete_fee: number | null;
+}
+const toSeason = (r: Record<string, unknown>): LeagueSeason => ({
+  ...(r as unknown as LeagueSeason),
+  club_fee: r["club_fee"] == null ? null : Number(r["club_fee"]),
+  athlete_fee: r["athlete_fee"] == null ? null : Number(r["athlete_fee"]),
+});
+export async function listLeagueSeasons(tenantId: string): Promise<LeagueSeason[]> {
+  const { data, error } = await db().from("league_seasons").select("*").eq("tenant_id", tenantId).order("season", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(toSeason);
+}
+/** El administrador guarda una temporada y sus cuotas y, si lo pide, la deja como la actual (los clubes reciben el aviso de renovación). */
+export async function saveSeason(input: { season: number; club_fee: number | null; athlete_fee: number | null; make_current: boolean }): Promise<{
+  season: number; current_changed: boolean; notified: number; failed: number;
+}> {
+  return (await authFetch("/api/admin/season", input)) as never;
+}
 
-  const { data: userData } = await db().auth.getUser();
-  const { error: clubErr } = await db().from("clubs")
-    .update({ tenant_id: tenant.id, approval_status: "active", approved_by: userData.user?.id ?? null, approved_at: new Date().toISOString() })
-    .eq("id", club.id);
-  if (clubErr) throw clubErr;
+export interface ClubMembership {
+  id: string; club_id: string; tenant_id: string; season: number; amount: number;
+  status: "awaiting_payment" | "paid" | "exempt"; exempt_reason: string | null; payment_url: string | null;
+  paid_at: string | null; expires_at: string | null;
+}
+const MEMBERSHIP_COLS = "id, club_id, tenant_id, season, amount, status, exempt_reason, payment_url, paid_at, expires_at";
+const toMembership = (r: Record<string, unknown>): ClubMembership => ({ ...(r as unknown as ClubMembership), amount: Number(r["amount"]) });
+/** Cuotas de club de una liga, de una temporada o de todas. */
+export async function listClubMemberships(tenantId: string, season?: number): Promise<ClubMembership[]> {
+  let q = db().from("club_season_memberships").select(MEMBERSHIP_COLS).eq("tenant_id", tenantId);
+  if (season != null) q = q.eq("season", season);
+  const { data, error } = await q.order("season", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(toMembership);
+}
+/** La cuota de un club en la temporada indicada (null si aún no existe). */
+export async function getClubMembership(clubId: string, season: number): Promise<ClubMembership | null> {
+  const { data, error } = await db().from("club_season_memberships").select(MEMBERSHIP_COLS).eq("club_id", clubId).eq("season", season).maybeSingle();
+  if (error) throw error;
+  return data ? toMembership(data) : null;
+}
 
-  if (club.owner_id) {
-    const { error: ownerErr } = await db().from("profiles").update({ tenant_id: tenant.id }).eq("id", club.owner_id);
-    if (ownerErr) throw ownerErr;
-  }
+// ----------------------- Reporte de cobros por concepto -----------------------
+export type ChargeConcept = "liga" | "club" | "inscripcion";
+export const CHARGE_CONCEPT_LABEL: Record<ChargeConcept, string> = {
+  liga: "Afiliación de liga", club: "Cuota de club", inscripcion: "Inscripción a carrera",
+};
+export interface Charge {
+  key: string;
+  concept: ChargeConcept;
+  /** Fecha del pago (ISO). */
+  date: string;
+  /** Quién pagó. */
+  payer: string;
+  /** Liga a la que corresponde el cobro (para filtrar). */
+  league: string;
+  /** Carrera, temporada, etc. */
+  detail: string;
+  amount: number;
+  exempt: boolean;
+  /** A quién le corresponde el dinero (quien liquida la federación). */
+  beneficiary: string;
+  beneficiary_kind: "federacion" | "liga" | "club";
+}
+
+/**
+ * Reporte para la federación: cada cobro aprobado con su concepto, quién pagó y a quién le corresponde.
+ * Afiliación de liga -> federación; cuota de club -> la liga; inscripción -> el club responsable (carrera oficial
+ * con club) o la liga. La liquidación se hace a mano. Las exoneraciones salen en $0. Solo la federación lo ve (RLS).
+ */
+export async function listChargesReport(): Promise<Charge[]> {
+  type LeagueRaw = { tenant_id: string; amount: number; exempt: boolean; paid_at: string | null; tenant: { name: string } | null };
+  type ClubRaw = { id: string; season: number; amount: number; status: string; paid_at: string | null; club: { name: string } | null; tenant: { name: string } | null };
+  type PayRaw = {
+    id: string; amount: number; created_at: string;
+    registration: { athlete_name: string | null; event: { title: string; is_official: boolean | null; club: { name: string } | null; league: { name: string } | null } | null } | null;
+  };
+  const [leagues, clubs, pays] = await Promise.all([
+    fetchAllRows<LeagueRaw>((f, t) => db().from("league_affiliation_payments")
+      .select("tenant_id, amount, exempt, paid_at, tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: LeagueRaw[] | null; error: unknown }>),
+    fetchAllRows<ClubRaw>((f, t) => db().from("club_season_memberships")
+      .select("id, season, amount, status, paid_at, club:clubs(name), tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: ClubRaw[] | null; error: unknown }>),
+    fetchAllRows<PayRaw>((f, t) => db().from("payments")
+      .select("id, amount, created_at, registration:registrations(athlete_name, event:events(title, is_official, club:clubs(name), league:tenants(name)))")
+      .eq("status", "approved").range(f, t) as unknown as PromiseLike<{ data: PayRaw[] | null; error: unknown }>),
+  ]);
+
+  const out: Charge[] = [];
+  leagues.forEach((r) => out.push({
+    key: `liga:${r.tenant_id}`, concept: "liga", date: r.paid_at ?? "", payer: r.tenant?.name ?? "—", league: r.tenant?.name ?? "—",
+    detail: r.exempt ? "Exonerada por la federación" : "Cuota de afiliación", amount: Number(r.amount), exempt: Boolean(r.exempt),
+    beneficiary: "Federación", beneficiary_kind: "federacion",
+  }));
+  clubs.forEach((r) => out.push({
+    key: `club:${r.id}`, concept: "club", date: r.paid_at ?? "", payer: r.club?.name ?? "—", league: r.tenant?.name ?? "—",
+    detail: `Temporada ${r.season}${r.status === "exempt" ? " (exonerado)" : ""}`, amount: Number(r.amount), exempt: r.status === "exempt",
+    beneficiary: r.tenant?.name ?? "—", beneficiary_kind: "liga",
+  }));
+  pays.forEach((r) => {
+    const ev = r.registration?.event;
+    const byClub = Boolean(ev?.is_official && ev.club);
+    out.push({
+      key: `pago:${r.id}`, concept: "inscripcion", date: r.created_at, payer: r.registration?.athlete_name ?? "—", league: ev?.league?.name ?? "—",
+      detail: ev?.title ?? "—", amount: Number(r.amount), exempt: false,
+      beneficiary: byClub ? (ev?.club?.name ?? "—") : (ev?.league?.name ?? "—"), beneficiary_kind: byClub ? "club" : "liga",
+    });
+  });
+  return out.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function createTenant(input: {
@@ -378,22 +468,11 @@ export async function updateEvent(id: string, patch: {
 }
 
 export interface ResponsibleClub { id: string; name: string; independent: boolean; }
-/**
- * Clubes que pueden ser responsables de una carrera oficial de esta liga: los
- * clubes activos de la liga y los clubes independientes (su tenant no puede crear
- * carreras: allows_events = false), que lo pueden ser en cualquier liga.
- */
+/** Clubes que pueden ser responsables de una carrera oficial de esta liga: los vigentes de la propia liga. */
 export async function listEligibleResponsibleClubs(tenantId: string): Promise<ResponsibleClub[]> {
-  const own = await db().from("clubs").select("id, name")
-    .eq("tenant_id", tenantId).eq("approval_status", "active").eq("status", "active");
-  if (own.error) throw own.error;
-  const independent = await db().from("clubs").select("id, name, tenants!inner(allows_events)")
-    .eq("tenants.allows_events", false).eq("approval_status", "active").eq("status", "active");
-  const byId = new Map<string, ResponsibleClub>();
-  (own.data ?? []).forEach((c) => byId.set(c.id as string, { id: c.id as string, name: c.name as string, independent: false }));
-  // Sin la migración 0031 la columna no existe: la lista queda solo con los clubes de la liga.
-  (independent.data ?? []).forEach((c) => byId.set(c.id as string, { id: c.id as string, name: c.name as string, independent: true }));
-  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const { data, error } = await db().from("clubs_current").select("id, name").eq("tenant_id", tenantId).order("name");
+  if (error) throw error;
+  return (data ?? []).map((c) => ({ id: c.id as string, name: c.name as string, independent: false }));
 }
 
 /** Lee todas las filas de una consulta (PostgREST devuelve máximo 1.000 por página). */

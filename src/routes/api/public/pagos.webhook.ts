@@ -4,6 +4,7 @@ import { serviceClient } from "../../../lib/server/supabase-server";
 import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold";
 import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
 import { activateRegistrationIfPaid, qrCodeFromReference } from "../../../lib/server/registration-payment";
+import { activateClubMembershipIfPaid, activatePendingClubMemberships, membershipIdFromClubReference } from "../../../lib/server/club-membership";
 
 /**
  * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
@@ -19,9 +20,10 @@ import { activateRegistrationIfPaid, qrCodeFromReference } from "../../../lib/se
  * cuando un reintento puede arreglar algo (error nuestro, o el link de
  * Bold aún no aparece como pagado).
  *
- * El mismo endpoint atiende dos tipos de cobro, según la referencia del
+ * El mismo endpoint atiende tres tipos de cobro, según la referencia del
  * pago (data.metadata.reference):
  *   - "liga-<uuid>-..."  cuota de afiliación de una liga -> la activa
+ *   - "club-<uuid>-..."  cuota anual de un club           -> la marca pagada y activa al club
  *   - cualquier otra     el qr_code de una inscripción  -> la marca pagada (si Bold confirma el link)
  *
  * Payload (CloudEvents): { id, type, subject, source, data: {
@@ -110,8 +112,8 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
   if (!reference) {
     console.warn("Webhook de Bold sin metadata.reference:", type, Object.keys(payload.data ?? {}).join(","));
     if (type === "SALE_APPROVED") {
-      const activated = await activatePendingLeagues(admin, panelUrl);
-      return reply(log, activated > 0 ? "sin_referencia:ligas_activadas" : "sin_referencia:nada_que_hacer", 200, "ignorado");
+      const activated = (await activatePendingLeagues(admin, panelUrl)) + (await activatePendingClubMemberships(admin, panelUrl));
+      return reply(log, activated > 0 ? "sin_referencia:cobros_activados" : "sin_referencia:nada_que_hacer", 200, "ignorado");
     }
     return reply(log, "sin_referencia:ignorado", 200, "ignorado");
   }
@@ -138,6 +140,25 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
     return reply(log, `liga:${result.state}`, 200, "ok");
   }
 
+  const membershipId = membershipIdFromClubReference(reference);
+  if (membershipId) {
+    if (type !== "SALE_APPROVED") return reply(log, "club:evento_ignorado", 200, "ignorado");
+    let result = await activateClubMembershipIfPaid(admin, membershipId, panelUrl);
+    if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      result = await activateClubMembershipIfPaid(admin, membershipId, panelUrl);
+    }
+    if (result.state === "error") {
+      console.error("Webhook de cuota de club:", result.error);
+      log.summary = { ...log.summary, error: result.error };
+      return reply(log, "club:error", 500, "Error activando el club");
+    }
+    if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+      return reply(log, `club:pendiente_bold_${result.boldStatus}`, 503, "Pago aún no confirmado en Bold");
+    }
+    return reply(log, `club:${result.state}`, 200, "ok");
+  }
+
   // Un rechazo no cancela nada: con el mismo link el atleta puede volver a intentar el pago.
   if (type !== "SALE_APPROVED") return reply(log, "inscripcion:evento_ignorado", 200, "ignorado");
 
@@ -154,6 +175,7 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
     case "not_found":
       console.warn("Webhook de Bold: sin inscripción para la referencia", reference);
       await activatePendingLeagues(admin, panelUrl);
+      await activatePendingClubMemberships(admin, panelUrl);
       return reply(log, "inscripcion:no_encontrada", 200, "ignorado");
     case "no_link":
       return reply(log, "inscripcion:sin_link_de_pago", 200, "ignorado");
