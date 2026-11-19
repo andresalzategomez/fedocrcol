@@ -27,12 +27,19 @@ export const Route = createFileRoute("/api/v1/auth/login")({
           return apiError("INVALID_CREDENTIALS", "Credenciales inválidas", 401);
         }
 
-        const { data: profile } = await supa
+        // La relación se indica por su nombre: entre profiles y tenants hay varias (la liga del usuario,
+        // quién creó la liga y tenant_judges) y sin ese nombre PostgREST responde "ambiguo" (PGRST201).
+        const { data: profile, error: profileErr } = await supa
           .from("profiles")
-          .select("tenant_id, role, full_name, tenants(name)")
+          .select("tenant_id, role, full_name, tenants!profiles_tenant_id_fkey(name)")
           .eq("id", data.user.id)
           .maybeSingle();
 
+        // Un error de lectura no es "sin liga": se informa como error del servidor para poder diagnosticarlo.
+        if (profileErr) {
+          console.error("Login del Timer: no se pudo leer el perfil:", profileErr.message);
+          return apiError("PROFILE_READ_FAILED", "No se pudo leer tu perfil. Intenta de nuevo.", 500);
+        }
         if (!profile?.tenant_id) {
           return apiError("NO_LEAGUE", "El usuario no está asociado a ninguna liga", 403);
         }
