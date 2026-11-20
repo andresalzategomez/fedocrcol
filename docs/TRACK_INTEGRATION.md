@@ -33,7 +33,8 @@ Las carreras track **no** existen para FedOCR Timer (`/api/v1`): no las lista ni
 ```json
 {
   "token": "<jwt>", "refresh_token": "<token>", "expires_at": 1795068152, "expires_in": 3600,
-  "user": { "id": "uuid", "name": "Juez de Prueba", "role": "judge", "league_id": "uuid" },
+  "user": { "id": "uuid", "name": "Juez de Prueba", "role": "judge", "league_id": "uuid", "league_name": "Liga X" },
+  "league": { "id": "uuid", "name": "Liga X" },   // null si el usuario no tiene liga (superadmin)
   "server_time": "2026-11-20T15:00:00.000Z", "api_version": "1.0.0"
 }
 ```
@@ -43,7 +44,7 @@ Errores: `401 INVALID_CREDENTIALS`, `403 FORBIDDEN_ROLE` (solo `judge`, `admin` 
 ```json
 { "refresh_token": "<token>" }
 ```
-`200`: misma forma que el login (sin `user`). **Cada refresh entrega un `refresh_token` nuevo: guarda siempre el último.**
+`200`: misma forma que el login (incluye `user` y `league`). **Cada refresh entrega un `refresh_token` nuevo: guarda siempre el último.**
 Medido en el proyecto de producción: los `refresh_token` anteriores **siguen aceptándose** (no se invalidan al rotar), así que si
 se perdió la respuesta de un refresh puedes **reintentar con el mismo token** sin perder la sesión. No dependas de que el anterior
 quede inservible. Un token inventado o ajeno responde `401 INVALID_REFRESH_TOKEN`. El token de acceso dura **1 hora**;
