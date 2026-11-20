@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { authenticate, json, apiError, preflight, handler } from "../../../lib/server/api";
 import { serviceClient } from "../../../lib/server/supabase-server";
+import { rejectIfTrackRace } from "../../../lib/server/race-format";
 
 const bodySchema = z.object({ started_at: z.number().int() }); // epoch ms, capturado por el Timer
 
@@ -34,12 +35,14 @@ export const Route = createFileRoute("/api/v1/waves/$waveId/start")({
 
         const { data: wave, error: findErr } = await supa
           .from("waves")
-          .select("id, started_at")
+          .select("id, started_at, event_id")
           .eq("id", params["waveId"])
           .eq("tenant_id", leagueId)
           .maybeSingle();
         if (findErr) return apiError("DB_ERROR", findErr.message, 500);
         if (!wave) return apiError("NOT_FOUND", "Oleada no encontrada", 404);
+        const trackRace = await rejectIfTrackRace(supa, wave.event_id as string);
+        if (trackRace) return trackRace;
 
         if (wave.started_at) {
           return json({ started_at: wave.started_at, already: true });

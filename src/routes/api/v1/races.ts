@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticate, json, preflight, handler } from "../../../lib/server/api";
 
-/** GET /api/v1/races?league_id=X — carreras (events) de la liga del token. */
+/** GET /api/v1/races?league_id=X — carreras (events) estándar de la liga del token. Las carreras track no se listan. */
 export const Route = createFileRoute("/api/v1/races")({
   server: {
     handlers: {
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/api/v1/races")({
           .from("events")
           .select("id, title, date, location, published")
           .eq("tenant_id", leagueId)
+          .eq("race_format", "standard")
           .order("date", { ascending: false });
 
         if (error) return json({ error: { code: "DB_ERROR", message: error.message } }, 500);
