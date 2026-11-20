@@ -7,6 +7,8 @@ compatibilidad, va en una versión nueva (`/api/track/v2`).
 
 Las carreras track **no** existen para FedOCR Timer (`/api/v1`): no las lista ni las puede operar.
 
+- **Versión del documento:** 2 (2026-11-20). Describe la API **tal como está implementada y publicada**, con respuestas reales en
+  [`docs/track-examples/`](track-examples/) (ver sección 12). Si algo de este texto difiere de esos ejemplos, mandan los ejemplos.
 - **Versión de la API:** `1.0.0` (`api_version` en las respuestas)
 - **Versión del motor de reglas:** `0.2.0` (`engine_version`). El servidor usa **el mismo motor** que la app
   (`src/lib/track-engine`, copia sin modificar de `engine-v0.2.0`) para validar y aplicar cada evento.
@@ -18,9 +20,13 @@ Las carreras track **no** existen para FedOCR Timer (`/api/v1`): no las lista ni
   32.489 s = 32.48).
 - Todas las respuestas traen `server_time` (ISO) y `api_version`. Úsalo para detectar un reloj desfasado; **los tiempos de
   carrera no dependen del reloj del dispositivo** (`elapsed_ms` lo calcula la app con reloj monotónico).
-- Errores: `{ "error": { "code": "...", "message": "..." }, "server_time": "...", "api_version": "1.0.0" }`.
+- Errores: `{ "error": { "code": "...", "message": "..." }, "server_time": "...", "api_version": "1.0.0" }` (algunos agregan campos, p. ej. `active_device`).
+  Los mensajes están en español y pueden cambiar; **programa contra `code` y el estado HTTP, no contra `message`**.
 - **CORS:** solo `https://timertrack.fedocrcolombia.com`, `http://localhost:5180` y `http://localhost:5181`. Cualquier otro origen
-  se avisa antes. La API no usa cookies (el token va en el encabezado), por eso no hay credenciales.
+  se avisa antes. La API no usa cookies (el token va en el encabezado), por eso no hay credenciales. El preflight (`OPTIONS`) responde `204` con
+  `Access-Control-Allow-Origin` (el origen permitido), `Access-Control-Allow-Headers: authorization,content-type`,
+  `Access-Control-Allow-Methods: GET,POST,OPTIONS` y `Access-Control-Max-Age: 600`. Un origen no permitido no recibe `Allow-Origin`.
+- **Encabezados de petición:** `Content-Type: application/json` y, salvo `/health` y `/auth/*`, `Authorization: Bearer <token>`. No se usa ningún otro encabezado propio.
 - Todo lo que no sea `/health` y `/auth/*` exige `Authorization: Bearer <token>`.
 
 ## 2. Autenticación
@@ -245,3 +251,95 @@ Eventos agregados en `engine-v0.2.0`:
 ## 9. Carrera de prueba
 La carrera de prueba (2 categorías, juez de prueba y parejas iniciales) se entrega con sus credenciales por separado. Es una carrera
 **no real**, en una liga de pruebas, que no aparece en el sitio público.
+
+## 10. Campos que pueden venir vacíos (`null`) o no venir
+
+Regla general: **las claves siempre vienen**; lo que no aplica llega como `null` (no se omite), salvo lo indicado en "No existen".
+
+| Dónde | Campo | Cuándo es `null` / vacío |
+|---|---|---|
+| login / refresh | `league`, `user.league_id`, `user.league_name` | El usuario no tiene liga (superadmin) |
+| login / refresh | `user.name` | El perfil no tiene nombre |
+| `/races`, paquete | `location` | La carrera no tiene lugar |
+| paquete | `athletes[].name` | Nunca `null`; puede ser `""` |
+| paquete | `stages[].qualifiers_count` | En la final (no clasifica a nadie) |
+| paquete | `initial_heats[].right` | El atleta sale solo (total impar) |
+| paquete / state | `active_device` | No hay dispositivo activo |
+| state | `state.active_heat_id` | Ninguna oleada en pista |
+| state | `heats[].started_at_ms` | La oleada aún no sale |
+| state | `heats[].left` / `right` | Esa pista no tiene atleta (oleada de un solo atleta) |
+| state | `heats[].left.elapsed_ms`, `arrival_order` | Sin tiempo / sin llegada (`outcome` distinto de `time`) |
+| state | `heats[].tiebreak_id` | Oleada regular (solo hay valor en desempates) |
+| state | `stages[].final_order`, `qualified` | La instancia no está cerrada |
+| state | `ranking[].position`, `best_time_ms` | Sin tiempos válidos o retirado |
+| state | `last_device_seq` | Es un objeto vacío `{}` si no hay eventos |
+| device/activate | `replaced_device_id` | No reemplazó a nadie |
+| device/activate, state | `active_device.last_synced_at` | Aún no ha sincronizado |
+| sync | `rejected[].client_event_id` | El evento llegó sin `client_event_id` válido |
+| sync | `accepted`, `duplicates`, `rejected` | Nunca `null`: siempre listas (vacías si no hay) |
+
+**No existen** (Timer_track no debe esperarlos):
+- `judge_id` en `/races` ni en el paquete (el juez es el usuario autenticado).
+- `league` dentro de `/races` o del paquete: en `/races` solo hay `league_id`; la liga completa (`id` y `name`) llega en login y refresh.
+- `status` en las instancias del **paquete**: el estado de cada instancia está en `/state` → `stages[].status` (y también en `state.stages[]` dentro del paquete).
+- `date` en `/state` → `race` (solo `id`, `name`, `status`).
+- Los nombres `left_registration_id` / `right_registration_id`: se llaman `left` y `right`. En `initial_heats` son el `registration_id` como texto y
+  en `/state` → `heats` son objetos con `registration_id`, `bib`, `name`, `outcome`, `elapsed_ms` y `arrival_order`.
+
+`needs_review`: el servidor **no lo genera hoy**. La respuesta de `sync` solo tiene `accepted`, `duplicates` y `rejected`. Existe como valor
+reservado del historial interno para una futura cola de revisión del administrador; si se activa se avisará antes y será una ampliación compatible.
+
+## 11. Respuestas de error por endpoint (reales)
+
+| Endpoint | HTTP | `error.code` | Cuándo |
+|---|---|---|---|
+| `POST /auth/login` | 400 | `BAD_REQUEST` | Falta `email`/`password` o el email no es válido |
+| | 401 | `INVALID_CREDENTIALS` | Credenciales incorrectas |
+| | 403 | `FORBIDDEN_ROLE` | Rol distinto de juez, admin o superadmin |
+| `POST /auth/refresh` | 400 | `BAD_REQUEST` | Falta `refresh_token` |
+| | 401 | `INVALID_REFRESH_TOKEN` | Token inventado, ajeno o vencido |
+| `GET /races` | 401 | `UNAUTHORIZED` | Sin `Authorization` o token inválido/vencido |
+| | 403 | `FORBIDDEN_ROLE` | Atleta, club u otro rol |
+| `GET /races/:id/package`, `/state` | 401 / 403 | `UNAUTHORIZED` / `FORBIDDEN_ROLE` | Igual que arriba |
+| | 404 | `NOT_FOUND` | Id mal formado, carrera inexistente, no es track, o el usuario no la opera (no se distingue) |
+| `POST /races/:id/device/activate` | 400 | `BAD_REQUEST` | Falta `device_id` |
+| | 409 | `DEVICE_ALREADY_ACTIVE` | Hay otro activo y falta `takeover_note` (trae `active_device`) |
+| | 409 | `CONCURRENT_ACTIVATION` | Dos activaciones a la vez; reintentar |
+| `POST /races/:id/sync` | 400 | `BAD_REQUEST` | Falta `device_id`, `events` no es lista o supera 200 |
+| | 409 | `RACE_NOT_OPEN` | La carrera no está `approved`/`in_progress` (ni `finished` por `RACE_FINISHED`) |
+| | 409 | `CONCURRENT_SYNC` | Otra sincronización del mismo dispositivo en curso; reintentar |
+| | 200 | (por evento, en `rejected`) | `DEVICE_NOT_ACTIVE`, `SEQUENCE_GAP`, `UNSUPPORTED_EVENT_TYPE`, `INVALID_PAYLOAD` o un código del motor |
+| cualquiera | 500 | `INTERNAL_ERROR` | Error inesperado del servidor; reintentar con espera |
+| cualquiera | 503 | `NOT_CONFIGURED` | El servidor no tiene Supabase configurado |
+
+Importante: **un evento rechazado NO produce un error HTTP**; la respuesta de `sync` es `200` y el rechazo viene dentro de `rejected`.
+Un `sync` con un dispositivo no activo también es `200` con todos los eventos en `rejected` (`DEVICE_NOT_ACTIVE`).
+
+## 12. Ejemplos reales
+
+Copiados de la API (los tokens se reemplazaron por `<jwt>` y `<refresh_token>`):
+
+- [`track-examples/package-carrera-prueba.json`](track-examples/package-carrera-prueba.json): paquete completo de la carrera de prueba
+  `548f61b9-e8d7-42ac-8433-8940fc45bbfc` (producción, sin tokens ni documentos).
+- [`track-examples/respuestas-reales.json`](track-examples/respuestas-reales.json): 31 pares petición/respuesta (`request`, `status`, `response`), de una carrera
+  temporal equivalente:
+
+| Clave | Qué muestra |
+|---|---|
+| `health` | `GET /health` |
+| `login_ok`, `login_credenciales_invalidas`, `login_cuerpo_invalido`, `login_rol_no_permitido` | Login, éxito y errores |
+| `refresh_ok`, `refresh_invalido`, `refresh_cuerpo_invalido` | Refresh |
+| `races_ok`, `races_sin_token`, `races_token_invalido` | Lista de carreras |
+| `package_ok`, `package_carrera_inexistente`, `package_id_invalido`, `package_rol_no_permitido` | Paquete |
+| `state_ok_inicial`, `state_despues_de_sync` | Estado antes y después de eventos |
+| `device_activate_ok`, `device_activate_conflicto`, `device_activate_reemplazo`, `device_activate_cuerpo_invalido`, `device_activate_vuelve_A` | Activación |
+| `sync_lote_aceptado` | 5 eventos aceptados |
+| `sync_reintento_duplicados` | El mismo lote otra vez: todo en `duplicates` |
+| `sync_hueco_de_secuencia` | `SEQUENCE_GAP` |
+| `sync_lote_mixto_aceptado_y_rechazados` | 1 aceptado y rechazados por `SECOND_ACTIVE_HEAT`, `INVALID_PAYLOAD`, `UNSUPPORTED_EVENT_TYPE` y `ARRIVAL_ORDER_MISMATCH` |
+| `sync_dispositivo_no_activo` | `DEVICE_NOT_ACTIVE` |
+| `sync_carrera_no_abierta`, `sync_mas_de_200`, `sync_cuerpo_invalido` | Errores HTTP de sync |
+| `cors_preflight` | Encabezados CORS de producción |
+
+La lista completa `supported_event_types` (19 tipos) está en el paquete y se repite en cada respuesta de `sync`. Los ids de los ejemplos de
+`respuestas-reales.json` son ilustrativos (la carrera temporal se borró); los del paquete son los de la carrera de prueba vigente.

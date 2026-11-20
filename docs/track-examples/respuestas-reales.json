@@ -1,0 +1,3817 @@
+{
+  "health": {
+    "request": {
+      "method": "GET",
+      "path": "/health",
+      "body": null
+    },
+    "status": 200,
+    "response": {
+      "status": "ok",
+      "time": "2026-11-20T16:13:21.372Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "login_ok": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/login",
+      "body": {
+        "email": "juez@liga.co",
+        "password": "<password>"
+      }
+    },
+    "status": 200,
+    "response": {
+      "token": "<jwt>",
+      "refresh_token": "<refresh_token>",
+      "expires_at": 1795194802,
+      "expires_in": 3600,
+      "user": {
+        "id": "df601fb5-d040-4626-9362-d157afe98c6a",
+        "name": "Juez de Prueba Track",
+        "role": "judge",
+        "league_id": "0055b57a-b821-40b5-b398-094bc0975223",
+        "league_name": "Liga Doc Track"
+      },
+      "league": {
+        "id": "0055b57a-b821-40b5-b398-094bc0975223",
+        "name": "Liga Doc Track"
+      },
+      "server_time": "2026-11-20T16:13:22.507Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "login_credenciales_invalidas": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/login",
+      "body": {
+        "email": "juez@liga.co",
+        "password": "incorrecta"
+      }
+    },
+    "status": 401,
+    "response": {
+      "error": {
+        "code": "INVALID_CREDENTIALS",
+        "message": "Credenciales inválidas"
+      },
+      "server_time": "2026-11-20T16:13:22.845Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "login_cuerpo_invalido": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/login",
+      "body": {
+        "email": "no-es-email"
+      }
+    },
+    "status": 400,
+    "response": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "email y password son requeridos"
+      },
+      "server_time": "2026-11-20T16:13:22.851Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "login_rol_no_permitido": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/login",
+      "body": {
+        "email": "atleta@liga.co",
+        "password": "<password>"
+      }
+    },
+    "status": 403,
+    "response": {
+      "error": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "Tu cuenta no puede operar carreras track"
+      },
+      "server_time": "2026-11-20T16:13:23.735Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "refresh_ok": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "body": {
+        "refresh_token": "<refresh_token>"
+      }
+    },
+    "status": 200,
+    "response": {
+      "token": "<jwt>",
+      "refresh_token": "<refresh_token>",
+      "expires_at": 1795194804,
+      "expires_in": 3600,
+      "user": {
+        "id": "df601fb5-d040-4626-9362-d157afe98c6a",
+        "name": "Juez de Prueba Track",
+        "role": "judge",
+        "league_id": "0055b57a-b821-40b5-b398-094bc0975223",
+        "league_name": "Liga Doc Track"
+      },
+      "league": {
+        "id": "0055b57a-b821-40b5-b398-094bc0975223",
+        "name": "Liga Doc Track"
+      },
+      "server_time": "2026-11-20T16:13:24.551Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "refresh_invalido": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "body": {
+        "refresh_token": "<refresh_token>"
+      }
+    },
+    "status": 401,
+    "response": {
+      "error": {
+        "code": "INVALID_REFRESH_TOKEN",
+        "message": "La sesión no se pudo renovar: inicia sesión de nuevo"
+      },
+      "server_time": "2026-11-20T16:13:24.814Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "refresh_cuerpo_invalido": {
+    "request": {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "body": {}
+    },
+    "status": 400,
+    "response": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Falta el refresh_token"
+      },
+      "server_time": "2026-11-20T16:13:24.832Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "races_ok": {
+    "request": {
+      "method": "GET",
+      "path": "/races",
+      "body": null
+    },
+    "status": 200,
+    "response": {
+      "races": [
+        {
+          "id": "89e45bb5-5b82-4df3-b422-641c8e86e709",
+          "name": "DOC TRACK - Carrera temporal de documentacion",
+          "date": "2026-11-20",
+          "location": "Pista de prueba",
+          "status": "approved",
+          "league_id": "0055b57a-b821-40b5-b398-094bc0975223"
+        }
+      ],
+      "server_time": "2026-11-20T16:13:25.637Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "races_sin_token": {
+    "request": {
+      "method": "GET",
+      "path": "/races",
+      "body": null
+    },
+    "status": 401,
+    "response": {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Falta el token Bearer"
+      },
+      "server_time": "2026-11-20T16:13:25.643Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "races_token_invalido": {
+    "request": {
+      "method": "GET",
+      "path": "/races",
+      "body": null
+    },
+    "status": 401,
+    "response": {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Token inválido o expirado"
+      },
+      "server_time": "2026-11-20T16:13:25.905Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "package_ok": {
+    "request": {
+      "method": "GET",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/package",
+      "body": null
+    },
+    "status": 200,
+    "response": {
+      "api_version": "1.0.0",
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:28.130Z",
+      "race": {
+        "id": "89e45bb5-5b82-4df3-b422-641c8e86e709",
+        "name": "DOC TRACK - Carrera temporal de documentacion",
+        "date": "2026-11-20",
+        "location": "Pista de prueba",
+        "status": "approved"
+      },
+      "categories": [
+        {
+          "id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+          "name": "Elite Femenino",
+          "athletes": [
+            {
+              "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+              "bib": "0013",
+              "name": "Mariana Restrepo"
+            },
+            {
+              "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+              "bib": "0014",
+              "name": "Daniela Cortés"
+            },
+            {
+              "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+              "bib": "0015",
+              "name": "Laura Beltrán"
+            },
+            {
+              "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+              "bib": "0016",
+              "name": "Camila Zapata"
+            },
+            {
+              "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+              "bib": "0017",
+              "name": "Valentina Ríos"
+            },
+            {
+              "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+              "bib": "0018",
+              "name": "Sofía Vargas"
+            },
+            {
+              "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+              "bib": "0019",
+              "name": "Paula Girón"
+            },
+            {
+              "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+              "bib": "0020",
+              "name": "Natalia Duque"
+            },
+            {
+              "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+              "bib": "0021",
+              "name": "Isabela Mora"
+            }
+          ],
+          "stages": [
+            {
+              "id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+              "stage_number": 1,
+              "name": "Clasificación",
+              "runs_per_athlete": 2,
+              "qualifiers_count": 4
+            },
+            {
+              "id": "61d0b8b4-2e4c-4ac4-a477-9abd4f4cf4e6",
+              "stage_number": 2,
+              "name": "Final",
+              "runs_per_athlete": 2,
+              "qualifiers_count": null
+            }
+          ]
+        },
+        {
+          "id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+          "name": "Elite Masculino",
+          "athletes": [
+            {
+              "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+              "bib": "0001",
+              "name": "Julián Ospina"
+            },
+            {
+              "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+              "bib": "0002",
+              "name": "Andrés Quintero"
+            },
+            {
+              "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+              "bib": "0003",
+              "name": "Camilo Nieto"
+            },
+            {
+              "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+              "bib": "0004",
+              "name": "Sergio Mejía"
+            },
+            {
+              "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+              "bib": "0005",
+              "name": "Felipe Rojas"
+            },
+            {
+              "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+              "bib": "0006",
+              "name": "Mateo Londoño"
+            },
+            {
+              "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+              "bib": "0007",
+              "name": "Daniel Arango"
+            },
+            {
+              "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+              "bib": "0008",
+              "name": "Santiago Gil"
+            },
+            {
+              "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+              "bib": "0009",
+              "name": "Nicolás Peña"
+            },
+            {
+              "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+              "bib": "0010",
+              "name": "Esteban Ruiz"
+            },
+            {
+              "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+              "bib": "0011",
+              "name": "Tomás Vélez"
+            },
+            {
+              "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+              "bib": "0012",
+              "name": "Iván Castro"
+            }
+          ],
+          "stages": [
+            {
+              "id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+              "stage_number": 1,
+              "name": "Clasificación",
+              "runs_per_athlete": 3,
+              "qualifiers_count": 8
+            },
+            {
+              "id": "83ce2df9-4660-4f97-b5ef-79ab8fc0152e",
+              "stage_number": 2,
+              "name": "Semifinal",
+              "runs_per_athlete": 2,
+              "qualifiers_count": 4
+            },
+            {
+              "id": "6486c676-ec8c-4ffe-a1f2-61460bd4770d",
+              "stage_number": 3,
+              "name": "Final",
+              "runs_per_athlete": 2,
+              "qualifiers_count": null
+            }
+          ]
+        }
+      ],
+      "initial_heats": [
+        {
+          "id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+          "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+          "run_number": 1,
+          "heat_number": 1,
+          "left": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+          "right": "8fcac836-f464-4426-9f61-47b26a9f364b"
+        },
+        {
+          "id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 1,
+          "left": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+          "right": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970"
+        },
+        {
+          "id": "5188a775-e7c1-4d07-9e9d-638f1d35b524",
+          "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+          "run_number": 1,
+          "heat_number": 2,
+          "left": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+          "right": "947e688c-6ad1-4c92-9dac-efc749883d5b"
+        },
+        {
+          "id": "e8da4d51-80fd-4325-b7fe-42bb38c2ad08",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 2,
+          "left": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+          "right": "7dc35709-784e-4900-b9c7-b9d1a0ff922b"
+        },
+        {
+          "id": "bf7c5622-b5fb-4121-a2b4-f30ee44283c7",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 3,
+          "left": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+          "right": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51"
+        },
+        {
+          "id": "2fbbe087-baf9-4089-b78d-0ddbf24fc62e",
+          "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+          "run_number": 1,
+          "heat_number": 3,
+          "left": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+          "right": "445a9c0e-5067-46d9-8a1b-d25b0648e81f"
+        },
+        {
+          "id": "6469a261-8c89-4d84-bce5-d97730510129",
+          "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+          "run_number": 1,
+          "heat_number": 4,
+          "left": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+          "right": "a5f89e1b-6e27-4937-b3cd-81da408c36b9"
+        },
+        {
+          "id": "69559c86-3751-4083-8897-ce281e8483ee",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 4,
+          "left": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+          "right": "405765cf-bf00-437a-a036-0224bf4379ee"
+        },
+        {
+          "id": "8b8e6440-34d1-4f1d-9633-c508a5d52efc",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 5,
+          "left": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+          "right": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b"
+        },
+        {
+          "id": "92ee5f8d-0644-4864-831b-cb35e59c3d34",
+          "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+          "run_number": 1,
+          "heat_number": 5,
+          "left": "ef9d1dd8-290c-4898-9889-61954b76883b",
+          "right": null
+        },
+        {
+          "id": "86d8433c-7650-4c1a-aa5e-440844f998a2",
+          "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+          "run_number": 1,
+          "heat_number": 6,
+          "left": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+          "right": "7d1348fe-4292-4882-9af1-e95aac3e4ff5"
+        }
+      ],
+      "state": {
+        "started": false,
+        "finished": false,
+        "active_heat_id": null,
+        "warnings": [],
+        "stages": [
+          {
+            "id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+                "bib": "0013",
+                "name": "Mariana Restrepo",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+                "bib": "0014",
+                "name": "Daniela Cortés",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+                "bib": "0015",
+                "name": "Laura Beltrán",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+                "bib": "0016",
+                "name": "Camila Zapata",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+                "bib": "0017",
+                "name": "Valentina Ríos",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+                "bib": "0018",
+                "name": "Sofía Vargas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+                "bib": "0019",
+                "name": "Paula Girón",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+                "bib": "0020",
+                "name": "Natalia Duque",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+                "bib": "0021",
+                "name": "Isabela Mora",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "61d0b8b4-2e4c-4ac4-a477-9abd4f4cf4e6",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 2,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 3,
+            "qualifiers_count": 8,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+                "bib": "0001",
+                "name": "Julián Ospina",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+                "bib": "0002",
+                "name": "Andrés Quintero",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+                "bib": "0003",
+                "name": "Camilo Nieto",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+                "bib": "0004",
+                "name": "Sergio Mejía",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+                "bib": "0005",
+                "name": "Felipe Rojas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+                "bib": "0006",
+                "name": "Mateo Londoño",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+                "bib": "0007",
+                "name": "Daniel Arango",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+                "bib": "0008",
+                "name": "Santiago Gil",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+                "bib": "0009",
+                "name": "Nicolás Peña",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+                "bib": "0010",
+                "name": "Esteban Ruiz",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+                "bib": "0011",
+                "name": "Tomás Vélez",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+                "bib": "0012",
+                "name": "Iván Castro",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "83ce2df9-4660-4f97-b5ef-79ab8fc0152e",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 2,
+            "name": "Semifinal",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "6486c676-ec8c-4ffe-a1f2-61460bd4770d",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 3,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          }
+        ],
+        "heats": [
+          {
+            "id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+              "bib": "0015",
+              "name": "Laura Beltrán",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+              "bib": "0019",
+              "name": "Paula Girón",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+              "bib": "0003",
+              "name": "Camilo Nieto",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+              "bib": "0010",
+              "name": "Esteban Ruiz",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "5188a775-e7c1-4d07-9e9d-638f1d35b524",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+              "bib": "0014",
+              "name": "Daniela Cortés",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+              "bib": "0013",
+              "name": "Mariana Restrepo",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "e8da4d51-80fd-4325-b7fe-42bb38c2ad08",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+              "bib": "0002",
+              "name": "Andrés Quintero",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+              "bib": "0012",
+              "name": "Iván Castro",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "bf7c5622-b5fb-4121-a2b4-f30ee44283c7",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+              "bib": "0008",
+              "name": "Santiago Gil",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+              "bib": "0005",
+              "name": "Felipe Rojas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "2fbbe087-baf9-4089-b78d-0ddbf24fc62e",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+              "bib": "0016",
+              "name": "Camila Zapata",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+              "bib": "0017",
+              "name": "Valentina Ríos",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "6469a261-8c89-4d84-bce5-d97730510129",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+              "bib": "0021",
+              "name": "Isabela Mora",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+              "bib": "0020",
+              "name": "Natalia Duque",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "69559c86-3751-4083-8897-ce281e8483ee",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+              "bib": "0006",
+              "name": "Mateo Londoño",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+              "bib": "0009",
+              "name": "Nicolás Peña",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "8b8e6440-34d1-4f1d-9633-c508a5d52efc",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+              "bib": "0011",
+              "name": "Tomás Vélez",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+              "bib": "0007",
+              "name": "Daniel Arango",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "92ee5f8d-0644-4864-831b-cb35e59c3d34",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+              "bib": "0018",
+              "name": "Sofía Vargas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": null,
+            "notes": []
+          },
+          {
+            "id": "86d8433c-7650-4c1a-aa5e-440844f998a2",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 6,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+              "bib": "0004",
+              "name": "Sergio Mejía",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+              "bib": "0001",
+              "name": "Julián Ospina",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          }
+        ],
+        "withdrawals": [],
+        "tiebreaks": []
+      },
+      "active_device": null
+    }
+  },
+  "package_carrera_inexistente": {
+    "request": {
+      "method": "GET",
+      "path": "/races/e9ec90a2-ef0e-45bc-9aa7-423adeae2429/package",
+      "body": null
+    },
+    "status": 404,
+    "response": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Carrera no encontrada"
+      },
+      "server_time": "2026-11-20T16:13:28.932Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "package_id_invalido": {
+    "request": {
+      "method": "GET",
+      "path": "/races/no-es-uuid/package",
+      "body": null
+    },
+    "status": 404,
+    "response": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Carrera no encontrada"
+      },
+      "server_time": "2026-11-20T16:13:29.526Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "state_ok_inicial": {
+    "request": {
+      "method": "GET",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/state",
+      "body": null
+    },
+    "status": 200,
+    "response": {
+      "api_version": "1.0.0",
+      "engine_version": "0.2.0",
+      "server_time": "2026-11-20T16:13:31.440Z",
+      "race": {
+        "id": "89e45bb5-5b82-4df3-b422-641c8e86e709",
+        "name": "DOC TRACK - Carrera temporal de documentacion",
+        "status": "approved"
+      },
+      "accepted_events": 0,
+      "state": {
+        "started": false,
+        "finished": false,
+        "active_heat_id": null,
+        "warnings": [],
+        "stages": [
+          {
+            "id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+                "bib": "0013",
+                "name": "Mariana Restrepo",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+                "bib": "0014",
+                "name": "Daniela Cortés",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+                "bib": "0015",
+                "name": "Laura Beltrán",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+                "bib": "0016",
+                "name": "Camila Zapata",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+                "bib": "0017",
+                "name": "Valentina Ríos",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+                "bib": "0018",
+                "name": "Sofía Vargas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+                "bib": "0019",
+                "name": "Paula Girón",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+                "bib": "0020",
+                "name": "Natalia Duque",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+                "bib": "0021",
+                "name": "Isabela Mora",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "61d0b8b4-2e4c-4ac4-a477-9abd4f4cf4e6",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 2,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 3,
+            "qualifiers_count": 8,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+                "bib": "0001",
+                "name": "Julián Ospina",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+                "bib": "0002",
+                "name": "Andrés Quintero",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+                "bib": "0003",
+                "name": "Camilo Nieto",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+                "bib": "0004",
+                "name": "Sergio Mejía",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+                "bib": "0005",
+                "name": "Felipe Rojas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+                "bib": "0006",
+                "name": "Mateo Londoño",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+                "bib": "0007",
+                "name": "Daniel Arango",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+                "bib": "0008",
+                "name": "Santiago Gil",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+                "bib": "0009",
+                "name": "Nicolás Peña",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+                "bib": "0010",
+                "name": "Esteban Ruiz",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+                "bib": "0011",
+                "name": "Tomás Vélez",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+                "bib": "0012",
+                "name": "Iván Castro",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "83ce2df9-4660-4f97-b5ef-79ab8fc0152e",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 2,
+            "name": "Semifinal",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "6486c676-ec8c-4ffe-a1f2-61460bd4770d",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 3,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          }
+        ],
+        "heats": [
+          {
+            "id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+              "bib": "0015",
+              "name": "Laura Beltrán",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+              "bib": "0019",
+              "name": "Paula Girón",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+              "bib": "0003",
+              "name": "Camilo Nieto",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+              "bib": "0010",
+              "name": "Esteban Ruiz",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "5188a775-e7c1-4d07-9e9d-638f1d35b524",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+              "bib": "0014",
+              "name": "Daniela Cortés",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+              "bib": "0013",
+              "name": "Mariana Restrepo",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "e8da4d51-80fd-4325-b7fe-42bb38c2ad08",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+              "bib": "0002",
+              "name": "Andrés Quintero",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+              "bib": "0012",
+              "name": "Iván Castro",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "bf7c5622-b5fb-4121-a2b4-f30ee44283c7",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+              "bib": "0008",
+              "name": "Santiago Gil",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+              "bib": "0005",
+              "name": "Felipe Rojas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "2fbbe087-baf9-4089-b78d-0ddbf24fc62e",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+              "bib": "0016",
+              "name": "Camila Zapata",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+              "bib": "0017",
+              "name": "Valentina Ríos",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "6469a261-8c89-4d84-bce5-d97730510129",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+              "bib": "0021",
+              "name": "Isabela Mora",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+              "bib": "0020",
+              "name": "Natalia Duque",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "69559c86-3751-4083-8897-ce281e8483ee",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+              "bib": "0006",
+              "name": "Mateo Londoño",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+              "bib": "0009",
+              "name": "Nicolás Peña",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "8b8e6440-34d1-4f1d-9633-c508a5d52efc",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+              "bib": "0011",
+              "name": "Tomás Vélez",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+              "bib": "0007",
+              "name": "Daniel Arango",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "92ee5f8d-0644-4864-831b-cb35e59c3d34",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+              "bib": "0018",
+              "name": "Sofía Vargas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": null,
+            "notes": []
+          },
+          {
+            "id": "86d8433c-7650-4c1a-aa5e-440844f998a2",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 6,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+              "bib": "0004",
+              "name": "Sergio Mejía",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+              "bib": "0001",
+              "name": "Julián Ospina",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          }
+        ],
+        "withdrawals": [],
+        "tiebreaks": []
+      },
+      "active_device": null,
+      "last_device_seq": {}
+    }
+  },
+  "device_activate_ok": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/device/activate",
+      "body": {
+        "device_id": "tablet-A"
+      }
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "device_id": "tablet-A",
+      "activated_at": "2026-11-20T16:13:33.058947+00:00",
+      "last_device_seq": 0,
+      "replaced_device_id": null,
+      "server_time": "2026-11-20T16:13:33.008Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "device_activate_conflicto": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/device/activate",
+      "body": {
+        "device_id": "tablet-B"
+      }
+    },
+    "status": 409,
+    "response": {
+      "error": {
+        "code": "DEVICE_ALREADY_ACTIVE",
+        "message": "Hay otro dispositivo activo en esta carrera. Para reemplazarlo escribe una observación."
+      },
+      "active_device": {
+        "device_id": "tablet-A",
+        "activated_at": "2026-11-20T16:13:33.058947+00:00",
+        "last_synced_at": null
+      },
+      "server_time": "2026-11-20T16:13:34.354Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "device_activate_reemplazo": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/device/activate",
+      "body": {
+        "device_id": "tablet-B",
+        "takeover_note": "Se descargó la batería de la tablet A"
+      }
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "device_id": "tablet-B",
+      "activated_at": "2026-11-20T16:13:36.24147+00:00",
+      "last_device_seq": 0,
+      "replaced_device_id": "tablet-A",
+      "server_time": "2026-11-20T16:13:36.181Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "device_activate_cuerpo_invalido": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/device/activate",
+      "body": {}
+    },
+    "status": 400,
+    "response": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Se espera { device_id, takeover_note? }"
+      },
+      "server_time": "2026-11-20T16:13:36.981Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_dispositivo_no_activo": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {
+            "client_event_id": "f8d524bf-6856-432c-a9c4-e97222afcfaf",
+            "device_seq": 1,
+            "occurred_at": "2026-11-20T16:13:36.982305Z",
+            "type": "RACE_STARTED",
+            "payload": {}
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "response": {
+      "accepted": [],
+      "duplicates": [],
+      "rejected": [
+        {
+          "client_event_id": "f8d524bf-6856-432c-a9c4-e97222afcfaf",
+          "code": "DEVICE_NOT_ACTIVE",
+          "message": "Este dispositivo no es el activo de la carrera. Actívalo primero."
+        }
+      ],
+      "next_expected_seq": 1,
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:38.282Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "device_activate_vuelve_A": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/device/activate",
+      "body": {
+        "device_id": "tablet-A",
+        "takeover_note": "Vuelve la tablet A"
+      }
+    },
+    "status": 200,
+    "response": {
+      "ok": true,
+      "device_id": "tablet-A",
+      "activated_at": "2026-11-20T16:13:40.162653+00:00",
+      "last_device_seq": 0,
+      "replaced_device_id": "tablet-B",
+      "server_time": "2026-11-20T16:13:40.100Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_lote_aceptado": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {
+            "client_event_id": "de27fced-3af1-4f7d-b410-32e9e1442ebc",
+            "device_seq": 1,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "RACE_STARTED",
+            "payload": {}
+          },
+          {
+            "client_event_id": "39d6083a-467f-46e9-8fcb-95e14faf11d5",
+            "device_seq": 2,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "HEAT_STARTED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "started_at_ms": 1795191220101
+            }
+          },
+          {
+            "client_event_id": "cfc57225-26f7-4dcd-859a-7ead13d554fc",
+            "device_seq": 3,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "lane": "left",
+              "elapsed_ms": 32489,
+              "arrival_order": 1
+            }
+          },
+          {
+            "client_event_id": "d146b9e9-44a9-4f19-990e-bc1c16161596",
+            "device_seq": 4,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "lane": "right",
+              "elapsed_ms": 33012,
+              "arrival_order": 2
+            }
+          },
+          {
+            "client_event_id": "52168549-b462-46f7-bd15-2413ee18112b",
+            "device_seq": 5,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "HEAT_CONFIRMED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf"
+            }
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "response": {
+      "accepted": [
+        "de27fced-3af1-4f7d-b410-32e9e1442ebc",
+        "39d6083a-467f-46e9-8fcb-95e14faf11d5",
+        "cfc57225-26f7-4dcd-859a-7ead13d554fc",
+        "d146b9e9-44a9-4f19-990e-bc1c16161596",
+        "52168549-b462-46f7-bd15-2413ee18112b"
+      ],
+      "duplicates": [],
+      "rejected": [],
+      "next_expected_seq": 6,
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:46.005Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_reintento_duplicados": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {
+            "client_event_id": "de27fced-3af1-4f7d-b410-32e9e1442ebc",
+            "device_seq": 1,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "RACE_STARTED",
+            "payload": {}
+          },
+          {
+            "client_event_id": "39d6083a-467f-46e9-8fcb-95e14faf11d5",
+            "device_seq": 2,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "HEAT_STARTED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "started_at_ms": 1795191220101
+            }
+          },
+          {
+            "client_event_id": "cfc57225-26f7-4dcd-859a-7ead13d554fc",
+            "device_seq": 3,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "lane": "left",
+              "elapsed_ms": 32489,
+              "arrival_order": 1
+            }
+          },
+          {
+            "client_event_id": "d146b9e9-44a9-4f19-990e-bc1c16161596",
+            "device_seq": 4,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+              "lane": "right",
+              "elapsed_ms": 33012,
+              "arrival_order": 2
+            }
+          },
+          {
+            "client_event_id": "52168549-b462-46f7-bd15-2413ee18112b",
+            "device_seq": 5,
+            "occurred_at": "2026-11-20T16:13:40.101533Z",
+            "type": "HEAT_CONFIRMED",
+            "payload": {
+              "heat_id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf"
+            }
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "response": {
+      "accepted": [],
+      "duplicates": [
+        "de27fced-3af1-4f7d-b410-32e9e1442ebc",
+        "39d6083a-467f-46e9-8fcb-95e14faf11d5",
+        "cfc57225-26f7-4dcd-859a-7ead13d554fc",
+        "d146b9e9-44a9-4f19-990e-bc1c16161596",
+        "52168549-b462-46f7-bd15-2413ee18112b"
+      ],
+      "rejected": [],
+      "next_expected_seq": 6,
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:48.534Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_hueco_de_secuencia": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {
+            "client_event_id": "a8345790-0750-4bf4-b327-7190a3a0a9f3",
+            "device_seq": 9,
+            "occurred_at": "2026-11-20T16:13:48.535387Z",
+            "type": "HEAT_STARTED",
+            "payload": {
+              "heat_id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+              "started_at_ms": 1795191220101
+            }
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "response": {
+      "accepted": [],
+      "duplicates": [],
+      "rejected": [
+        {
+          "client_event_id": "a8345790-0750-4bf4-b327-7190a3a0a9f3",
+          "code": "SEQUENCE_GAP",
+          "message": "Se esperaba device_seq 6 y llegó 9. Reenvía desde 6."
+        }
+      ],
+      "next_expected_seq": 6,
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:51.008Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_lote_mixto_aceptado_y_rechazados": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {
+            "client_event_id": "2d602055-2d9e-4630-bae5-3a9404763e63",
+            "device_seq": 6,
+            "occurred_at": "2026-11-20T16:13:51.010445Z",
+            "type": "HEAT_STARTED",
+            "payload": {
+              "heat_id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+              "started_at_ms": 1795191220101
+            }
+          },
+          {
+            "client_event_id": "4b352874-4527-4dae-8f5d-d681ccd3c43b",
+            "device_seq": 7,
+            "occurred_at": "2026-11-20T16:13:51.010445Z",
+            "type": "HEAT_STARTED",
+            "payload": {
+              "heat_id": "5188a775-e7c1-4d07-9e9d-638f1d35b524",
+              "started_at_ms": 1795191220101
+            }
+          },
+          {
+            "client_event_id": "6411799f-2b61-44e9-b338-6a49220dffcd",
+            "device_seq": 8,
+            "occurred_at": "2026-11-20T16:13:51.010445Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+              "lane": "left",
+              "elapsed_ms": 40000
+            }
+          },
+          {
+            "client_event_id": "b3d87945-5b46-4404-9fc7-8ca4ef60c645",
+            "device_seq": 9,
+            "occurred_at": "2026-11-20T16:13:51.010445Z",
+            "type": "EVENTO_FUTURO",
+            "payload": {}
+          },
+          {
+            "client_event_id": "b95f5525-9aa9-488f-8d9e-43cbfbabddf6",
+            "device_seq": 10,
+            "occurred_at": "2026-11-20T16:13:51.010445Z",
+            "type": "ARRIVAL_MARKED",
+            "payload": {
+              "heat_id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+              "lane": "left",
+              "elapsed_ms": 40000,
+              "arrival_order": 2
+            }
+          }
+        ]
+      }
+    },
+    "status": 200,
+    "response": {
+      "accepted": [
+        "2d602055-2d9e-4630-bae5-3a9404763e63"
+      ],
+      "duplicates": [],
+      "rejected": [
+        {
+          "client_event_id": "4b352874-4527-4dae-8f5d-d681ccd3c43b",
+          "code": "SECOND_ACTIVE_HEAT",
+          "message": "Ya hay una oleada en la pista. Confírmala primero."
+        },
+        {
+          "client_event_id": "6411799f-2b61-44e9-b338-6a49220dffcd",
+          "code": "INVALID_PAYLOAD",
+          "message": "arrival_order: Required"
+        },
+        {
+          "client_event_id": "b3d87945-5b46-4404-9fc7-8ca4ef60c645",
+          "code": "UNSUPPORTED_EVENT_TYPE",
+          "message": "El servidor aún no admite el evento EVENTO_FUTURO."
+        },
+        {
+          "client_event_id": "b95f5525-9aa9-488f-8d9e-43cbfbabddf6",
+          "code": "ARRIVAL_ORDER_MISMATCH",
+          "message": "El orden de llegada no coincide."
+        }
+      ],
+      "next_expected_seq": 11,
+      "engine_version": "0.2.0",
+      "supported_event_types": [
+        "RACE_STARTED",
+        "PAIRING_SET",
+        "LANES_SWAPPED",
+        "RUN_SKIPPED",
+        "HEAT_STARTED",
+        "ARRIVAL_MARKED",
+        "RUN_NOT_FINISHED",
+        "HEAT_REVIEWED",
+        "HEAT_REOPENED",
+        "HEAT_CONFIRMED",
+        "ATHLETE_WITHDRAWN",
+        "TIEBREAK_STARTED",
+        "TIEBREAK_DECIDED",
+        "STAGE_CLOSED",
+        "RUN_RESTARTED",
+        "RUN_VOIDED",
+        "RACE_FINISHED",
+        "DEVICE_TAKEOVER",
+        "BACKUP_IMPORTED"
+      ],
+      "server_time": "2026-11-20T16:13:56.525Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_mas_de_200": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ]
+      }
+    },
+    "status": 400,
+    "response": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Formato inválido: se espera { device_id, events: [...] } con máximo 200 eventos"
+      },
+      "server_time": "2026-11-20T16:13:57.351Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "sync_cuerpo_invalido": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "events": []
+      }
+    },
+    "status": 400,
+    "response": {
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Formato inválido: se espera { device_id, events: [...] } con máximo 200 eventos"
+      },
+      "server_time": "2026-11-20T16:13:58.275Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "state_despues_de_sync": {
+    "request": {
+      "method": "GET",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/state",
+      "body": null
+    },
+    "status": 200,
+    "response": {
+      "api_version": "1.0.0",
+      "engine_version": "0.2.0",
+      "server_time": "2026-11-20T16:14:00.270Z",
+      "race": {
+        "id": "89e45bb5-5b82-4df3-b422-641c8e86e709",
+        "name": "DOC TRACK - Carrera temporal de documentacion",
+        "status": "in_progress"
+      },
+      "accepted_events": 6,
+      "state": {
+        "started": true,
+        "finished": false,
+        "active_heat_id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+        "warnings": [],
+        "stages": [
+          {
+            "id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+                "bib": "0015",
+                "name": "Laura Beltrán",
+                "position": 1,
+                "best_time_ms": 32489,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "time",
+                    "ms": 32489
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+                "bib": "0019",
+                "name": "Paula Girón",
+                "position": 2,
+                "best_time_ms": 33012,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "time",
+                    "ms": 33012
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+                "bib": "0013",
+                "name": "Mariana Restrepo",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+                "bib": "0014",
+                "name": "Daniela Cortés",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+                "bib": "0016",
+                "name": "Camila Zapata",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+                "bib": "0017",
+                "name": "Valentina Ríos",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+                "bib": "0018",
+                "name": "Sofía Vargas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+                "bib": "0020",
+                "name": "Natalia Duque",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+                "bib": "0021",
+                "name": "Isabela Mora",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "61d0b8b4-2e4c-4ac4-a477-9abd4f4cf4e6",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_number": 2,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 1,
+            "name": "Clasificación",
+            "runs_per_athlete": 3,
+            "qualifiers_count": 8,
+            "status": "open",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": [
+              {
+                "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+                "bib": "0001",
+                "name": "Julián Ospina",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+                "bib": "0002",
+                "name": "Andrés Quintero",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+                "bib": "0003",
+                "name": "Camilo Nieto",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+                "bib": "0004",
+                "name": "Sergio Mejía",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+                "bib": "0005",
+                "name": "Felipe Rojas",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+                "bib": "0006",
+                "name": "Mateo Londoño",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+                "bib": "0007",
+                "name": "Daniel Arango",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+                "bib": "0008",
+                "name": "Santiago Gil",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+                "bib": "0009",
+                "name": "Nicolás Peña",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+                "bib": "0010",
+                "name": "Esteban Ruiz",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+                "bib": "0011",
+                "name": "Tomás Vélez",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              },
+              {
+                "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+                "bib": "0012",
+                "name": "Iván Castro",
+                "position": null,
+                "best_time_ms": null,
+                "withdrawn": false,
+                "tied_with_previous": false,
+                "runs": [
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  },
+                  {
+                    "kind": "pending"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "83ce2df9-4660-4f97-b5ef-79ab8fc0152e",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 2,
+            "name": "Semifinal",
+            "runs_per_athlete": 2,
+            "qualifiers_count": 4,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          },
+          {
+            "id": "6486c676-ec8c-4ffe-a1f2-61460bd4770d",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_number": 3,
+            "name": "Final",
+            "runs_per_athlete": 2,
+            "qualifiers_count": null,
+            "status": "pending",
+            "final_order": null,
+            "qualified": null,
+            "cut_tie": [],
+            "voided_runs": [],
+            "rain_actions": [],
+            "tie_decisions": [],
+            "promotions": [],
+            "ranking": []
+          }
+        ],
+        "heats": [
+          {
+            "id": "ba70ae42-56ec-415a-ab2c-9d08d4d97dbf",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "confirmed",
+            "pairing_source": "fedocr",
+            "started_at_ms": 1795191220101,
+            "left": {
+              "registration_id": "2db16e3a-e4ec-4cf4-8ee7-391e5445e2a5",
+              "bib": "0015",
+              "name": "Laura Beltrán",
+              "outcome": "time",
+              "elapsed_ms": 32489,
+              "arrival_order": 1
+            },
+            "right": {
+              "registration_id": "8fcac836-f464-4426-9f61-47b26a9f364b",
+              "bib": "0019",
+              "name": "Paula Girón",
+              "outcome": "time",
+              "elapsed_ms": 33012,
+              "arrival_order": 2
+            },
+            "notes": []
+          },
+          {
+            "id": "a1e4e067-cc18-4d3e-b6cb-e569ddcb2842",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 1,
+            "status": "started",
+            "pairing_source": "fedocr",
+            "started_at_ms": 1795191220101,
+            "left": {
+              "registration_id": "0c1c8235-68e6-4e1e-8932-d11ec8934f01",
+              "bib": "0003",
+              "name": "Camilo Nieto",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "d02e6bb3-b3d6-41cc-b7d9-22ea1f0ba970",
+              "bib": "0010",
+              "name": "Esteban Ruiz",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "5188a775-e7c1-4d07-9e9d-638f1d35b524",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "96da4df6-e14c-4b35-9ba2-17204efe6d6f",
+              "bib": "0014",
+              "name": "Daniela Cortés",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "947e688c-6ad1-4c92-9dac-efc749883d5b",
+              "bib": "0013",
+              "name": "Mariana Restrepo",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "e8da4d51-80fd-4325-b7fe-42bb38c2ad08",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 2,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "e25da6b8-2f36-4b1b-a513-7d291eb194f9",
+              "bib": "0002",
+              "name": "Andrés Quintero",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7dc35709-784e-4900-b9c7-b9d1a0ff922b",
+              "bib": "0012",
+              "name": "Iván Castro",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "bf7c5622-b5fb-4121-a2b4-f30ee44283c7",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "cd847526-c34f-4bc9-ba24-fb48e1a40dde",
+              "bib": "0008",
+              "name": "Santiago Gil",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "0e4eaa96-e76c-45c0-9690-fd60ea0f8d51",
+              "bib": "0005",
+              "name": "Felipe Rojas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "2fbbe087-baf9-4089-b78d-0ddbf24fc62e",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 3,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0b107721-7af1-40b3-bf02-b1a7ef87f56b",
+              "bib": "0016",
+              "name": "Camila Zapata",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "445a9c0e-5067-46d9-8a1b-d25b0648e81f",
+              "bib": "0017",
+              "name": "Valentina Ríos",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "6469a261-8c89-4d84-bce5-d97730510129",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "aae9a753-c502-4358-9892-e5910b9d1b8f",
+              "bib": "0021",
+              "name": "Isabela Mora",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "a5f89e1b-6e27-4937-b3cd-81da408c36b9",
+              "bib": "0020",
+              "name": "Natalia Duque",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "69559c86-3751-4083-8897-ce281e8483ee",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 4,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "912252a5-f88e-433d-814b-50b0a9a4cda7",
+              "bib": "0006",
+              "name": "Mateo Londoño",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "405765cf-bf00-437a-a036-0224bf4379ee",
+              "bib": "0009",
+              "name": "Nicolás Peña",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "8b8e6440-34d1-4f1d-9633-c508a5d52efc",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "5b283f68-623b-4089-92c1-8d7dd29694fc",
+              "bib": "0011",
+              "name": "Tomás Vélez",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "eab18f4c-c8b1-4055-9ab2-67b3ad695c2b",
+              "bib": "0007",
+              "name": "Daniel Arango",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          },
+          {
+            "id": "92ee5f8d-0644-4864-831b-cb35e59c3d34",
+            "category_id": "a1f7700d-b95c-44a4-b4c7-cec55fbdeeed",
+            "stage_id": "5dd53402-ffb3-4f4c-9f6d-718010bc364c",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 5,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "ef9d1dd8-290c-4898-9889-61954b76883b",
+              "bib": "0018",
+              "name": "Sofía Vargas",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": null,
+            "notes": []
+          },
+          {
+            "id": "86d8433c-7650-4c1a-aa5e-440844f998a2",
+            "category_id": "13e9668f-9c92-4dd3-9811-1e7bee025a4e",
+            "stage_id": "8c397e5b-9b64-4bd4-ad42-aea3581c4210",
+            "kind": "regular",
+            "tiebreak_id": null,
+            "run_number": 1,
+            "heat_number": 6,
+            "status": "pending",
+            "pairing_source": "fedocr",
+            "started_at_ms": null,
+            "left": {
+              "registration_id": "0dc4153f-fca2-4e77-b05c-a93ad5615157",
+              "bib": "0004",
+              "name": "Sergio Mejía",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "right": {
+              "registration_id": "7d1348fe-4292-4882-9af1-e95aac3e4ff5",
+              "bib": "0001",
+              "name": "Julián Ospina",
+              "outcome": "pending",
+              "elapsed_ms": null,
+              "arrival_order": null
+            },
+            "notes": []
+          }
+        ],
+        "withdrawals": [],
+        "tiebreaks": []
+      },
+      "active_device": {
+        "device_id": "tablet-A",
+        "activated_at": "2026-11-20T16:13:40.162653+00:00",
+        "last_synced_at": "2026-11-20T16:13:56.269+00:00"
+      },
+      "last_device_seq": {
+        "tablet-A": 10
+      }
+    }
+  },
+  "sync_carrera_no_abierta": {
+    "request": {
+      "method": "POST",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/sync",
+      "body": {
+        "device_id": "tablet-A",
+        "events": []
+      }
+    },
+    "status": 409,
+    "response": {
+      "error": {
+        "code": "RACE_NOT_OPEN",
+        "message": "La carrera no admite eventos en estado draft"
+      },
+      "server_time": "2026-11-20T16:14:01.757Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "package_rol_no_permitido": {
+    "request": {
+      "method": "GET",
+      "path": "/races/89e45bb5-5b82-4df3-b422-641c8e86e709/package",
+      "body": null
+    },
+    "status": 403,
+    "response": {
+      "error": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "Tu cuenta no puede operar carreras track"
+      },
+      "server_time": "2026-11-20T16:14:03.402Z",
+      "api_version": "1.0.0"
+    }
+  },
+  "cors_preflight": {
+    "request": {
+      "method": "OPTIONS",
+      "path": "/races",
+      "headers": {
+        "Origin": "https://timertrack.fedocrcolombia.com",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "authorization,content-type"
+      }
+    },
+    "status": 204,
+    "headers": {
+      "Access-Control-Allow-Origin": "https://timertrack.fedocrcolombia.com",
+      "Access-Control-Allow-Headers": "authorization,content-type",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Max-Age": "600",
+      "Vary": "Origin"
+    }
+  }
+}
