@@ -1,5 +1,5 @@
 Timer_track — motor de reglas
-Etiqueta: engine-v0.1.0
-Commit: ab31fe36cdd526ce95d64f6e40e64d82a1ed4efd
-Fecha: 2026-11-19T21:35:54-05:00
-Versión del núcleo: 0.1.0
+Etiqueta: engine-v0.2.0
+Commit: 9db1660406317d915c0e5482db0284f0061c7d09
+Fecha: 2026-11-19T23:14:57-05:00
+Versión del núcleo: 0.2.0

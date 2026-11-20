@@ -44,13 +44,28 @@ export type TrackEvent =
       'ATHLETE_WITHDRAWN',
       { registration_id: string; stage_id: string; heat_id: string | null; reason: WithdrawalReason; note: string }
     >
-  // Fases siguientes: el núcleo los rechaza con NOT_SUPPORTED_YET hasta implementarlos.
-  | Envelope<'TIEBREAK_STARTED', EmptyPayload>
-  | Envelope<'TIEBREAK_DECIDED', EmptyPayload>
-  | Envelope<'STAGE_CLOSED', EmptyPayload>
+  | Envelope<
+      'TIEBREAK_STARTED',
+      { tiebreak_id: string; stage_id: string; registration_ids: string[]; note: string; heats: PairingDraft[] }
+    >
+  | Envelope<
+      'TIEBREAK_DECIDED',
+      {
+        stage_id: string;
+        tiebreak_id: string | null;
+        resolution: 'direct' | 'runoff';
+        registration_ids: string[];
+        order: string[];
+        note: string;
+      }
+    >
+  | Envelope<'STAGE_CLOSED', { stage_id: string }>
+  | Envelope<'RUN_RESTARTED', { stage_id: string; run_number: number; note: string; heats: PairingDraft[] }>
+  | Envelope<'RUN_VOIDED', { stage_id: string; run_number: number; note: string }>
+  | Envelope<'RACE_FINISHED', EmptyPayload>
+  // Eventos de dispositivo y respaldo: los procesa el almacenamiento y la sincronización, no las reglas.
   | Envelope<'DEVICE_TAKEOVER', EmptyPayload>
-  | Envelope<'BACKUP_IMPORTED', EmptyPayload>
-  | Envelope<'RACE_FINISHED', EmptyPayload>;
+  | Envelope<'BACKUP_IMPORTED', EmptyPayload>;
 
 export type TrackEventType = TrackEvent['type'];
 export type PayloadOf<T extends TrackEventType> = Extract<TrackEvent, { type: T }>['payload'];
@@ -71,4 +86,12 @@ export const SUPPORTED_EVENT_TYPES = [
   'HEAT_REOPENED',
   'HEAT_CONFIRMED',
   'ATHLETE_WITHDRAWN',
+  'TIEBREAK_STARTED',
+  'TIEBREAK_DECIDED',
+  'STAGE_CLOSED',
+  'RUN_RESTARTED',
+  'RUN_VOIDED',
+  'RACE_FINISHED',
+  'DEVICE_TAKEOVER',
+  'BACKUP_IMPORTED',
 ] as const satisfies readonly TrackEventType[];

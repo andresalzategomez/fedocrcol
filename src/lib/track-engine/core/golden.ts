@@ -21,10 +21,13 @@ export interface GoldenOutcome {
   /** Eventos rechazados por el motor, en orden, con su código. */
   rejected: { clientEventId: string; code: EngineErrorCode }[];
   started: boolean;
+  finished: boolean;
   activeHeatId: string | null;
   heats: {
     id: string;
     stageId: string;
+    kind: string;
+    tiebreakId: string | null;
     runNumber: number;
     heatNumber: number;
     status: string;
@@ -37,6 +40,13 @@ export interface GoldenOutcome {
     id: string;
     status: string;
     currentRun: number;
+    entries: string[];
+    voidedRuns: number[];
+    rainActions: { kind: string; runNumber: number; note: string }[];
+    tieDecisions: { registrationIds: string[]; order: string[]; resolution: string; note: string }[];
+    finalOrder: string[] | null;
+    qualified: string[] | null;
+    promotions: { promoted: string; replaced: string }[];
     ranking: {
       registrationId: string;
       position: number | null;
@@ -68,12 +78,15 @@ export function summarizeOutcome(config: RaceConfig, events: readonly TrackEvent
   return {
     rejected: rejected.map((r) => ({ clientEventId: r.event.clientEventId, code: r.error.code })),
     started: state.started,
+    finished: state.finished,
     activeHeatId: state.activeHeatId,
     heats: state.heatOrder.map((id) => {
       const h = state.heats[id]!;
       return {
         id: h.id,
         stageId: h.stageId,
+        kind: h.kind,
+        tiebreakId: h.tiebreakId,
         runNumber: h.runNumber,
         heatNumber: h.heatNumber,
         status: h.status,
@@ -89,6 +102,18 @@ export function summarizeOutcome(config: RaceConfig, events: readonly TrackEvent
         id: s.id,
         status: s.status,
         currentRun: currentRun(state, s.id),
+        entries: s.entries,
+        voidedRuns: s.voidedRuns,
+        rainActions: s.rainActions.map((a) => ({ kind: a.kind, runNumber: a.runNumber, note: a.note })),
+        tieDecisions: s.tieDecisions.map((d) => ({
+          registrationIds: d.registrationIds,
+          order: d.order,
+          resolution: d.resolution,
+          note: d.note,
+        })),
+        finalOrder: s.finalOrder,
+        qualified: s.qualified,
+        promotions: s.promotions.map((x) => ({ promoted: x.promoted, replaced: x.replaced })),
         ranking: stageRanking(state, s.id).map((r) => ({
           registrationId: r.registrationId,
           position: r.position,

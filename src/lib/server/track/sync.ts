@@ -50,7 +50,9 @@ export async function lastDeviceSeq(ctx: TrackContext, deviceId: string): Promis
  */
 export async function processSync(ctx: TrackContext, deviceId: string, rawEvents: unknown[]): Promise<SyncResult> {
   const { admin, race } = ctx;
-  if (!["approved", "in_progress"].includes(race.status)) {
+  // 'finished' se admite solo si la competencia terminó por RACE_FINISHED (se verifica abajo): el motor rechaza ya cualquier
+  // evento de reglas, y los de dispositivo/respaldo siguen entrando para completar el historial.
+  if (!["approved", "in_progress", "finished"].includes(race.status)) {
     throw new SyncError("RACE_NOT_OPEN", `La carrera no admite eventos en estado ${race.status}`, 409);
   }
 
@@ -94,11 +96,15 @@ export async function processSync(ctx: TrackContext, deviceId: string, rawEvents
   // 3) Estado actual reconstruido con el motor.
   const { state: initial } = await replayRace(admin, race.id);
   let state: RaceState = initial;
+  if (race.status === "finished" && !initial.finished) {
+    throw new SyncError("RACE_NOT_OPEN", "La carrera fue cerrada por la federación y no admite eventos", 409);
+  }
 
   const rows: Record<string, unknown>[] = [];
   let gap = false;
   let acceptedAny = false;
   let raceStarted = false;
+  let raceFinished = false;
   const rowBase = { tenant_id: race.tenant_id, event_id: race.id, device_id: deviceId, judge_id: ctx.userId, engine_version: ENGINE_VERSION };
 
   for (const env of envelopes) {
@@ -130,6 +136,7 @@ export async function processSync(ctx: TrackContext, deviceId: string, rawEvents
     result.accepted.push(env.client_event_id);
     acceptedAny = true;
     if (env.type === "RACE_STARTED") raceStarted = true;
+    if (env.type === "RACE_FINISHED") raceFinished = true;
     lastSeq = env.device_seq;
   }
 
@@ -147,6 +154,7 @@ export async function processSync(ctx: TrackContext, deviceId: string, rawEvents
   if (acceptedAny) {
     await materializeState(admin, race, state, ctx.userId);
     if (raceStarted && race.status === "approved") await admin.from("events").update({ status: "in_progress" }).eq("id", race.id);
+    if (raceFinished && race.status !== "finished") await admin.from("events").update({ status: "finished" }).eq("id", race.id);
   }
   await admin.from("track_race_devices").update({ last_synced_at: new Date().toISOString() }).eq("id", active.id);
 

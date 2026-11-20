@@ -1,7 +1,7 @@
 {
   "name": "no-corre-una-salida",
   "description": "c-a01 corre la salida 1 (30.00) y no corre la salida 2. Su pareja c-a02 sale sola. c-a01 compite con su tiempo de la salida 1.",
-  "engineVersion": "0.1.0",
+  "engineVersion": "0.2.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -356,11 +356,14 @@
   "expected": {
     "rejected": [],
     "started": true,
+    "finished": false,
     "activeHeatId": null,
     "heats": [
       {
         "id": "c-s1-r1-h1",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 1,
         "status": "confirmed",
@@ -382,6 +385,8 @@
       {
         "id": "c-s1-r1-h2",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 2,
         "status": "confirmed",
@@ -403,6 +408,8 @@
       {
         "id": "c-s1-r1-h3",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 3,
         "status": "confirmed",
@@ -419,6 +426,8 @@
       {
         "id": "c-s1-r2-h1",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 2,
         "heatNumber": 1,
         "status": "confirmed",
@@ -440,6 +449,8 @@
       {
         "id": "c-s1-r2-h2",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 2,
         "heatNumber": 2,
         "status": "confirmed",
@@ -461,6 +472,8 @@
       {
         "id": "c-s1-r2-h3",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 2,
         "heatNumber": 3,
         "status": "confirmed",
@@ -480,6 +493,19 @@
         "id": "c-s1",
         "status": "open",
         "currentRun": 3,
+        "entries": [
+          "c-a01",
+          "c-a02",
+          "c-a03",
+          "c-a04",
+          "c-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": [
           {
             "registrationId": "c-a02",
@@ -541,6 +567,13 @@
         "id": "c-s2",
         "status": "pending",
         "currentRun": 2,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": []
       }
     ],

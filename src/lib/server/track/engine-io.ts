@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  ENGINE_VERSION, SUPPORTED_EVENT_TYPES, replay, stageRanking, lanesOf,
+  ENGINE_VERSION, SUPPORTED_EVENT_TYPES, replay, stageRanking, stageFinalOrder, cutTie, lanesOf,
   type RaceConfig, type RaceState, type TrackEvent,
 } from "../../track-engine/core";
 
@@ -98,6 +98,16 @@ export function stateToJson(state: RaceState, names: Map<string, AthleteName>) {
       runs_per_athlete: s.runsPerAthlete,
       qualifiers_count: s.qualifiersCount,
       status: s.status,
+      // Oficiales solo con la instancia cerrada; mientras esté abierta, la posición del ranking es provisional.
+      final_order: s.finalOrder ? s.finalOrder.map(who) : null,
+      qualified: s.qualified ? s.qualified.map(who) : null,
+      cut_tie: s.status === "open" ? (cutTie(state, s.id) ?? []).map(who) : [],
+      voided_runs: s.voidedRuns,
+      rain_actions: s.rainActions.map((a) => ({ kind: a.kind, run_number: a.runNumber, note: a.note, at: a.at })),
+      tie_decisions: s.tieDecisions.map((d) => ({
+        resolution: d.resolution, tiebreak_id: d.tiebreakId, registration_ids: d.registrationIds.map(who), order: d.order.map(who), note: d.note, at: d.at,
+      })),
+      promotions: s.promotions.map((p) => ({ promoted: who(p.promoted), replaced: who(p.replaced), at: p.at })),
       ranking: stageRanking(state, s.id).map((r) => ({
         ...who(r.registrationId),
         position: r.position,
@@ -111,12 +121,15 @@ export function stateToJson(state: RaceState, names: Map<string, AthleteName>) {
       const h = state.heats[id]!;
       const lane = (side: "left" | "right") => {
         const l = h.lanes[side];
-        return l ? { ...who(l.registrationId), outcome: l.outcome, elapsed_ms: l.elapsedMs, arrival_order: l.arrivalOrder } : null;
+        // En una oleada anulada por lluvia el tiempo original se conserva, pero no cuenta: se informa como 'voided'.
+        return l ? { ...who(l.registrationId), outcome: h.status === "voided" ? "voided" : l.outcome, elapsed_ms: l.elapsedMs, arrival_order: l.arrivalOrder } : null;
       };
       return {
         id: h.id,
         category_id: h.categoryId,
         stage_id: h.stageId,
+        kind: h.kind,
+        tiebreak_id: h.tiebreakId,
         run_number: h.runNumber,
         heat_number: h.heatNumber,
         status: h.status,
@@ -128,6 +141,9 @@ export function stateToJson(state: RaceState, names: Map<string, AthleteName>) {
       };
     }),
     withdrawals: Object.values(state.withdrawals).map((w) => ({ ...who(w.registrationId), stage_id: w.stageId, heat_id: w.heatId, reason: w.reason, note: w.note, at: w.at })),
+    tiebreaks: Object.values(state.tiebreaks).map((t) => ({
+      id: t.id, stage_id: t.stageId, registration_ids: t.registrationIds.map(who), heat_ids: t.heatIds, note: t.note, at: t.at, decided: t.decided,
+    })),
   };
 }
 
@@ -143,18 +159,29 @@ export async function materializeState(
 ): Promise<void> {
   const base = { tenant_id: race.tenant_id, event_id: race.id };
 
+  // Participantes por instancia: se reconstruyen completos (suben atletas por retiros de clasificados).
+  await admin.from("track_stage_entries").delete().eq("event_id", race.id);
+  const entryRows: Record<string, unknown>[] = [];
   for (const stage of Object.values(state.stages)) {
     await admin.from("track_stages").update({ status: stage.status, closed_at: stage.status === "closed" ? new Date().toISOString() : null }).eq("id", stage.id);
     const ranking = stageRanking(state, stage.id);
-    if (ranking.length) {
-      await admin.from("track_stage_entries").upsert(
-        ranking.map((r) => ({
-          ...base, stage_id: stage.id, registration_id: r.registrationId,
-          status: r.withdrawn ? "withdrawn" : "active", best_time_ms: r.bestMs, rank: r.position,
-        })),
-        { onConflict: "stage_id,registration_id" },
-      );
+    // Cerrada: orden final y clasificados oficiales. Abierta: posición provisional.
+    const finalPos = new Map((stage.finalOrder ?? []).map((id, i) => [id, i + 1]));
+    const qualified = new Set(stage.qualified ?? []);
+    for (const r of ranking) {
+      const official = stage.status === "closed";
+      entryRows.push({
+        ...base, stage_id: stage.id, registration_id: r.registrationId, seed: stage.entries.indexOf(r.registrationId) + 1,
+        status: r.withdrawn ? "withdrawn" : official && qualified.has(r.registrationId) ? "qualified" : "active",
+        best_time_ms: r.bestMs,
+        rank: official && !r.withdrawn && r.position !== null ? (finalPos.get(r.registrationId) ?? r.position) : r.position,
+        qualified: official && qualified.has(r.registrationId),
+      });
     }
+  }
+  if (entryRows.length) {
+    const { error } = await admin.from("track_stage_entries").insert(entryRows);
+    if (error) throw new Error(`No se pudieron guardar los participantes: ${error.message}`);
   }
 
   // Oleadas y carriles: se reconstruyen completos (decenas de filas por carrera).
@@ -164,10 +191,11 @@ export async function materializeState(
     const { error } = await admin.from("track_heats").insert(
       heats.map((h) => ({
         id: h.id, ...base, stage_id: h.stageId, run_number: h.runNumber, heat_number: h.heatNumber,
+        heat_type: h.kind, tiebreak_id: h.tiebreakId,
         pairing_source: h.pairingSource, status: h.status,
         started_at: h.startedAtMs != null ? new Date(h.startedAtMs).toISOString() : null,
         judge_id: judgeId,
-        review_note: h.notes.filter((n) => n.kind === "review").map((n) => n.text).join(" | ") || null,
+        review_note: h.notes.filter((n) => n.kind === "review" || n.kind === "voided").map((n) => n.text).join(" | ") || null,
       })),
     );
     if (error) throw new Error(`No se pudieron guardar las oleadas: ${error.message}`);
@@ -177,7 +205,8 @@ export async function materializeState(
         if (!l) return [];
         return [{
           ...base, heat_id: h.id, lane: side, registration_id: l.registrationId, arrival_order: l.arrivalOrder,
-          elapsed_ms: l.elapsedMs, outcome: l.outcome,
+          // Anulada por lluvia: el tiempo original queda guardado y el resultado se marca 'voided'.
+          elapsed_ms: l.elapsedMs, outcome: h.status === "voided" ? "voided" : l.outcome,
           finish_at: h.startedAtMs != null && l.elapsedMs != null ? new Date(h.startedAtMs + l.elapsedMs).toISOString() : null,
         }];
       }),
@@ -198,6 +227,29 @@ export async function materializeState(
       { onConflict: "event_id,registration_id" },
     );
   }
+
+  // Desempates: los iniciados (con o sin decisión) y las decisiones directas del juez. Se reconstruyen completos.
+  await admin.from("track_tiebreaks").delete().eq("event_id", race.id);
+  const tbRows: Record<string, unknown>[] = [];
+  for (const stage of Object.values(state.stages)) {
+    const started = Object.values(state.tiebreaks).filter((t) => t.stageId === stage.id);
+    for (const t of started) {
+      const d = stage.tieDecisions.find((x) => x.tiebreakId === t.id);
+      tbRows.push({
+        id: t.id, ...base, stage_id: stage.id, tied_registration_ids: t.registrationIds, resolution: d ? "runoff" : null,
+        note: d?.note ?? t.note, judge_id: judgeId, decided_at: d?.at ?? null,
+      });
+    }
+    for (const d of stage.tieDecisions.filter((x) => !x.tiebreakId)) {
+      tbRows.push({
+        id: crypto.randomUUID(), ...base, stage_id: stage.id, tied_registration_ids: d.registrationIds, resolution: "judge_direct", note: d.note, judge_id: judgeId, decided_at: d.at,
+      });
+    }
+  }
+  if (tbRows.length) {
+    const { error } = await admin.from("track_tiebreaks").insert(tbRows);
+    if (error) throw new Error(`No se pudieron guardar los desempates: ${error.message}`);
+  }
 }
 
-export { lanesOf };
+export { lanesOf, stageFinalOrder };

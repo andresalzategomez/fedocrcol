@@ -1,7 +1,7 @@
 {
   "name": "reglas-de-pista-y-rechazos",
   "description": "Rechazos: salida antes de iniciar, segunda oleada activa, salida de una salida no habilitada, orden de llegada incorrecto, revisión sin observación, parejas con atleta repetido. Además, una oleada donde nadie corre se confirma sin salir.",
-  "engineVersion": "0.1.0",
+  "engineVersion": "0.2.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -270,7 +270,9 @@
       "deviceSeq": 17,
       "occurredAt": "2027-03-14T13:00:17.000Z",
       "type": "STAGE_CLOSED",
-      "payload": {}
+      "payload": {
+        "stage_id": "c-s1"
+      }
     }
   ],
   "expected": {
@@ -309,15 +311,18 @@
       },
       {
         "clientEventId": "evt-0017",
-        "code": "NOT_SUPPORTED_YET"
+        "code": "RUNS_NOT_FINISHED"
       }
     ],
     "started": true,
+    "finished": false,
     "activeHeatId": null,
     "heats": [
       {
         "id": "c-s1-r1-h1",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 1,
         "status": "confirmed",
@@ -339,6 +344,8 @@
       {
         "id": "c-s1-r1-h2",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 2,
         "status": "confirmed",
@@ -360,6 +367,8 @@
       {
         "id": "c-s1-r1-h3",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 3,
         "status": "pending",
@@ -379,6 +388,19 @@
         "id": "c-s1",
         "status": "open",
         "currentRun": 1,
+        "entries": [
+          "c-a01",
+          "c-a02",
+          "c-a03",
+          "c-a04",
+          "c-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": [
           {
             "registrationId": "c-a01",
@@ -430,6 +452,13 @@
         "id": "c-s2",
         "status": "pending",
         "currentRun": 2,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": []
       }
     ],

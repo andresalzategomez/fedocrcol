@@ -1,7 +1,7 @@
 {
   "name": "sale-y-no-llega",
   "description": "c-a02 sale y no llega: queda sin tiempo en esa salida. La oleada se confirma con el tiempo de c-a01.",
-  "engineVersion": "0.1.0",
+  "engineVersion": "0.2.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -134,11 +134,14 @@
   "expected": {
     "rejected": [],
     "started": true,
+    "finished": false,
     "activeHeatId": null,
     "heats": [
       {
         "id": "c-s1-r1-h1",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 1,
         "status": "confirmed",
@@ -165,6 +168,8 @@
       {
         "id": "c-s1-r1-h2",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 2,
         "status": "pending",
@@ -186,6 +191,8 @@
       {
         "id": "c-s1-r1-h3",
         "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
         "runNumber": 1,
         "heatNumber": 3,
         "status": "pending",
@@ -205,6 +212,19 @@
         "id": "c-s1",
         "status": "open",
         "currentRun": 1,
+        "entries": [
+          "c-a01",
+          "c-a02",
+          "c-a03",
+          "c-a04",
+          "c-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": [
           {
             "registrationId": "c-a01",
@@ -254,6 +274,13 @@
         "id": "c-s2",
         "status": "pending",
         "currentRun": 2,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
         "ranking": []
       }
     ],

@@ -8,8 +8,8 @@ compatibilidad, va en una versión nueva (`/api/track/v2`).
 Las carreras track **no** existen para FedOCR Timer (`/api/v1`): no las lista ni las puede operar.
 
 - **Versión de la API:** `1.0.0` (`api_version` en las respuestas)
-- **Versión del motor de reglas:** `0.1.0` (`engine_version`). El servidor usa **el mismo motor** que la app
-  (`src/lib/track-engine`, copia sin modificar de `engine-v0.1.0`) para validar y aplicar cada evento.
+- **Versión del motor de reglas:** `0.2.0` (`engine_version`). El servidor usa **el mismo motor** que la app
+  (`src/lib/track-engine`, copia sin modificar de `engine-v0.2.0`) para validar y aplicar cada evento.
 - **Base URL (por ahora):** `https://fedocrcol.lovable.app/api/track/v1`
 
 ## 1. Convenciones
@@ -72,7 +72,7 @@ Todo lo necesario para operar sin conexión. **Solo entran inscritos con pago co
 `registration_id`, `bib` y `name` (nunca documento ni datos médicos).
 ```jsonc
 {
-  "api_version": "1.0.0", "engine_version": "0.1.0",
+  "api_version": "1.0.0", "engine_version": "0.2.0",
   "supported_event_types": ["RACE_STARTED", "PAIRING_SET", "..."],
   "race": { "id": "uuid", "name": "...", "date": "2026-11-21", "location": "...", "status": "approved" },
   "categories": [
@@ -127,7 +127,7 @@ Solo hay **un dispositivo activo por carrera**. Hay que activarlo antes de sincr
 - Con `takeover_note` (mínimo 3 caracteres) → lo reemplaza: `replaced_device_id` trae el anterior.
 
 Los eventos del dispositivo reemplazado se rechazan con `DEVICE_NOT_ACTIVE`; solo se recuperan con un respaldo importado
-(`BACKUP_IMPORTED`, que llegará con el motor v0.2.0 y traerá los `client_event_id` originales para no duplicar).
+(`BACKUP_IMPORTED`, que trae los `client_event_id` originales para no duplicar).
 
 ## 6. Sincronización
 
@@ -147,7 +147,7 @@ Los eventos del dispositivo reemplazado se rechazan con `DEVICE_NOT_ACTIVE`; sol
   "duplicates": ["client_event_id"],
   "rejected": [ { "client_event_id": "uuid", "code": "SECOND_ACTIVE_HEAT", "message": "Ya hay una oleada en la pista. Confírmala primero." } ],
   "next_expected_seq": 14,
-  "engine_version": "0.1.0", "supported_event_types": ["..."], "server_time": "...", "api_version": "1.0.0"
+  "engine_version": "0.2.0", "supported_event_types": ["..."], "server_time": "...", "api_version": "1.0.0"
 }
 ```
 Reglas:
@@ -160,14 +160,18 @@ Reglas:
 - El primer `RACE_STARTED` aceptado pasa la carrera de `approved` a `in_progress`.
 - El servidor refleja el estado en sus tablas (oleadas, carriles, clasificación y retiros) para el panel y la vista pública.
   **No escribe** en `results`, `waves`, `checkpoints`, `timing_reads` ni en el ranking nacional.
-- Con la carrera finalizada o fuera de estado (`approved`/`in_progress`) → `409 RACE_NOT_OPEN`.
+- `RACE_FINISHED` aceptado pasa la carrera a `finished`. Después el servidor sigue recibiendo eventos de dispositivo/respaldo, pero cualquier
+  evento de reglas se rechaza con `RACE_ALREADY_FINISHED`.
+- Fuera de estado (`approved`/`in_progress`, o `finished` por `RACE_FINISHED`) → `409 RACE_NOT_OPEN`.
+- **Identificadores de oleada y de desempate (`heat_id`, `tiebreak_id`):** texto libre de hasta 120 caracteres, **únicos en toda la plataforma**
+  (usa UUID, o derívalos de un `stage_id`, como hace el motor: `<stage_id>-r1-h<n>`). Los `stage_id`, `registration_id` y `client_event_id` sí son UUID.
 
-### Eventos soportados en `engine-v0.1.0`
+### Eventos soportados en `engine-v0.2.0` (19)
 
 | Tipo | Payload |
 |---|---|
 | `RACE_STARTED` | `{}` |
-| `PAIRING_SET` | `{ stage_id, run_number, source: "fedocr\|same_as_previous\|random\|manual\|seeded", heats: [{ heat_id, heat_number, left, right\|null }] }` — reemplaza todas las oleadas **pendientes** de esa salida (se pueden reutilizar los mismos `heat_id`), conserva las que ya corrieron y debe cubrir **exactamente una vez** a cada atleta habilitado. Las oleadas de la salida 2 en adelante las crea la app con UUID propio. |
+| `PAIRING_SET` | `{ stage_id, run_number, source: "fedocr\|same_as_previous\|random\|manual\|seeded", heats: [{ heat_id, heat_number, left, right\|null }] }` — reemplaza todas las oleadas **pendientes** de esa salida (se pueden reutilizar los mismos `heat_id`), conserva las que ya corrieron y debe cubrir **exactamente una vez** a cada atleta habilitado. Las oleadas de la salida 2 en adelante las crea la app con `heat_id` único. |
 | `LANES_SWAPPED` | `{ heat_id }` |
 | `RUN_SKIPPED` | `{ heat_id, registration_id, skipped: true\|false }` — `false` deshace el "no corre" antes de la salida |
 | `HEAT_STARTED` | `{ heat_id, started_at_ms }` — hora real de la salida (epoch ms) |
@@ -178,10 +182,28 @@ Reglas:
 | `HEAT_CONFIRMED` | `{ heat_id }` — también para una oleada pendiente donde nadie corre (todos "no corre" o retirados) |
 | `ATHLETE_WITHDRAWN` | `{ registration_id, stage_id, heat_id\|null, reason: "rule_violation\|voluntary\|injury\|other", note }` — observación obligatoria. Conserva los tiempos ya registrados; los carriles pendientes pasan a `withdrawn` y la pareja corre sola. |
 
-**Próxima entrega (`engine-v0.2.0`, última):** cierre de instancia (`STAGE_CLOSED`), clasificados, desempates del juez
-(`TIEBREAK_STARTED`, `TIEBREAK_DECIDED`), retiro de clasificados, protocolo de lluvia (`RUN_RESTARTED`, `RUN_VOIDED`),
-`DEVICE_TAKEOVER`, `BACKUP_IMPORTED` y `RACE_FINISHED`. Hasta entonces **no están** en `supported_event_types` y se rechazan con
-`UNSUPPORTED_EVENT_TYPE`. Se publicarán en esta misma versión de la API (ampliación compatible).
+Eventos agregados en `engine-v0.2.0`:
+
+| Tipo | Payload |
+|---|---|
+| `STAGE_CLOSED` | `{ stage_id }` — exige la instancia con todas las salidas resueltas y sin empate pendiente en el corte. Fija `final_order` y `qualified`, abre la siguiente instancia y arma su salida 1 **primero contra último**, con oleadas de `heat_id = <stage_id>-r1-h<n>` (la app **no** las crea). En la final, `qualified = []`. |
+| `TIEBREAK_STARTED` | `{ tiebreak_id, stage_id, registration_ids, note, heats: [{ heat_id, heat_number, left, right\|null }] }` — oleadas de desempate (`kind: "tiebreak"`, `run_number: 0`); sus tiempos **no cuentan** para la clasificación. |
+| `TIEBREAK_DECIDED` | `{ stage_id, tiebreak_id\|null, resolution: "direct\|runoff", registration_ids, order, note }` — fija el orden de los empatados en el corte. `runoff` exige todas las oleadas del desempate confirmadas; `direct` va con `tiebreak_id: null`. |
+| `RUN_RESTARTED` | `{ stage_id, run_number, note, heats: [...] }` — protocolo de lluvia: anula las oleadas de la salida actual (`status: "voided"`) y crea las nuevas (`pairing_source: "restart"`). Observación obligatoria. |
+| `RUN_VOIDED` | `{ stage_id, run_number, note }` — protocolo de lluvia: anula la salida actual; queda resuelta y se pasa a la siguiente. Observación obligatoria. |
+| `RACE_FINISHED` | `{}` — exige todas las instancias cerradas (`STAGES_OPEN`). |
+| `DEVICE_TAKEOVER`, `BACKUP_IMPORTED` | `{}` — no cambian las reglas; quedan en el historial. |
+
+`ATHLETE_WITHDRAWN` de un **clasificado** antes de que empiece la instancia siguiente se envía con el `stage_id` de **esa instancia** y
+`heat_id: null`: sube el siguiente mejor tiempo de la instancia anterior y la salida 1 se arma de nuevo.
+
+### Qué ven el panel y la vista pública (`GET /state`)
+
+- Clasificados oficiales: `stages[].qualified` y `stages[].final_order`, **solo con la instancia cerrada**. Abierta, la posición del `ranking` es provisional y
+  `cut_tie` lista a los empatados en el corte que el juez aún debe decidir.
+- Oleada anulada por lluvia: `status: "voided"` y, en cada carril, `outcome: "voided"` **conservando** `elapsed_ms` (el tiempo original se muestra como anulado
+  y no cuenta). `stages[].voided_runs` y `rain_actions` dicen qué salidas se anularon y por qué.
+- Desempates: `tiebreaks[]` y `stages[].tie_decisions` (con su observación).
 
 ## 7. Reglas de competencia que aplica el servidor (las del motor)
 
@@ -189,16 +211,22 @@ Reglas:
   todas las oleadas de la actual.
 - Un tiempo **cuenta solo cuando su oleada está confirmada**. `HEAT_REOPENED` lo deja de contar hasta que se confirme de nuevo.
 - Clasificación de una instancia: mejor tiempo (en centésimas truncadas); si empatan, los siguientes tiempos de mejor a peor; a quien
-  le falte el tiempo comparado queda después; si persiste el empate, `tied_with_previous = true` (lo decide el juez, v0.2.0).
+  le falte el tiempo comparado queda después; si persiste el empate, `tied_with_previous = true` (lo decide el juez con `TIEBREAK_*`).
 - Los retirados y los atletas sin tiempo van al final, **sin posición**. Un atleta puede no correr una salida y conservar sus tiempos.
 - Si un atleta sale y no llega queda `did_not_finish`, sin tiempo en esa salida.
+- **Empate en el corte:** un empate total que cruza el número de clasificados impide cerrar la instancia (`TIE_UNRESOLVED`) hasta que el juez lo decida,
+  directamente o haciendo correr a los empatados. Los empates que no afectan el corte comparten posición.
+- **Lluvia:** solo sobre la salida actual de una instancia abierta con más de 1 salida y con observación. Anular la última salida exige que quede algún tiempo válido.
+  Los tiempos anulados se conservan, no cuentan y nunca se borran.
+- **Correcciones después de cerrar una instancia:** las hace solo un administrador (ver preguntas abiertas con Timer_track).
 
 ## 8. Códigos de rechazo
 
-**Del motor (los mismos que la app, 22):** `RACE_NOT_STARTED`, `RACE_ALREADY_STARTED`, `STAGE_NOT_FOUND`, `STAGE_NOT_OPEN`,
-`HEAT_NOT_FOUND`, `INVALID_HEAT_STATE`, `SECOND_ACTIVE_HEAT`, `RUN_NOT_OPEN`, `RUN_CLOSED`, `NO_RUNNERS`, `HEAT_HAS_RUNNERS`,
-`LANE_EMPTY`, `LANE_NOT_PENDING`, `ATHLETE_NOT_IN_HEAT`, `ATHLETE_NOT_IN_STAGE`, `ATHLETE_WITHDRAWN`, `INVALID_TIME`,
-`ARRIVAL_ORDER_MISMATCH`, `NOTE_REQUIRED`, `NOTHING_TO_SWAP`, `INVALID_PAIRING`, `NOT_SUPPORTED_YET`.
+**Del motor (los mismos que la app, 35):** `RACE_NOT_STARTED`, `RACE_ALREADY_STARTED`, `RACE_ALREADY_FINISHED`, `STAGE_NOT_FOUND`, `STAGE_NOT_OPEN`, `STAGES_OPEN`,
+`HEAT_NOT_FOUND`, `INVALID_HEAT_STATE`, `SECOND_ACTIVE_HEAT`, `HEAT_IN_PROGRESS`, `RUN_NOT_OPEN`, `RUN_CLOSED`, `RUN_NOT_CURRENT`, `RUNS_NOT_FINISHED`,
+`NO_RUNNERS`, `HEAT_HAS_RUNNERS`, `LANE_EMPTY`, `LANE_NOT_PENDING`, `ATHLETE_NOT_IN_HEAT`, `ATHLETE_NOT_IN_STAGE`, `ATHLETE_WITHDRAWN`, `INVALID_TIME`,
+`ARRIVAL_ORDER_MISMATCH`, `NOTE_REQUIRED`, `NOTHING_TO_SWAP`, `INVALID_PAIRING`, `TIE_UNRESOLVED`, `TIEBREAK_PENDING`, `TIEBREAK_NOT_FOUND`,
+`TIEBREAK_GROUP_MISMATCH`, `INVALID_TIEBREAK_ORDER`, `NO_QUALIFIERS`, `RAIN_NOT_ALLOWED`, `NO_VALID_TIMES_LEFT`, `NOT_SUPPORTED_YET`.
 
 **Del servidor (no son reglas de competencia):**
 
@@ -209,7 +237,7 @@ Reglas:
 | `SEQUENCE_GAP` | evento en `sync` | Falta un `device_seq` anterior; reenviar desde `next_expected_seq` |
 | `DEVICE_NOT_ACTIVE` | evento en `sync` | El dispositivo no es el activo de la carrera |
 | `DEVICE_ALREADY_ACTIVE` | HTTP 409 en `device/activate` | Hay otro dispositivo activo; falta la observación |
-| `RACE_NOT_OPEN` | HTTP 409 en `sync` | La carrera no está `approved` ni `in_progress` |
+| `RACE_NOT_OPEN` | HTTP 409 en `sync` | La carrera no está `approved` ni `in_progress` (ni `finished` por `RACE_FINISHED`) |
 | `CONCURRENT_SYNC` / `CONCURRENT_ACTIVATION` | HTTP 409 | Otra operación simultánea; reintentar |
 | `UNAUTHORIZED` (401), `FORBIDDEN_ROLE` (403), `NOT_FOUND` (404), `BAD_REQUEST` (400), `INVALID_CREDENTIALS` (401), `INVALID_REFRESH_TOKEN` (401) | HTTP | |
 
