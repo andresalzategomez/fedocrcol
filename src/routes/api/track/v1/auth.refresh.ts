@@ -7,8 +7,8 @@ const bodySchema = z.object({ refresh_token: z.string().min(10) });
 
 /**
  * POST /api/track/v1/auth/refresh  { refresh_token }
- * Renueva la sesión. El refresh_token se USA UNA SOLA VEZ: la respuesta trae uno nuevo y el anterior queda inservible,
- * así que la app debe guardar siempre el último. Requiere conexión.
+ * Renueva la sesión. Cada refresh devuelve un refresh_token nuevo y la app debe guardar siempre el último. Los anteriores
+ * siguen aceptándose en este proyecto (medido), así que reintentar con el mismo token es seguro. Requiere conexión.
  */
 export const Route = createFileRoute("/api/track/v1/auth/refresh")({
   server: {

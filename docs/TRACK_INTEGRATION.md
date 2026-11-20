@@ -43,8 +43,10 @@ Errores: `401 INVALID_CREDENTIALS`, `403 FORBIDDEN_ROLE` (solo `judge`, `admin` 
 ```json
 { "refresh_token": "<token>" }
 ```
-`200`: misma forma que el login (sin `user`). **El `refresh_token` se usa una sola vez**: la respuesta trae uno nuevo y el anterior
-queda inservible (`401 INVALID_REFRESH_TOKEN` si se reutiliza). Guarda siempre el último. El token de acceso dura **1 hora**;
+`200`: misma forma que el login (sin `user`). **Cada refresh entrega un `refresh_token` nuevo: guarda siempre el último.**
+Medido en el proyecto de producción: los `refresh_token` anteriores **siguen aceptándose** (no se invalidan al rotar), así que si
+se perdió la respuesta de un refresh puedes **reintentar con el mismo token** sin perder la sesión. No dependas de que el anterior
+quede inservible. Un token inventado o ajeno responde `401 INVALID_REFRESH_TOKEN`. El token de acceso dura **1 hora**;
 refresca antes de que venza mientras haya red. Sin red, sigue operando y encolando eventos; al volver, refresca y sincroniza.
 Si el refresh también venció, inicia sesión de nuevo **sin perder la cola local**.
 
