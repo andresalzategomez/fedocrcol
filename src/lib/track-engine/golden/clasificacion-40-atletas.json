@@ -1,0 +1,5229 @@
+{
+  "name": "clasificacion-40-atletas",
+  "description": "Instancia 1 con 40 atletas y 3 salidas. Salida 1 de fedocrcol (aleatoria), salida 2 igual que la anterior, salida 3 aleatoria. Todos corren y se confirma todo. Resultado: clasificación de 40 por mejor tiempo.",
+  "engineVersion": "0.2.0",
+  "config": {
+    "raceId": "golden-race",
+    "categories": [
+      {
+        "id": "m",
+        "name": "Categoría m",
+        "athletes": [
+          {
+            "registrationId": "m-a01",
+            "bib": "0101",
+            "name": "Atleta 01"
+          },
+          {
+            "registrationId": "m-a02",
+            "bib": "0102",
+            "name": "Atleta 02"
+          },
+          {
+            "registrationId": "m-a03",
+            "bib": "0103",
+            "name": "Atleta 03"
+          },
+          {
+            "registrationId": "m-a04",
+            "bib": "0104",
+            "name": "Atleta 04"
+          },
+          {
+            "registrationId": "m-a05",
+            "bib": "0105",
+            "name": "Atleta 05"
+          },
+          {
+            "registrationId": "m-a06",
+            "bib": "0106",
+            "name": "Atleta 06"
+          },
+          {
+            "registrationId": "m-a07",
+            "bib": "0107",
+            "name": "Atleta 07"
+          },
+          {
+            "registrationId": "m-a08",
+            "bib": "0108",
+            "name": "Atleta 08"
+          },
+          {
+            "registrationId": "m-a09",
+            "bib": "0109",
+            "name": "Atleta 09"
+          },
+          {
+            "registrationId": "m-a10",
+            "bib": "0110",
+            "name": "Atleta 10"
+          },
+          {
+            "registrationId": "m-a11",
+            "bib": "0111",
+            "name": "Atleta 11"
+          },
+          {
+            "registrationId": "m-a12",
+            "bib": "0112",
+            "name": "Atleta 12"
+          },
+          {
+            "registrationId": "m-a13",
+            "bib": "0113",
+            "name": "Atleta 13"
+          },
+          {
+            "registrationId": "m-a14",
+            "bib": "0114",
+            "name": "Atleta 14"
+          },
+          {
+            "registrationId": "m-a15",
+            "bib": "0115",
+            "name": "Atleta 15"
+          },
+          {
+            "registrationId": "m-a16",
+            "bib": "0116",
+            "name": "Atleta 16"
+          },
+          {
+            "registrationId": "m-a17",
+            "bib": "0117",
+            "name": "Atleta 17"
+          },
+          {
+            "registrationId": "m-a18",
+            "bib": "0118",
+            "name": "Atleta 18"
+          },
+          {
+            "registrationId": "m-a19",
+            "bib": "0119",
+            "name": "Atleta 19"
+          },
+          {
+            "registrationId": "m-a20",
+            "bib": "0120",
+            "name": "Atleta 20"
+          },
+          {
+            "registrationId": "m-a21",
+            "bib": "0121",
+            "name": "Atleta 21"
+          },
+          {
+            "registrationId": "m-a22",
+            "bib": "0122",
+            "name": "Atleta 22"
+          },
+          {
+            "registrationId": "m-a23",
+            "bib": "0123",
+            "name": "Atleta 23"
+          },
+          {
+            "registrationId": "m-a24",
+            "bib": "0124",
+            "name": "Atleta 24"
+          },
+          {
+            "registrationId": "m-a25",
+            "bib": "0125",
+            "name": "Atleta 25"
+          },
+          {
+            "registrationId": "m-a26",
+            "bib": "0126",
+            "name": "Atleta 26"
+          },
+          {
+            "registrationId": "m-a27",
+            "bib": "0127",
+            "name": "Atleta 27"
+          },
+          {
+            "registrationId": "m-a28",
+            "bib": "0128",
+            "name": "Atleta 28"
+          },
+          {
+            "registrationId": "m-a29",
+            "bib": "0129",
+            "name": "Atleta 29"
+          },
+          {
+            "registrationId": "m-a30",
+            "bib": "0130",
+            "name": "Atleta 30"
+          },
+          {
+            "registrationId": "m-a31",
+            "bib": "0131",
+            "name": "Atleta 31"
+          },
+          {
+            "registrationId": "m-a32",
+            "bib": "0132",
+            "name": "Atleta 32"
+          },
+          {
+            "registrationId": "m-a33",
+            "bib": "0133",
+            "name": "Atleta 33"
+          },
+          {
+            "registrationId": "m-a34",
+            "bib": "0134",
+            "name": "Atleta 34"
+          },
+          {
+            "registrationId": "m-a35",
+            "bib": "0135",
+            "name": "Atleta 35"
+          },
+          {
+            "registrationId": "m-a36",
+            "bib": "0136",
+            "name": "Atleta 36"
+          },
+          {
+            "registrationId": "m-a37",
+            "bib": "0137",
+            "name": "Atleta 37"
+          },
+          {
+            "registrationId": "m-a38",
+            "bib": "0138",
+            "name": "Atleta 38"
+          },
+          {
+            "registrationId": "m-a39",
+            "bib": "0139",
+            "name": "Atleta 39"
+          },
+          {
+            "registrationId": "m-a40",
+            "bib": "0140",
+            "name": "Atleta 40"
+          }
+        ],
+        "stages": [
+          {
+            "id": "m-s1",
+            "stageNumber": 1,
+            "name": "Instancia 1",
+            "runsPerAthlete": 3,
+            "qualifiersCount": 8
+          },
+          {
+            "id": "m-s2",
+            "stageNumber": 2,
+            "name": "Instancia 2",
+            "runsPerAthlete": 2,
+            "qualifiersCount": 4
+          },
+          {
+            "id": "m-s3",
+            "stageNumber": 3,
+            "name": "Instancia 3",
+            "runsPerAthlete": 2,
+            "qualifiersCount": 2
+          },
+          {
+            "id": "m-s4",
+            "stageNumber": 4,
+            "name": "Final",
+            "runsPerAthlete": 2,
+            "qualifiersCount": null
+          }
+        ]
+      }
+    ],
+    "initialHeats": [
+      {
+        "id": "m-s1-r1-h1",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 1,
+        "left": "m-a24",
+        "right": "m-a36"
+      },
+      {
+        "id": "m-s1-r1-h2",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 2,
+        "left": "m-a09",
+        "right": "m-a17"
+      },
+      {
+        "id": "m-s1-r1-h3",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 3,
+        "left": "m-a33",
+        "right": "m-a07"
+      },
+      {
+        "id": "m-s1-r1-h4",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 4,
+        "left": "m-a25",
+        "right": "m-a15"
+      },
+      {
+        "id": "m-s1-r1-h5",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 5,
+        "left": "m-a04",
+        "right": "m-a38"
+      },
+      {
+        "id": "m-s1-r1-h6",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 6,
+        "left": "m-a01",
+        "right": "m-a05"
+      },
+      {
+        "id": "m-s1-r1-h7",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 7,
+        "left": "m-a02",
+        "right": "m-a31"
+      },
+      {
+        "id": "m-s1-r1-h8",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 8,
+        "left": "m-a35",
+        "right": "m-a20"
+      },
+      {
+        "id": "m-s1-r1-h9",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 9,
+        "left": "m-a19",
+        "right": "m-a10"
+      },
+      {
+        "id": "m-s1-r1-h10",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 10,
+        "left": "m-a32",
+        "right": "m-a03"
+      },
+      {
+        "id": "m-s1-r1-h11",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 11,
+        "left": "m-a34",
+        "right": "m-a14"
+      },
+      {
+        "id": "m-s1-r1-h12",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 12,
+        "left": "m-a11",
+        "right": "m-a26"
+      },
+      {
+        "id": "m-s1-r1-h13",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 13,
+        "left": "m-a27",
+        "right": "m-a23"
+      },
+      {
+        "id": "m-s1-r1-h14",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 14,
+        "left": "m-a18",
+        "right": "m-a06"
+      },
+      {
+        "id": "m-s1-r1-h15",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 15,
+        "left": "m-a12",
+        "right": "m-a30"
+      },
+      {
+        "id": "m-s1-r1-h16",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 16,
+        "left": "m-a39",
+        "right": "m-a29"
+      },
+      {
+        "id": "m-s1-r1-h17",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 17,
+        "left": "m-a22",
+        "right": "m-a28"
+      },
+      {
+        "id": "m-s1-r1-h18",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 18,
+        "left": "m-a37",
+        "right": "m-a13"
+      },
+      {
+        "id": "m-s1-r1-h19",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 19,
+        "left": "m-a16",
+        "right": "m-a08"
+      },
+      {
+        "id": "m-s1-r1-h20",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 20,
+        "left": "m-a21",
+        "right": "m-a40"
+      }
+    ]
+  },
+  "events": [
+    {
+      "clientEventId": "evt-0001",
+      "deviceSeq": 1,
+      "occurredAt": "2027-03-14T13:00:01.000Z",
+      "type": "RACE_STARTED",
+      "payload": {}
+    },
+    {
+      "clientEventId": "evt-0002",
+      "deviceSeq": 2,
+      "occurredAt": "2027-03-14T13:00:02.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "started_at_ms": 1805029202000
+      }
+    },
+    {
+      "clientEventId": "evt-0003",
+      "deviceSeq": 3,
+      "occurredAt": "2027-03-14T13:00:03.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 33894,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0004",
+      "deviceSeq": 4,
+      "occurredAt": "2027-03-14T13:00:04.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 37866,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0005",
+      "deviceSeq": 5,
+      "occurredAt": "2027-03-14T13:00:05.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0006",
+      "deviceSeq": 6,
+      "occurredAt": "2027-03-14T13:00:06.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "started_at_ms": 1805029206000
+      }
+    },
+    {
+      "clientEventId": "evt-0007",
+      "deviceSeq": 7,
+      "occurredAt": "2027-03-14T13:00:07.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "lane": "left",
+        "elapsed_ms": 36081,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0008",
+      "deviceSeq": 8,
+      "occurredAt": "2027-03-14T13:00:08.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "lane": "right",
+        "elapsed_ms": 36433,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0009",
+      "deviceSeq": 9,
+      "occurredAt": "2027-03-14T13:00:09.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0010",
+      "deviceSeq": 10,
+      "occurredAt": "2027-03-14T13:00:10.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "started_at_ms": 1805029210000
+      }
+    },
+    {
+      "clientEventId": "evt-0011",
+      "deviceSeq": 11,
+      "occurredAt": "2027-03-14T13:00:11.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "lane": "left",
+        "elapsed_ms": 37137,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0012",
+      "deviceSeq": 12,
+      "occurredAt": "2027-03-14T13:00:12.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "lane": "right",
+        "elapsed_ms": 38243,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0013",
+      "deviceSeq": 13,
+      "occurredAt": "2027-03-14T13:00:13.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3"
+      }
+    },
+    {
+      "clientEventId": "evt-0014",
+      "deviceSeq": 14,
+      "occurredAt": "2027-03-14T13:00:14.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "started_at_ms": 1805029214000
+      }
+    },
+    {
+      "clientEventId": "evt-0015",
+      "deviceSeq": 15,
+      "occurredAt": "2027-03-14T13:00:15.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "lane": "left",
+        "elapsed_ms": 36785,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0016",
+      "deviceSeq": 16,
+      "occurredAt": "2027-03-14T13:00:16.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "lane": "right",
+        "elapsed_ms": 38595,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0017",
+      "deviceSeq": 17,
+      "occurredAt": "2027-03-14T13:00:17.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4"
+      }
+    },
+    {
+      "clientEventId": "evt-0018",
+      "deviceSeq": 18,
+      "occurredAt": "2027-03-14T13:00:18.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h5",
+        "started_at_ms": 1805029218000
+      }
+    },
+    {
+      "clientEventId": "evt-0019",
+      "deviceSeq": 19,
+      "occurredAt": "2027-03-14T13:00:19.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h5",
+        "lane": "right",
+        "elapsed_ms": 31732,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0020",
+      "deviceSeq": 20,
+      "occurredAt": "2027-03-14T13:00:20.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h5",
+        "lane": "left",
+        "elapsed_ms": 32486,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0021",
+      "deviceSeq": 21,
+      "occurredAt": "2027-03-14T13:00:21.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h5"
+      }
+    },
+    {
+      "clientEventId": "evt-0022",
+      "deviceSeq": 22,
+      "occurredAt": "2027-03-14T13:00:22.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h6",
+        "started_at_ms": 1805029222000
+      }
+    },
+    {
+      "clientEventId": "evt-0023",
+      "deviceSeq": 23,
+      "occurredAt": "2027-03-14T13:00:23.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h6",
+        "lane": "right",
+        "elapsed_ms": 31405,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0024",
+      "deviceSeq": 24,
+      "occurredAt": "2027-03-14T13:00:24.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h6",
+        "lane": "left",
+        "elapsed_ms": 35729,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0025",
+      "deviceSeq": 25,
+      "occurredAt": "2027-03-14T13:00:25.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h6"
+      }
+    },
+    {
+      "clientEventId": "evt-0026",
+      "deviceSeq": 26,
+      "occurredAt": "2027-03-14T13:00:26.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h7",
+        "started_at_ms": 1805029226000
+      }
+    },
+    {
+      "clientEventId": "evt-0027",
+      "deviceSeq": 27,
+      "occurredAt": "2027-03-14T13:00:27.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h7",
+        "lane": "right",
+        "elapsed_ms": 30299,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0028",
+      "deviceSeq": 28,
+      "occurredAt": "2027-03-14T13:00:28.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h7",
+        "lane": "left",
+        "elapsed_ms": 34648,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0029",
+      "deviceSeq": 29,
+      "occurredAt": "2027-03-14T13:00:29.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h7"
+      }
+    },
+    {
+      "clientEventId": "evt-0030",
+      "deviceSeq": 30,
+      "occurredAt": "2027-03-14T13:00:30.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h8",
+        "started_at_ms": 1805029230000
+      }
+    },
+    {
+      "clientEventId": "evt-0031",
+      "deviceSeq": 31,
+      "occurredAt": "2027-03-14T13:00:31.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h8",
+        "lane": "right",
+        "elapsed_ms": 33190,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0032",
+      "deviceSeq": 32,
+      "occurredAt": "2027-03-14T13:00:32.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h8",
+        "lane": "left",
+        "elapsed_ms": 34975,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0033",
+      "deviceSeq": 33,
+      "occurredAt": "2027-03-14T13:00:33.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h8"
+      }
+    },
+    {
+      "clientEventId": "evt-0034",
+      "deviceSeq": 34,
+      "occurredAt": "2027-03-14T13:00:34.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h9",
+        "started_at_ms": 1805029234000
+      }
+    },
+    {
+      "clientEventId": "evt-0035",
+      "deviceSeq": 35,
+      "occurredAt": "2027-03-14T13:00:35.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h9",
+        "lane": "left",
+        "elapsed_ms": 34271,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0036",
+      "deviceSeq": 36,
+      "occurredAt": "2027-03-14T13:00:36.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h9",
+        "lane": "right",
+        "elapsed_ms": 35000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0037",
+      "deviceSeq": 37,
+      "occurredAt": "2027-03-14T13:00:37.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h9"
+      }
+    },
+    {
+      "clientEventId": "evt-0038",
+      "deviceSeq": 38,
+      "occurredAt": "2027-03-14T13:00:38.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h10",
+        "started_at_ms": 1805029238000
+      }
+    },
+    {
+      "clientEventId": "evt-0039",
+      "deviceSeq": 39,
+      "occurredAt": "2027-03-14T13:00:39.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h10",
+        "lane": "right",
+        "elapsed_ms": 33567,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0040",
+      "deviceSeq": 40,
+      "occurredAt": "2027-03-14T13:00:40.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h10",
+        "lane": "left",
+        "elapsed_ms": 38218,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0041",
+      "deviceSeq": 41,
+      "occurredAt": "2027-03-14T13:00:41.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h10"
+      }
+    },
+    {
+      "clientEventId": "evt-0042",
+      "deviceSeq": 42,
+      "occurredAt": "2027-03-14T13:00:42.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h11",
+        "started_at_ms": 1805029242000
+      }
+    },
+    {
+      "clientEventId": "evt-0043",
+      "deviceSeq": 43,
+      "occurredAt": "2027-03-14T13:00:43.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h11",
+        "lane": "right",
+        "elapsed_ms": 30676,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0044",
+      "deviceSeq": 44,
+      "occurredAt": "2027-03-14T13:00:44.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h11",
+        "lane": "left",
+        "elapsed_ms": 36056,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0045",
+      "deviceSeq": 45,
+      "occurredAt": "2027-03-14T13:00:45.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h11"
+      }
+    },
+    {
+      "clientEventId": "evt-0046",
+      "deviceSeq": 46,
+      "occurredAt": "2027-03-14T13:00:46.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h12",
+        "started_at_ms": 1805029246000
+      }
+    },
+    {
+      "clientEventId": "evt-0047",
+      "deviceSeq": 47,
+      "occurredAt": "2027-03-14T13:00:47.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h12",
+        "lane": "left",
+        "elapsed_ms": 33919,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0048",
+      "deviceSeq": 48,
+      "occurredAt": "2027-03-14T13:00:48.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h12",
+        "lane": "right",
+        "elapsed_ms": 35704,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0049",
+      "deviceSeq": 49,
+      "occurredAt": "2027-03-14T13:00:49.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h12"
+      }
+    },
+    {
+      "clientEventId": "evt-0050",
+      "deviceSeq": 50,
+      "occurredAt": "2027-03-14T13:00:50.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h13",
+        "started_at_ms": 1805029250000
+      }
+    },
+    {
+      "clientEventId": "evt-0051",
+      "deviceSeq": 51,
+      "occurredAt": "2027-03-14T13:00:51.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h13",
+        "lane": "left",
+        "elapsed_ms": 34623,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0052",
+      "deviceSeq": 52,
+      "occurredAt": "2027-03-14T13:00:52.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h13",
+        "lane": "right",
+        "elapsed_ms": 38947,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0053",
+      "deviceSeq": 53,
+      "occurredAt": "2027-03-14T13:00:53.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h13"
+      }
+    },
+    {
+      "clientEventId": "evt-0054",
+      "deviceSeq": 54,
+      "occurredAt": "2027-03-14T13:00:54.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h14",
+        "started_at_ms": 1805029254000
+      }
+    },
+    {
+      "clientEventId": "evt-0055",
+      "deviceSeq": 55,
+      "occurredAt": "2027-03-14T13:00:55.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h14",
+        "lane": "right",
+        "elapsed_ms": 30324,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0056",
+      "deviceSeq": 56,
+      "occurredAt": "2027-03-14T13:00:56.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h14",
+        "lane": "left",
+        "elapsed_ms": 35352,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0057",
+      "deviceSeq": 57,
+      "occurredAt": "2027-03-14T13:00:57.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h14"
+      }
+    },
+    {
+      "clientEventId": "evt-0058",
+      "deviceSeq": 58,
+      "occurredAt": "2027-03-14T13:00:58.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h15",
+        "started_at_ms": 1805029258000
+      }
+    },
+    {
+      "clientEventId": "evt-0059",
+      "deviceSeq": 59,
+      "occurredAt": "2027-03-14T13:00:59.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h15",
+        "lane": "right",
+        "elapsed_ms": 31380,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0060",
+      "deviceSeq": 60,
+      "occurredAt": "2027-03-14T13:01:00.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h15",
+        "lane": "left",
+        "elapsed_ms": 32838,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0061",
+      "deviceSeq": 61,
+      "occurredAt": "2027-03-14T13:01:01.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h15"
+      }
+    },
+    {
+      "clientEventId": "evt-0062",
+      "deviceSeq": 62,
+      "occurredAt": "2027-03-14T13:01:02.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h16",
+        "started_at_ms": 1805029262000
+      }
+    },
+    {
+      "clientEventId": "evt-0063",
+      "deviceSeq": 63,
+      "occurredAt": "2027-03-14T13:01:03.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h16",
+        "lane": "left",
+        "elapsed_ms": 30651,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0064",
+      "deviceSeq": 64,
+      "occurredAt": "2027-03-14T13:01:04.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h16",
+        "lane": "right",
+        "elapsed_ms": 32461,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0065",
+      "deviceSeq": 65,
+      "occurredAt": "2027-03-14T13:01:05.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h16"
+      }
+    },
+    {
+      "clientEventId": "evt-0066",
+      "deviceSeq": 66,
+      "occurredAt": "2027-03-14T13:01:06.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h17",
+        "started_at_ms": 1805029266000
+      }
+    },
+    {
+      "clientEventId": "evt-0067",
+      "deviceSeq": 67,
+      "occurredAt": "2027-03-14T13:01:07.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h17",
+        "lane": "left",
+        "elapsed_ms": 31028,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0068",
+      "deviceSeq": 68,
+      "occurredAt": "2027-03-14T13:01:08.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h17",
+        "lane": "right",
+        "elapsed_ms": 33542,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0069",
+      "deviceSeq": 69,
+      "occurredAt": "2027-03-14T13:01:09.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h17"
+      }
+    },
+    {
+      "clientEventId": "evt-0070",
+      "deviceSeq": 70,
+      "occurredAt": "2027-03-14T13:01:10.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h18",
+        "started_at_ms": 1805029270000
+      }
+    },
+    {
+      "clientEventId": "evt-0071",
+      "deviceSeq": 71,
+      "occurredAt": "2027-03-14T13:01:11.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h18",
+        "lane": "right",
+        "elapsed_ms": 31757,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0072",
+      "deviceSeq": 72,
+      "occurredAt": "2027-03-14T13:01:12.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h18",
+        "lane": "left",
+        "elapsed_ms": 32813,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0073",
+      "deviceSeq": 73,
+      "occurredAt": "2027-03-14T13:01:13.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h18"
+      }
+    },
+    {
+      "clientEventId": "evt-0074",
+      "deviceSeq": 74,
+      "occurredAt": "2027-03-14T13:01:14.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h19",
+        "started_at_ms": 1805029274000
+      }
+    },
+    {
+      "clientEventId": "evt-0075",
+      "deviceSeq": 75,
+      "occurredAt": "2027-03-14T13:01:15.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h19",
+        "lane": "right",
+        "elapsed_ms": 37162,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0076",
+      "deviceSeq": 76,
+      "occurredAt": "2027-03-14T13:01:16.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h19",
+        "lane": "left",
+        "elapsed_ms": 37514,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0077",
+      "deviceSeq": 77,
+      "occurredAt": "2027-03-14T13:01:17.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h19"
+      }
+    },
+    {
+      "clientEventId": "evt-0078",
+      "deviceSeq": 78,
+      "occurredAt": "2027-03-14T13:01:18.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h20",
+        "started_at_ms": 1805029278000
+      }
+    },
+    {
+      "clientEventId": "evt-0079",
+      "deviceSeq": 79,
+      "occurredAt": "2027-03-14T13:01:19.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h20",
+        "lane": "left",
+        "elapsed_ms": 32109,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0080",
+      "deviceSeq": 80,
+      "occurredAt": "2027-03-14T13:01:20.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h20",
+        "lane": "right",
+        "elapsed_ms": 38570,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0081",
+      "deviceSeq": 81,
+      "occurredAt": "2027-03-14T13:01:21.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h20"
+      }
+    },
+    {
+      "clientEventId": "evt-0082",
+      "deviceSeq": 82,
+      "occurredAt": "2027-03-14T13:01:22.000Z",
+      "type": "PAIRING_SET",
+      "payload": {
+        "stage_id": "m-s1",
+        "run_number": 2,
+        "source": "same_as_previous",
+        "heats": [
+          {
+            "heat_id": "m-s1-r2-h1",
+            "heat_number": 1,
+            "left": "m-a24",
+            "right": "m-a36"
+          },
+          {
+            "heat_id": "m-s1-r2-h2",
+            "heat_number": 2,
+            "left": "m-a09",
+            "right": "m-a17"
+          },
+          {
+            "heat_id": "m-s1-r2-h3",
+            "heat_number": 3,
+            "left": "m-a33",
+            "right": "m-a07"
+          },
+          {
+            "heat_id": "m-s1-r2-h4",
+            "heat_number": 4,
+            "left": "m-a25",
+            "right": "m-a15"
+          },
+          {
+            "heat_id": "m-s1-r2-h5",
+            "heat_number": 5,
+            "left": "m-a04",
+            "right": "m-a38"
+          },
+          {
+            "heat_id": "m-s1-r2-h6",
+            "heat_number": 6,
+            "left": "m-a01",
+            "right": "m-a05"
+          },
+          {
+            "heat_id": "m-s1-r2-h7",
+            "heat_number": 7,
+            "left": "m-a02",
+            "right": "m-a31"
+          },
+          {
+            "heat_id": "m-s1-r2-h8",
+            "heat_number": 8,
+            "left": "m-a35",
+            "right": "m-a20"
+          },
+          {
+            "heat_id": "m-s1-r2-h9",
+            "heat_number": 9,
+            "left": "m-a19",
+            "right": "m-a10"
+          },
+          {
+            "heat_id": "m-s1-r2-h10",
+            "heat_number": 10,
+            "left": "m-a32",
+            "right": "m-a03"
+          },
+          {
+            "heat_id": "m-s1-r2-h11",
+            "heat_number": 11,
+            "left": "m-a34",
+            "right": "m-a14"
+          },
+          {
+            "heat_id": "m-s1-r2-h12",
+            "heat_number": 12,
+            "left": "m-a11",
+            "right": "m-a26"
+          },
+          {
+            "heat_id": "m-s1-r2-h13",
+            "heat_number": 13,
+            "left": "m-a27",
+            "right": "m-a23"
+          },
+          {
+            "heat_id": "m-s1-r2-h14",
+            "heat_number": 14,
+            "left": "m-a18",
+            "right": "m-a06"
+          },
+          {
+            "heat_id": "m-s1-r2-h15",
+            "heat_number": 15,
+            "left": "m-a12",
+            "right": "m-a30"
+          },
+          {
+            "heat_id": "m-s1-r2-h16",
+            "heat_number": 16,
+            "left": "m-a39",
+            "right": "m-a29"
+          },
+          {
+            "heat_id": "m-s1-r2-h17",
+            "heat_number": 17,
+            "left": "m-a22",
+            "right": "m-a28"
+          },
+          {
+            "heat_id": "m-s1-r2-h18",
+            "heat_number": 18,
+            "left": "m-a37",
+            "right": "m-a13"
+          },
+          {
+            "heat_id": "m-s1-r2-h19",
+            "heat_number": 19,
+            "left": "m-a16",
+            "right": "m-a08"
+          },
+          {
+            "heat_id": "m-s1-r2-h20",
+            "heat_number": 20,
+            "left": "m-a21",
+            "right": "m-a40"
+          }
+        ]
+      }
+    },
+    {
+      "clientEventId": "evt-0083",
+      "deviceSeq": 83,
+      "occurredAt": "2027-03-14T13:01:23.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h1",
+        "started_at_ms": 1805029283000
+      }
+    },
+    {
+      "clientEventId": "evt-0084",
+      "deviceSeq": 84,
+      "occurredAt": "2027-03-14T13:01:24.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h1",
+        "lane": "right",
+        "elapsed_ms": 30623,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0085",
+      "deviceSeq": 85,
+      "occurredAt": "2027-03-14T13:01:25.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h1",
+        "lane": "left",
+        "elapsed_ms": 34595,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0086",
+      "deviceSeq": 86,
+      "occurredAt": "2027-03-14T13:01:26.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0087",
+      "deviceSeq": 87,
+      "occurredAt": "2027-03-14T13:01:27.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h2",
+        "started_at_ms": 1805029287000
+      }
+    },
+    {
+      "clientEventId": "evt-0088",
+      "deviceSeq": 88,
+      "occurredAt": "2027-03-14T13:01:28.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h2",
+        "lane": "left",
+        "elapsed_ms": 32810,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0089",
+      "deviceSeq": 89,
+      "occurredAt": "2027-03-14T13:01:29.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h2",
+        "lane": "right",
+        "elapsed_ms": 33162,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0090",
+      "deviceSeq": 90,
+      "occurredAt": "2027-03-14T13:01:30.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0091",
+      "deviceSeq": 91,
+      "occurredAt": "2027-03-14T13:01:31.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h3",
+        "started_at_ms": 1805029291000
+      }
+    },
+    {
+      "clientEventId": "evt-0092",
+      "deviceSeq": 92,
+      "occurredAt": "2027-03-14T13:01:32.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h3",
+        "lane": "left",
+        "elapsed_ms": 33866,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0093",
+      "deviceSeq": 93,
+      "occurredAt": "2027-03-14T13:01:33.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h3",
+        "lane": "right",
+        "elapsed_ms": 34972,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0094",
+      "deviceSeq": 94,
+      "occurredAt": "2027-03-14T13:01:34.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h3"
+      }
+    },
+    {
+      "clientEventId": "evt-0095",
+      "deviceSeq": 95,
+      "occurredAt": "2027-03-14T13:01:35.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h4",
+        "started_at_ms": 1805029295000
+      }
+    },
+    {
+      "clientEventId": "evt-0096",
+      "deviceSeq": 96,
+      "occurredAt": "2027-03-14T13:01:36.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h4",
+        "lane": "left",
+        "elapsed_ms": 33514,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0097",
+      "deviceSeq": 97,
+      "occurredAt": "2027-03-14T13:01:37.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h4",
+        "lane": "right",
+        "elapsed_ms": 35324,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0098",
+      "deviceSeq": 98,
+      "occurredAt": "2027-03-14T13:01:38.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h4"
+      }
+    },
+    {
+      "clientEventId": "evt-0099",
+      "deviceSeq": 99,
+      "occurredAt": "2027-03-14T13:01:39.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h5",
+        "started_at_ms": 1805029299000
+      }
+    },
+    {
+      "clientEventId": "evt-0100",
+      "deviceSeq": 100,
+      "occurredAt": "2027-03-14T13:01:40.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h5",
+        "lane": "right",
+        "elapsed_ms": 37461,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0101",
+      "deviceSeq": 101,
+      "occurredAt": "2027-03-14T13:01:41.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h5",
+        "lane": "left",
+        "elapsed_ms": 38215,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0102",
+      "deviceSeq": 102,
+      "occurredAt": "2027-03-14T13:01:42.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h5"
+      }
+    },
+    {
+      "clientEventId": "evt-0103",
+      "deviceSeq": 103,
+      "occurredAt": "2027-03-14T13:01:43.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h6",
+        "started_at_ms": 1805029303000
+      }
+    },
+    {
+      "clientEventId": "evt-0104",
+      "deviceSeq": 104,
+      "occurredAt": "2027-03-14T13:01:44.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h6",
+        "lane": "left",
+        "elapsed_ms": 32458,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0105",
+      "deviceSeq": 105,
+      "occurredAt": "2027-03-14T13:01:45.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h6",
+        "lane": "right",
+        "elapsed_ms": 37134,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0106",
+      "deviceSeq": 106,
+      "occurredAt": "2027-03-14T13:01:46.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h6"
+      }
+    },
+    {
+      "clientEventId": "evt-0107",
+      "deviceSeq": 107,
+      "occurredAt": "2027-03-14T13:01:47.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h7",
+        "started_at_ms": 1805029307000
+      }
+    },
+    {
+      "clientEventId": "evt-0108",
+      "deviceSeq": 108,
+      "occurredAt": "2027-03-14T13:01:48.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h7",
+        "lane": "left",
+        "elapsed_ms": 31377,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0109",
+      "deviceSeq": 109,
+      "occurredAt": "2027-03-14T13:01:49.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h7",
+        "lane": "right",
+        "elapsed_ms": 36028,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0110",
+      "deviceSeq": 110,
+      "occurredAt": "2027-03-14T13:01:50.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h7"
+      }
+    },
+    {
+      "clientEventId": "evt-0111",
+      "deviceSeq": 111,
+      "occurredAt": "2027-03-14T13:01:51.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h8",
+        "started_at_ms": 1805029311000
+      }
+    },
+    {
+      "clientEventId": "evt-0112",
+      "deviceSeq": 112,
+      "occurredAt": "2027-03-14T13:01:52.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h8",
+        "lane": "left",
+        "elapsed_ms": 31704,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0113",
+      "deviceSeq": 113,
+      "occurredAt": "2027-03-14T13:01:53.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h8",
+        "lane": "right",
+        "elapsed_ms": 38919,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0114",
+      "deviceSeq": 114,
+      "occurredAt": "2027-03-14T13:01:54.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h8"
+      }
+    },
+    {
+      "clientEventId": "evt-0115",
+      "deviceSeq": 115,
+      "occurredAt": "2027-03-14T13:01:55.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h9",
+        "started_at_ms": 1805029315000
+      }
+    },
+    {
+      "clientEventId": "evt-0116",
+      "deviceSeq": 116,
+      "occurredAt": "2027-03-14T13:01:56.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h9",
+        "lane": "left",
+        "elapsed_ms": 31000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0117",
+      "deviceSeq": 117,
+      "occurredAt": "2027-03-14T13:01:57.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h9",
+        "lane": "right",
+        "elapsed_ms": 31729,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0118",
+      "deviceSeq": 118,
+      "occurredAt": "2027-03-14T13:01:58.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h9"
+      }
+    },
+    {
+      "clientEventId": "evt-0119",
+      "deviceSeq": 119,
+      "occurredAt": "2027-03-14T13:01:59.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h10",
+        "started_at_ms": 1805029319000
+      }
+    },
+    {
+      "clientEventId": "evt-0120",
+      "deviceSeq": 120,
+      "occurredAt": "2027-03-14T13:02:00.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h10",
+        "lane": "right",
+        "elapsed_ms": 30296,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0121",
+      "deviceSeq": 121,
+      "occurredAt": "2027-03-14T13:02:01.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h10",
+        "lane": "left",
+        "elapsed_ms": 34947,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0122",
+      "deviceSeq": 122,
+      "occurredAt": "2027-03-14T13:02:02.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h10"
+      }
+    },
+    {
+      "clientEventId": "evt-0123",
+      "deviceSeq": 123,
+      "occurredAt": "2027-03-14T13:02:03.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h11",
+        "started_at_ms": 1805029323000
+      }
+    },
+    {
+      "clientEventId": "evt-0124",
+      "deviceSeq": 124,
+      "occurredAt": "2027-03-14T13:02:04.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h11",
+        "lane": "left",
+        "elapsed_ms": 32785,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0125",
+      "deviceSeq": 125,
+      "occurredAt": "2027-03-14T13:02:05.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h11",
+        "lane": "right",
+        "elapsed_ms": 36405,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0126",
+      "deviceSeq": 126,
+      "occurredAt": "2027-03-14T13:02:06.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h11"
+      }
+    },
+    {
+      "clientEventId": "evt-0127",
+      "deviceSeq": 127,
+      "occurredAt": "2027-03-14T13:02:07.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h12",
+        "started_at_ms": 1805029327000
+      }
+    },
+    {
+      "clientEventId": "evt-0128",
+      "deviceSeq": 128,
+      "occurredAt": "2027-03-14T13:02:08.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h12",
+        "lane": "left",
+        "elapsed_ms": 30648,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0129",
+      "deviceSeq": 129,
+      "occurredAt": "2027-03-14T13:02:09.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h12",
+        "lane": "right",
+        "elapsed_ms": 32433,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0130",
+      "deviceSeq": 130,
+      "occurredAt": "2027-03-14T13:02:10.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h12"
+      }
+    },
+    {
+      "clientEventId": "evt-0131",
+      "deviceSeq": 131,
+      "occurredAt": "2027-03-14T13:02:11.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h13",
+        "started_at_ms": 1805029331000
+      }
+    },
+    {
+      "clientEventId": "evt-0132",
+      "deviceSeq": 132,
+      "occurredAt": "2027-03-14T13:02:12.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h13",
+        "lane": "left",
+        "elapsed_ms": 31352,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0133",
+      "deviceSeq": 133,
+      "occurredAt": "2027-03-14T13:02:13.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h13",
+        "lane": "right",
+        "elapsed_ms": 35676,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0134",
+      "deviceSeq": 134,
+      "occurredAt": "2027-03-14T13:02:14.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h13"
+      }
+    },
+    {
+      "clientEventId": "evt-0135",
+      "deviceSeq": 135,
+      "occurredAt": "2027-03-14T13:02:15.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h14",
+        "started_at_ms": 1805029335000
+      }
+    },
+    {
+      "clientEventId": "evt-0136",
+      "deviceSeq": 136,
+      "occurredAt": "2027-03-14T13:02:16.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h14",
+        "lane": "left",
+        "elapsed_ms": 32081,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0137",
+      "deviceSeq": 137,
+      "occurredAt": "2027-03-14T13:02:17.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h14",
+        "lane": "right",
+        "elapsed_ms": 36053,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0138",
+      "deviceSeq": 138,
+      "occurredAt": "2027-03-14T13:02:18.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h14"
+      }
+    },
+    {
+      "clientEventId": "evt-0139",
+      "deviceSeq": 139,
+      "occurredAt": "2027-03-14T13:02:19.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h15",
+        "started_at_ms": 1805029339000
+      }
+    },
+    {
+      "clientEventId": "evt-0140",
+      "deviceSeq": 140,
+      "occurredAt": "2027-03-14T13:02:20.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h15",
+        "lane": "right",
+        "elapsed_ms": 37109,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0141",
+      "deviceSeq": 141,
+      "occurredAt": "2027-03-14T13:02:21.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h15",
+        "lane": "left",
+        "elapsed_ms": 38567,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0142",
+      "deviceSeq": 142,
+      "occurredAt": "2027-03-14T13:02:22.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h15"
+      }
+    },
+    {
+      "clientEventId": "evt-0143",
+      "deviceSeq": 143,
+      "occurredAt": "2027-03-14T13:02:23.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h16",
+        "started_at_ms": 1805029343000
+      }
+    },
+    {
+      "clientEventId": "evt-0144",
+      "deviceSeq": 144,
+      "occurredAt": "2027-03-14T13:02:24.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h16",
+        "lane": "left",
+        "elapsed_ms": 36380,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0145",
+      "deviceSeq": 145,
+      "occurredAt": "2027-03-14T13:02:25.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h16",
+        "lane": "right",
+        "elapsed_ms": 38190,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0146",
+      "deviceSeq": 146,
+      "occurredAt": "2027-03-14T13:02:26.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h16"
+      }
+    },
+    {
+      "clientEventId": "evt-0147",
+      "deviceSeq": 147,
+      "occurredAt": "2027-03-14T13:02:27.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h17",
+        "started_at_ms": 1805029347000
+      }
+    },
+    {
+      "clientEventId": "evt-0148",
+      "deviceSeq": 148,
+      "occurredAt": "2027-03-14T13:02:28.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h17",
+        "lane": "right",
+        "elapsed_ms": 30271,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0149",
+      "deviceSeq": 149,
+      "occurredAt": "2027-03-14T13:02:29.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h17",
+        "lane": "left",
+        "elapsed_ms": 36757,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0150",
+      "deviceSeq": 150,
+      "occurredAt": "2027-03-14T13:02:30.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h17"
+      }
+    },
+    {
+      "clientEventId": "evt-0151",
+      "deviceSeq": 151,
+      "occurredAt": "2027-03-14T13:02:31.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h18",
+        "started_at_ms": 1805029351000
+      }
+    },
+    {
+      "clientEventId": "evt-0152",
+      "deviceSeq": 152,
+      "occurredAt": "2027-03-14T13:02:32.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h18",
+        "lane": "right",
+        "elapsed_ms": 37486,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0153",
+      "deviceSeq": 153,
+      "occurredAt": "2027-03-14T13:02:33.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h18",
+        "lane": "left",
+        "elapsed_ms": 38542,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0154",
+      "deviceSeq": 154,
+      "occurredAt": "2027-03-14T13:02:34.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h18"
+      }
+    },
+    {
+      "clientEventId": "evt-0155",
+      "deviceSeq": 155,
+      "occurredAt": "2027-03-14T13:02:35.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h19",
+        "started_at_ms": 1805029355000
+      }
+    },
+    {
+      "clientEventId": "evt-0156",
+      "deviceSeq": 156,
+      "occurredAt": "2027-03-14T13:02:36.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h19",
+        "lane": "right",
+        "elapsed_ms": 33891,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0157",
+      "deviceSeq": 157,
+      "occurredAt": "2027-03-14T13:02:37.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h19",
+        "lane": "left",
+        "elapsed_ms": 34243,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0158",
+      "deviceSeq": 158,
+      "occurredAt": "2027-03-14T13:02:38.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h19"
+      }
+    },
+    {
+      "clientEventId": "evt-0159",
+      "deviceSeq": 159,
+      "occurredAt": "2027-03-14T13:02:39.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r2-h20",
+        "started_at_ms": 1805029359000
+      }
+    },
+    {
+      "clientEventId": "evt-0160",
+      "deviceSeq": 160,
+      "occurredAt": "2027-03-14T13:02:40.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h20",
+        "lane": "right",
+        "elapsed_ms": 35299,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0161",
+      "deviceSeq": 161,
+      "occurredAt": "2027-03-14T13:02:41.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r2-h20",
+        "lane": "left",
+        "elapsed_ms": 37838,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0162",
+      "deviceSeq": 162,
+      "occurredAt": "2027-03-14T13:02:42.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r2-h20"
+      }
+    },
+    {
+      "clientEventId": "evt-0163",
+      "deviceSeq": 163,
+      "occurredAt": "2027-03-14T13:02:43.000Z",
+      "type": "PAIRING_SET",
+      "payload": {
+        "stage_id": "m-s1",
+        "run_number": 3,
+        "source": "random",
+        "heats": [
+          {
+            "heat_id": "m-s1-r3-h1",
+            "heat_number": 1,
+            "left": "m-a27",
+            "right": "m-a19"
+          },
+          {
+            "heat_id": "m-s1-r3-h2",
+            "heat_number": 2,
+            "left": "m-a31",
+            "right": "m-a32"
+          },
+          {
+            "heat_id": "m-s1-r3-h3",
+            "heat_number": 3,
+            "left": "m-a40",
+            "right": "m-a25"
+          },
+          {
+            "heat_id": "m-s1-r3-h4",
+            "heat_number": 4,
+            "left": "m-a34",
+            "right": "m-a12"
+          },
+          {
+            "heat_id": "m-s1-r3-h5",
+            "heat_number": 5,
+            "left": "m-a04",
+            "right": "m-a39"
+          },
+          {
+            "heat_id": "m-s1-r3-h6",
+            "heat_number": 6,
+            "left": "m-a24",
+            "right": "m-a30"
+          },
+          {
+            "heat_id": "m-s1-r3-h7",
+            "heat_number": 7,
+            "left": "m-a36",
+            "right": "m-a14"
+          },
+          {
+            "heat_id": "m-s1-r3-h8",
+            "heat_number": 8,
+            "left": "m-a05",
+            "right": "m-a26"
+          },
+          {
+            "heat_id": "m-s1-r3-h9",
+            "heat_number": 9,
+            "left": "m-a01",
+            "right": "m-a10"
+          },
+          {
+            "heat_id": "m-s1-r3-h10",
+            "heat_number": 10,
+            "left": "m-a23",
+            "right": "m-a11"
+          },
+          {
+            "heat_id": "m-s1-r3-h11",
+            "heat_number": 11,
+            "left": "m-a15",
+            "right": "m-a07"
+          },
+          {
+            "heat_id": "m-s1-r3-h12",
+            "heat_number": 12,
+            "left": "m-a16",
+            "right": "m-a08"
+          },
+          {
+            "heat_id": "m-s1-r3-h13",
+            "heat_number": 13,
+            "left": "m-a22",
+            "right": "m-a21"
+          },
+          {
+            "heat_id": "m-s1-r3-h14",
+            "heat_number": 14,
+            "left": "m-a13",
+            "right": "m-a20"
+          },
+          {
+            "heat_id": "m-s1-r3-h15",
+            "heat_number": 15,
+            "left": "m-a37",
+            "right": "m-a33"
+          },
+          {
+            "heat_id": "m-s1-r3-h16",
+            "heat_number": 16,
+            "left": "m-a38",
+            "right": "m-a09"
+          },
+          {
+            "heat_id": "m-s1-r3-h17",
+            "heat_number": 17,
+            "left": "m-a06",
+            "right": "m-a35"
+          },
+          {
+            "heat_id": "m-s1-r3-h18",
+            "heat_number": 18,
+            "left": "m-a17",
+            "right": "m-a28"
+          },
+          {
+            "heat_id": "m-s1-r3-h19",
+            "heat_number": 19,
+            "left": "m-a03",
+            "right": "m-a18"
+          },
+          {
+            "heat_id": "m-s1-r3-h20",
+            "heat_number": 20,
+            "left": "m-a02",
+            "right": "m-a29"
+          }
+        ]
+      }
+    },
+    {
+      "clientEventId": "evt-0164",
+      "deviceSeq": 164,
+      "occurredAt": "2027-03-14T13:02:44.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h1",
+        "started_at_ms": 1805029364000
+      }
+    },
+    {
+      "clientEventId": "evt-0165",
+      "deviceSeq": 165,
+      "occurredAt": "2027-03-14T13:02:45.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h1",
+        "lane": "right",
+        "elapsed_ms": 36729,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0166",
+      "deviceSeq": 166,
+      "occurredAt": "2027-03-14T13:02:46.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h1",
+        "lane": "left",
+        "elapsed_ms": 37081,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0167",
+      "deviceSeq": 167,
+      "occurredAt": "2027-03-14T13:02:47.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0168",
+      "deviceSeq": 168,
+      "occurredAt": "2027-03-14T13:02:48.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h2",
+        "started_at_ms": 1805029368000
+      }
+    },
+    {
+      "clientEventId": "evt-0169",
+      "deviceSeq": 169,
+      "occurredAt": "2027-03-14T13:02:49.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h2",
+        "lane": "right",
+        "elapsed_ms": 31676,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0170",
+      "deviceSeq": 170,
+      "occurredAt": "2027-03-14T13:02:50.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h2",
+        "lane": "left",
+        "elapsed_ms": 32757,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0171",
+      "deviceSeq": 171,
+      "occurredAt": "2027-03-14T13:02:51.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0172",
+      "deviceSeq": 172,
+      "occurredAt": "2027-03-14T13:02:52.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h3",
+        "started_at_ms": 1805029372000
+      }
+    },
+    {
+      "clientEventId": "evt-0173",
+      "deviceSeq": 173,
+      "occurredAt": "2027-03-14T13:02:53.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h3",
+        "lane": "right",
+        "elapsed_ms": 30243,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0174",
+      "deviceSeq": 174,
+      "occurredAt": "2027-03-14T13:02:54.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h3",
+        "lane": "left",
+        "elapsed_ms": 32028,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0175",
+      "deviceSeq": 175,
+      "occurredAt": "2027-03-14T13:02:55.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h3"
+      }
+    },
+    {
+      "clientEventId": "evt-0176",
+      "deviceSeq": 176,
+      "occurredAt": "2027-03-14T13:02:56.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h4",
+        "started_at_ms": 1805029376000
+      }
+    },
+    {
+      "clientEventId": "evt-0177",
+      "deviceSeq": 177,
+      "occurredAt": "2027-03-14T13:02:57.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h4",
+        "lane": "right",
+        "elapsed_ms": 35296,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0178",
+      "deviceSeq": 178,
+      "occurredAt": "2027-03-14T13:02:58.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h4",
+        "lane": "left",
+        "elapsed_ms": 38514,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0179",
+      "deviceSeq": 179,
+      "occurredAt": "2027-03-14T13:02:59.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h4"
+      }
+    },
+    {
+      "clientEventId": "evt-0180",
+      "deviceSeq": 180,
+      "occurredAt": "2027-03-14T13:03:00.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h5",
+        "started_at_ms": 1805029380000
+      }
+    },
+    {
+      "clientEventId": "evt-0181",
+      "deviceSeq": 181,
+      "occurredAt": "2027-03-14T13:03:01.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h5",
+        "lane": "right",
+        "elapsed_ms": 33109,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0182",
+      "deviceSeq": 182,
+      "occurredAt": "2027-03-14T13:03:02.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h5",
+        "lane": "left",
+        "elapsed_ms": 34944,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0183",
+      "deviceSeq": 183,
+      "occurredAt": "2027-03-14T13:03:03.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h5"
+      }
+    },
+    {
+      "clientEventId": "evt-0184",
+      "deviceSeq": 184,
+      "occurredAt": "2027-03-14T13:03:04.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h6",
+        "started_at_ms": 1805029384000
+      }
+    },
+    {
+      "clientEventId": "evt-0185",
+      "deviceSeq": 185,
+      "occurredAt": "2027-03-14T13:03:05.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h6",
+        "lane": "left",
+        "elapsed_ms": 31324,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0186",
+      "deviceSeq": 186,
+      "occurredAt": "2027-03-14T13:03:06.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h6",
+        "lane": "right",
+        "elapsed_ms": 33838,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0187",
+      "deviceSeq": 187,
+      "occurredAt": "2027-03-14T13:03:07.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h6"
+      }
+    },
+    {
+      "clientEventId": "evt-0188",
+      "deviceSeq": 188,
+      "occurredAt": "2027-03-14T13:03:08.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h7",
+        "started_at_ms": 1805029388000
+      }
+    },
+    {
+      "clientEventId": "evt-0189",
+      "deviceSeq": 189,
+      "occurredAt": "2027-03-14T13:03:09.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h7",
+        "lane": "right",
+        "elapsed_ms": 33134,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0190",
+      "deviceSeq": 190,
+      "occurredAt": "2027-03-14T13:03:10.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h7",
+        "lane": "left",
+        "elapsed_ms": 36352,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0191",
+      "deviceSeq": 191,
+      "occurredAt": "2027-03-14T13:03:11.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h7"
+      }
+    },
+    {
+      "clientEventId": "evt-0192",
+      "deviceSeq": 192,
+      "occurredAt": "2027-03-14T13:03:12.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h8",
+        "started_at_ms": 1805029392000
+      }
+    },
+    {
+      "clientEventId": "evt-0193",
+      "deviceSeq": 193,
+      "occurredAt": "2027-03-14T13:03:13.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h8",
+        "lane": "left",
+        "elapsed_ms": 33863,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0194",
+      "deviceSeq": 194,
+      "occurredAt": "2027-03-14T13:03:14.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h8",
+        "lane": "right",
+        "elapsed_ms": 38162,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0195",
+      "deviceSeq": 195,
+      "occurredAt": "2027-03-14T13:03:15.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h8"
+      }
+    },
+    {
+      "clientEventId": "evt-0196",
+      "deviceSeq": 196,
+      "occurredAt": "2027-03-14T13:03:16.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h9",
+        "started_at_ms": 1805029396000
+      }
+    },
+    {
+      "clientEventId": "evt-0197",
+      "deviceSeq": 197,
+      "occurredAt": "2027-03-14T13:03:17.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h9",
+        "lane": "right",
+        "elapsed_ms": 37458,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0198",
+      "deviceSeq": 198,
+      "occurredAt": "2027-03-14T13:03:18.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h9",
+        "lane": "left",
+        "elapsed_ms": 38187,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0199",
+      "deviceSeq": 199,
+      "occurredAt": "2027-03-14T13:03:19.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h9"
+      }
+    },
+    {
+      "clientEventId": "evt-0200",
+      "deviceSeq": 200,
+      "occurredAt": "2027-03-14T13:03:20.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h10",
+        "started_at_ms": 1805029400000
+      }
+    },
+    {
+      "clientEventId": "evt-0201",
+      "deviceSeq": 201,
+      "occurredAt": "2027-03-14T13:03:21.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h10",
+        "lane": "left",
+        "elapsed_ms": 32405,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0202",
+      "deviceSeq": 202,
+      "occurredAt": "2027-03-14T13:03:22.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h10",
+        "lane": "right",
+        "elapsed_ms": 36377,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0203",
+      "deviceSeq": 203,
+      "occurredAt": "2027-03-14T13:03:23.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h10"
+      }
+    },
+    {
+      "clientEventId": "evt-0204",
+      "deviceSeq": 204,
+      "occurredAt": "2027-03-14T13:03:24.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h11",
+        "started_at_ms": 1805029404000
+      }
+    },
+    {
+      "clientEventId": "evt-0205",
+      "deviceSeq": 205,
+      "occurredAt": "2027-03-14T13:03:25.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h11",
+        "lane": "right",
+        "elapsed_ms": 31701,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0206",
+      "deviceSeq": 206,
+      "occurredAt": "2027-03-14T13:03:26.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h11",
+        "lane": "left",
+        "elapsed_ms": 32053,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0207",
+      "deviceSeq": 207,
+      "occurredAt": "2027-03-14T13:03:27.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h11"
+      }
+    },
+    {
+      "clientEventId": "evt-0208",
+      "deviceSeq": 208,
+      "occurredAt": "2027-03-14T13:03:28.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h12",
+        "started_at_ms": 1805029408000
+      }
+    },
+    {
+      "clientEventId": "evt-0209",
+      "deviceSeq": 209,
+      "occurredAt": "2027-03-14T13:03:29.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h12",
+        "lane": "right",
+        "elapsed_ms": 30620,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0210",
+      "deviceSeq": 210,
+      "occurredAt": "2027-03-14T13:03:30.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h12",
+        "lane": "left",
+        "elapsed_ms": 30972,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0211",
+      "deviceSeq": 211,
+      "occurredAt": "2027-03-14T13:03:31.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h12"
+      }
+    },
+    {
+      "clientEventId": "evt-0212",
+      "deviceSeq": 212,
+      "occurredAt": "2027-03-14T13:03:32.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h13",
+        "started_at_ms": 1805029412000
+      }
+    },
+    {
+      "clientEventId": "evt-0213",
+      "deviceSeq": 213,
+      "occurredAt": "2027-03-14T13:03:33.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h13",
+        "lane": "left",
+        "elapsed_ms": 33486,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0214",
+      "deviceSeq": 214,
+      "occurredAt": "2027-03-14T13:03:34.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h13",
+        "lane": "right",
+        "elapsed_ms": 34567,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0215",
+      "deviceSeq": 215,
+      "occurredAt": "2027-03-14T13:03:35.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h13"
+      }
+    },
+    {
+      "clientEventId": "evt-0216",
+      "deviceSeq": 216,
+      "occurredAt": "2027-03-14T13:03:36.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h14",
+        "started_at_ms": 1805029416000
+      }
+    },
+    {
+      "clientEventId": "evt-0217",
+      "deviceSeq": 217,
+      "occurredAt": "2027-03-14T13:03:37.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h14",
+        "lane": "left",
+        "elapsed_ms": 34215,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0218",
+      "deviceSeq": 218,
+      "occurredAt": "2027-03-14T13:03:38.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h14",
+        "lane": "right",
+        "elapsed_ms": 35648,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0219",
+      "deviceSeq": 219,
+      "occurredAt": "2027-03-14T13:03:39.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h14"
+      }
+    },
+    {
+      "clientEventId": "evt-0220",
+      "deviceSeq": 220,
+      "occurredAt": "2027-03-14T13:03:40.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h15",
+        "started_at_ms": 1805029420000
+      }
+    },
+    {
+      "clientEventId": "evt-0221",
+      "deviceSeq": 221,
+      "occurredAt": "2027-03-14T13:03:41.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h15",
+        "lane": "right",
+        "elapsed_ms": 30595,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0222",
+      "deviceSeq": 222,
+      "occurredAt": "2027-03-14T13:03:42.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h15",
+        "lane": "left",
+        "elapsed_ms": 35271,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0223",
+      "deviceSeq": 223,
+      "occurredAt": "2027-03-14T13:03:43.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h15"
+      }
+    },
+    {
+      "clientEventId": "evt-0224",
+      "deviceSeq": 224,
+      "occurredAt": "2027-03-14T13:03:44.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h16",
+        "started_at_ms": 1805029424000
+      }
+    },
+    {
+      "clientEventId": "evt-0225",
+      "deviceSeq": 225,
+      "occurredAt": "2027-03-14T13:03:45.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h16",
+        "lane": "left",
+        "elapsed_ms": 34190,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0226",
+      "deviceSeq": 226,
+      "occurredAt": "2027-03-14T13:03:46.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h16",
+        "lane": "right",
+        "elapsed_ms": 38539,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0227",
+      "deviceSeq": 227,
+      "occurredAt": "2027-03-14T13:03:47.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h16"
+      }
+    },
+    {
+      "clientEventId": "evt-0228",
+      "deviceSeq": 228,
+      "occurredAt": "2027-03-14T13:03:48.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h17",
+        "started_at_ms": 1805029428000
+      }
+    },
+    {
+      "clientEventId": "evt-0229",
+      "deviceSeq": 229,
+      "occurredAt": "2027-03-14T13:03:49.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h17",
+        "lane": "left",
+        "elapsed_ms": 32782,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0230",
+      "deviceSeq": 230,
+      "occurredAt": "2027-03-14T13:03:50.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h17",
+        "lane": "right",
+        "elapsed_ms": 37433,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0231",
+      "deviceSeq": 231,
+      "occurredAt": "2027-03-14T13:03:51.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h17"
+      }
+    },
+    {
+      "clientEventId": "evt-0232",
+      "deviceSeq": 232,
+      "occurredAt": "2027-03-14T13:03:52.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h18",
+        "started_at_ms": 1805029432000
+      }
+    },
+    {
+      "clientEventId": "evt-0233",
+      "deviceSeq": 233,
+      "occurredAt": "2027-03-14T13:03:53.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h18",
+        "lane": "right",
+        "elapsed_ms": 36000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0234",
+      "deviceSeq": 234,
+      "occurredAt": "2027-03-14T13:03:54.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h18",
+        "lane": "left",
+        "elapsed_ms": 38891,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0235",
+      "deviceSeq": 235,
+      "occurredAt": "2027-03-14T13:03:55.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h18"
+      }
+    },
+    {
+      "clientEventId": "evt-0236",
+      "deviceSeq": 236,
+      "occurredAt": "2027-03-14T13:03:56.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h19",
+        "started_at_ms": 1805029436000
+      }
+    },
+    {
+      "clientEventId": "evt-0237",
+      "deviceSeq": 237,
+      "occurredAt": "2027-03-14T13:03:57.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h19",
+        "lane": "left",
+        "elapsed_ms": 36025,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0238",
+      "deviceSeq": 238,
+      "occurredAt": "2027-03-14T13:03:58.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h19",
+        "lane": "right",
+        "elapsed_ms": 37810,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0239",
+      "deviceSeq": 239,
+      "occurredAt": "2027-03-14T13:03:59.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h19"
+      }
+    },
+    {
+      "clientEventId": "evt-0240",
+      "deviceSeq": 240,
+      "occurredAt": "2027-03-14T13:04:00.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r3-h20",
+        "started_at_ms": 1805029440000
+      }
+    },
+    {
+      "clientEventId": "evt-0241",
+      "deviceSeq": 241,
+      "occurredAt": "2027-03-14T13:04:01.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h20",
+        "lane": "right",
+        "elapsed_ms": 34919,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0242",
+      "deviceSeq": 242,
+      "occurredAt": "2027-03-14T13:04:02.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r3-h20",
+        "lane": "left",
+        "elapsed_ms": 37106,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0243",
+      "deviceSeq": 243,
+      "occurredAt": "2027-03-14T13:04:03.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r3-h20"
+      }
+    }
+  ],
+  "expected": {
+    "rejected": [],
+    "started": true,
+    "finished": false,
+    "activeHeatId": null,
+    "heats": [
+      {
+        "id": "m-s1-r1-h1",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a24",
+          "outcome": "time",
+          "elapsedMs": 37866,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a36",
+          "outcome": "time",
+          "elapsedMs": 33894,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h2",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a09",
+          "outcome": "time",
+          "elapsedMs": 36081,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a17",
+          "outcome": "time",
+          "elapsedMs": 36433,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h3",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 3,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a33",
+          "outcome": "time",
+          "elapsedMs": 37137,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a07",
+          "outcome": "time",
+          "elapsedMs": 38243,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h4",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 4,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a25",
+          "outcome": "time",
+          "elapsedMs": 36785,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a15",
+          "outcome": "time",
+          "elapsedMs": 38595,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h5",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 5,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a04",
+          "outcome": "time",
+          "elapsedMs": 32486,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a38",
+          "outcome": "time",
+          "elapsedMs": 31732,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h6",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 6,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a01",
+          "outcome": "time",
+          "elapsedMs": 35729,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 31405,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h7",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 7,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 34648,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a31",
+          "outcome": "time",
+          "elapsedMs": 30299,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h8",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 8,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a35",
+          "outcome": "time",
+          "elapsedMs": 34975,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a20",
+          "outcome": "time",
+          "elapsedMs": 33190,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h9",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 9,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a19",
+          "outcome": "time",
+          "elapsedMs": 34271,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a10",
+          "outcome": "time",
+          "elapsedMs": 35000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h10",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 10,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a32",
+          "outcome": "time",
+          "elapsedMs": 38218,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 33567,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h11",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 11,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a34",
+          "outcome": "time",
+          "elapsedMs": 36056,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a14",
+          "outcome": "time",
+          "elapsedMs": 30676,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h12",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 12,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a11",
+          "outcome": "time",
+          "elapsedMs": 33919,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a26",
+          "outcome": "time",
+          "elapsedMs": 35704,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h13",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 13,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a27",
+          "outcome": "time",
+          "elapsedMs": 34623,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a23",
+          "outcome": "time",
+          "elapsedMs": 38947,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h14",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 14,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a18",
+          "outcome": "time",
+          "elapsedMs": 35352,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a06",
+          "outcome": "time",
+          "elapsedMs": 30324,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h15",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 15,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a12",
+          "outcome": "time",
+          "elapsedMs": 32838,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a30",
+          "outcome": "time",
+          "elapsedMs": 31380,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h16",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 16,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a39",
+          "outcome": "time",
+          "elapsedMs": 30651,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a29",
+          "outcome": "time",
+          "elapsedMs": 32461,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h17",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 17,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a22",
+          "outcome": "time",
+          "elapsedMs": 31028,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a28",
+          "outcome": "time",
+          "elapsedMs": 33542,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h18",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 18,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a37",
+          "outcome": "time",
+          "elapsedMs": 32813,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a13",
+          "outcome": "time",
+          "elapsedMs": 31757,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h19",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 19,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a16",
+          "outcome": "time",
+          "elapsedMs": 37514,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 37162,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h20",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 20,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a21",
+          "outcome": "time",
+          "elapsedMs": 32109,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a40",
+          "outcome": "time",
+          "elapsedMs": 38570,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h1",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a24",
+          "outcome": "time",
+          "elapsedMs": 34595,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a36",
+          "outcome": "time",
+          "elapsedMs": 30623,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h2",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a09",
+          "outcome": "time",
+          "elapsedMs": 32810,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a17",
+          "outcome": "time",
+          "elapsedMs": 33162,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h3",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 3,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a33",
+          "outcome": "time",
+          "elapsedMs": 33866,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a07",
+          "outcome": "time",
+          "elapsedMs": 34972,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h4",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 4,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a25",
+          "outcome": "time",
+          "elapsedMs": 33514,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a15",
+          "outcome": "time",
+          "elapsedMs": 35324,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h5",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 5,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a04",
+          "outcome": "time",
+          "elapsedMs": 38215,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a38",
+          "outcome": "time",
+          "elapsedMs": 37461,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h6",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 6,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a01",
+          "outcome": "time",
+          "elapsedMs": 32458,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 37134,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h7",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 7,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 31377,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a31",
+          "outcome": "time",
+          "elapsedMs": 36028,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h8",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 8,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a35",
+          "outcome": "time",
+          "elapsedMs": 31704,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a20",
+          "outcome": "time",
+          "elapsedMs": 38919,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h9",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 9,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a19",
+          "outcome": "time",
+          "elapsedMs": 31000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a10",
+          "outcome": "time",
+          "elapsedMs": 31729,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h10",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 10,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a32",
+          "outcome": "time",
+          "elapsedMs": 34947,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 30296,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h11",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 11,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a34",
+          "outcome": "time",
+          "elapsedMs": 32785,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a14",
+          "outcome": "time",
+          "elapsedMs": 36405,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h12",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 12,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a11",
+          "outcome": "time",
+          "elapsedMs": 30648,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a26",
+          "outcome": "time",
+          "elapsedMs": 32433,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h13",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 13,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a27",
+          "outcome": "time",
+          "elapsedMs": 31352,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a23",
+          "outcome": "time",
+          "elapsedMs": 35676,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h14",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 14,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a18",
+          "outcome": "time",
+          "elapsedMs": 32081,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a06",
+          "outcome": "time",
+          "elapsedMs": 36053,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h15",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 15,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a12",
+          "outcome": "time",
+          "elapsedMs": 38567,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a30",
+          "outcome": "time",
+          "elapsedMs": 37109,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h16",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 16,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a39",
+          "outcome": "time",
+          "elapsedMs": 36380,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a29",
+          "outcome": "time",
+          "elapsedMs": 38190,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h17",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 17,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a22",
+          "outcome": "time",
+          "elapsedMs": 36757,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a28",
+          "outcome": "time",
+          "elapsedMs": 30271,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h18",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 18,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a37",
+          "outcome": "time",
+          "elapsedMs": 38542,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a13",
+          "outcome": "time",
+          "elapsedMs": 37486,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h19",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 19,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a16",
+          "outcome": "time",
+          "elapsedMs": 34243,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 33891,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r2-h20",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 2,
+        "heatNumber": 20,
+        "status": "confirmed",
+        "pairingSource": "same_as_previous",
+        "left": {
+          "registrationId": "m-a21",
+          "outcome": "time",
+          "elapsedMs": 37838,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a40",
+          "outcome": "time",
+          "elapsedMs": 35299,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h1",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a27",
+          "outcome": "time",
+          "elapsedMs": 37081,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a19",
+          "outcome": "time",
+          "elapsedMs": 36729,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h2",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a31",
+          "outcome": "time",
+          "elapsedMs": 32757,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a32",
+          "outcome": "time",
+          "elapsedMs": 31676,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h3",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 3,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a40",
+          "outcome": "time",
+          "elapsedMs": 32028,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a25",
+          "outcome": "time",
+          "elapsedMs": 30243,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h4",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 4,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a34",
+          "outcome": "time",
+          "elapsedMs": 38514,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a12",
+          "outcome": "time",
+          "elapsedMs": 35296,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h5",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 5,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a04",
+          "outcome": "time",
+          "elapsedMs": 34944,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a39",
+          "outcome": "time",
+          "elapsedMs": 33109,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h6",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 6,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a24",
+          "outcome": "time",
+          "elapsedMs": 31324,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a30",
+          "outcome": "time",
+          "elapsedMs": 33838,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h7",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 7,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a36",
+          "outcome": "time",
+          "elapsedMs": 36352,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a14",
+          "outcome": "time",
+          "elapsedMs": 33134,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h8",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 8,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 33863,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a26",
+          "outcome": "time",
+          "elapsedMs": 38162,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h9",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 9,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a01",
+          "outcome": "time",
+          "elapsedMs": 38187,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a10",
+          "outcome": "time",
+          "elapsedMs": 37458,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h10",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 10,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a23",
+          "outcome": "time",
+          "elapsedMs": 32405,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a11",
+          "outcome": "time",
+          "elapsedMs": 36377,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h11",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 11,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a15",
+          "outcome": "time",
+          "elapsedMs": 32053,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a07",
+          "outcome": "time",
+          "elapsedMs": 31701,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h12",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 12,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a16",
+          "outcome": "time",
+          "elapsedMs": 30972,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 30620,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h13",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 13,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a22",
+          "outcome": "time",
+          "elapsedMs": 33486,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a21",
+          "outcome": "time",
+          "elapsedMs": 34567,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h14",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 14,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a13",
+          "outcome": "time",
+          "elapsedMs": 34215,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a20",
+          "outcome": "time",
+          "elapsedMs": 35648,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h15",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 15,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a37",
+          "outcome": "time",
+          "elapsedMs": 35271,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a33",
+          "outcome": "time",
+          "elapsedMs": 30595,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h16",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 16,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a38",
+          "outcome": "time",
+          "elapsedMs": 34190,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a09",
+          "outcome": "time",
+          "elapsedMs": 38539,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h17",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 17,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a06",
+          "outcome": "time",
+          "elapsedMs": 32782,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a35",
+          "outcome": "time",
+          "elapsedMs": 37433,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h18",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 18,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a17",
+          "outcome": "time",
+          "elapsedMs": 38891,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a28",
+          "outcome": "time",
+          "elapsedMs": 36000,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h19",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 19,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 36025,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a18",
+          "outcome": "time",
+          "elapsedMs": 37810,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r3-h20",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 3,
+        "heatNumber": 20,
+        "status": "confirmed",
+        "pairingSource": "random",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 37106,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a29",
+          "outcome": "time",
+          "elapsedMs": 34919,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      }
+    ],
+    "stages": [
+      {
+        "id": "m-s1",
+        "status": "open",
+        "currentRun": 4,
+        "entries": [
+          "m-a01",
+          "m-a02",
+          "m-a03",
+          "m-a04",
+          "m-a05",
+          "m-a06",
+          "m-a07",
+          "m-a08",
+          "m-a09",
+          "m-a10",
+          "m-a11",
+          "m-a12",
+          "m-a13",
+          "m-a14",
+          "m-a15",
+          "m-a16",
+          "m-a17",
+          "m-a18",
+          "m-a19",
+          "m-a20",
+          "m-a21",
+          "m-a22",
+          "m-a23",
+          "m-a24",
+          "m-a25",
+          "m-a26",
+          "m-a27",
+          "m-a28",
+          "m-a29",
+          "m-a30",
+          "m-a31",
+          "m-a32",
+          "m-a33",
+          "m-a34",
+          "m-a35",
+          "m-a36",
+          "m-a37",
+          "m-a38",
+          "m-a39",
+          "m-a40"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "m-a25",
+            "position": 1,
+            "bestMs": 30243,
+            "sortedCentis": [
+              3024,
+              3351,
+              3678
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a28",
+            "position": 2,
+            "bestMs": 30271,
+            "sortedCentis": [
+              3027,
+              3354,
+              3600
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a31",
+            "position": 3,
+            "bestMs": 30299,
+            "sortedCentis": [
+              3029,
+              3275,
+              3602
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a03",
+            "position": 4,
+            "bestMs": 30296,
+            "sortedCentis": [
+              3029,
+              3356,
+              3602
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a06",
+            "position": 5,
+            "bestMs": 30324,
+            "sortedCentis": [
+              3032,
+              3278,
+              3605
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a33",
+            "position": 6,
+            "bestMs": 30595,
+            "sortedCentis": [
+              3059,
+              3386,
+              3713
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a36",
+            "position": 7,
+            "bestMs": 30623,
+            "sortedCentis": [
+              3062,
+              3389,
+              3635
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a08",
+            "position": 8,
+            "bestMs": 30620,
+            "sortedCentis": [
+              3062,
+              3389,
+              3716
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a11",
+            "position": 9,
+            "bestMs": 30648,
+            "sortedCentis": [
+              3064,
+              3391,
+              3637
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a39",
+            "position": 10,
+            "bestMs": 30651,
+            "sortedCentis": [
+              3065,
+              3310,
+              3638
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a14",
+            "position": 11,
+            "bestMs": 30676,
+            "sortedCentis": [
+              3067,
+              3313,
+              3640
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a16",
+            "position": 12,
+            "bestMs": 30972,
+            "sortedCentis": [
+              3097,
+              3424,
+              3751
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a19",
+            "position": 13,
+            "bestMs": 31000,
+            "sortedCentis": [
+              3100,
+              3427,
+              3672
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a22",
+            "position": 14,
+            "bestMs": 31028,
+            "sortedCentis": [
+              3102,
+              3348,
+              3675
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a24",
+            "position": 15,
+            "bestMs": 31324,
+            "sortedCentis": [
+              3132,
+              3459,
+              3786
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a27",
+            "position": 16,
+            "bestMs": 31352,
+            "sortedCentis": [
+              3135,
+              3462,
+              3708
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a02",
+            "position": 17,
+            "bestMs": 31377,
+            "sortedCentis": [
+              3137,
+              3464,
+              3710
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a30",
+            "position": 18,
+            "bestMs": 31380,
+            "sortedCentis": [
+              3138,
+              3383,
+              3710
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a05",
+            "position": 19,
+            "bestMs": 31405,
+            "sortedCentis": [
+              3140,
+              3386,
+              3713
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a32",
+            "position": 20,
+            "bestMs": 31676,
+            "sortedCentis": [
+              3167,
+              3494,
+              3821
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a35",
+            "position": 21,
+            "bestMs": 31704,
+            "sortedCentis": [
+              3170,
+              3497,
+              3743
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a07",
+            "position": 22,
+            "bestMs": 31701,
+            "sortedCentis": [
+              3170,
+              3497,
+              3824
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a10",
+            "position": 23,
+            "bestMs": 31729,
+            "sortedCentis": [
+              3172,
+              3500,
+              3745
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a38",
+            "position": 24,
+            "bestMs": 31732,
+            "sortedCentis": [
+              3173,
+              3419,
+              3746
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a13",
+            "position": 25,
+            "bestMs": 31757,
+            "sortedCentis": [
+              3175,
+              3421,
+              3748
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a40",
+            "position": 26,
+            "bestMs": 32028,
+            "sortedCentis": [
+              3202,
+              3529,
+              3857
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a15",
+            "position": 27,
+            "bestMs": 32053,
+            "sortedCentis": [
+              3205,
+              3532,
+              3859
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a18",
+            "position": 28,
+            "bestMs": 32081,
+            "sortedCentis": [
+              3208,
+              3535,
+              3781
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a21",
+            "position": 29,
+            "bestMs": 32109,
+            "sortedCentis": [
+              3210,
+              3456,
+              3783
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a23",
+            "position": 30,
+            "bestMs": 32405,
+            "sortedCentis": [
+              3240,
+              3567,
+              3894
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a26",
+            "position": 31,
+            "bestMs": 32433,
+            "sortedCentis": [
+              3243,
+              3570,
+              3816
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a01",
+            "position": 32,
+            "bestMs": 32458,
+            "sortedCentis": [
+              3245,
+              3572,
+              3818
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a29",
+            "position": 33,
+            "bestMs": 32461,
+            "sortedCentis": [
+              3246,
+              3491,
+              3819
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a04",
+            "position": 34,
+            "bestMs": 32486,
+            "sortedCentis": [
+              3248,
+              3494,
+              3821
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a34",
+            "position": 35,
+            "bestMs": 32785,
+            "sortedCentis": [
+              3278,
+              3605,
+              3851
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a37",
+            "position": 36,
+            "bestMs": 32813,
+            "sortedCentis": [
+              3281,
+              3527,
+              3854
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a09",
+            "position": 37,
+            "bestMs": 32810,
+            "sortedCentis": [
+              3281,
+              3608,
+              3853
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a12",
+            "position": 38,
+            "bestMs": 32838,
+            "sortedCentis": [
+              3283,
+              3529,
+              3856
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a17",
+            "position": 39,
+            "bestMs": 33162,
+            "sortedCentis": [
+              3316,
+              3643,
+              3889
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "m-a20",
+            "position": 40,
+            "bestMs": 33190,
+            "sortedCentis": [
+              3319,
+              3564,
+              3891
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          }
+        ]
+      },
+      {
+        "id": "m-s2",
+        "status": "pending",
+        "currentRun": 3,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": []
+      },
+      {
+        "id": "m-s3",
+        "status": "pending",
+        "currentRun": 3,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": []
+      },
+      {
+        "id": "m-s4",
+        "status": "pending",
+        "currentRun": 3,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": []
+      }
+    ],
+    "withdrawals": [],
+    "warnings": []
+  }
+}

@@ -1,0 +1,468 @@
+{
+  "name": "reglas-de-pista-y-rechazos",
+  "description": "Rechazos: salida antes de iniciar, segunda oleada activa, salida de una salida no habilitada, orden de llegada incorrecto, revisión sin observación, parejas con atleta repetido. Además, una oleada donde nadie corre se confirma sin salir.",
+  "engineVersion": "0.2.0",
+  "config": {
+    "raceId": "golden-race",
+    "categories": [
+      {
+        "id": "c",
+        "name": "Categoría c",
+        "athletes": [
+          {
+            "registrationId": "c-a01",
+            "bib": "0101",
+            "name": "Atleta 01"
+          },
+          {
+            "registrationId": "c-a02",
+            "bib": "0102",
+            "name": "Atleta 02"
+          },
+          {
+            "registrationId": "c-a03",
+            "bib": "0103",
+            "name": "Atleta 03"
+          },
+          {
+            "registrationId": "c-a04",
+            "bib": "0104",
+            "name": "Atleta 04"
+          },
+          {
+            "registrationId": "c-a05",
+            "bib": "0105",
+            "name": "Atleta 05"
+          }
+        ],
+        "stages": [
+          {
+            "id": "c-s1",
+            "stageNumber": 1,
+            "name": "Instancia 1",
+            "runsPerAthlete": 2,
+            "qualifiersCount": 2
+          },
+          {
+            "id": "c-s2",
+            "stageNumber": 2,
+            "name": "Final",
+            "runsPerAthlete": 1,
+            "qualifiersCount": null
+          }
+        ]
+      }
+    ],
+    "initialHeats": [
+      {
+        "id": "c-s1-r1-h1",
+        "stageId": "c-s1",
+        "runNumber": 1,
+        "heatNumber": 1,
+        "left": "c-a01",
+        "right": "c-a02"
+      },
+      {
+        "id": "c-s1-r1-h2",
+        "stageId": "c-s1",
+        "runNumber": 1,
+        "heatNumber": 2,
+        "left": "c-a03",
+        "right": "c-a04"
+      },
+      {
+        "id": "c-s1-r1-h3",
+        "stageId": "c-s1",
+        "runNumber": 1,
+        "heatNumber": 3,
+        "left": "c-a05",
+        "right": null
+      }
+    ]
+  },
+  "events": [
+    {
+      "clientEventId": "evt-0001",
+      "deviceSeq": 1,
+      "occurredAt": "2027-03-14T13:00:01.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "started_at_ms": 1805029200000
+      }
+    },
+    {
+      "clientEventId": "evt-0002",
+      "deviceSeq": 2,
+      "occurredAt": "2027-03-14T13:00:02.000Z",
+      "type": "RACE_STARTED",
+      "payload": {}
+    },
+    {
+      "clientEventId": "evt-0003",
+      "deviceSeq": 3,
+      "occurredAt": "2027-03-14T13:00:03.000Z",
+      "type": "RACE_STARTED",
+      "payload": {}
+    },
+    {
+      "clientEventId": "evt-0004",
+      "deviceSeq": 4,
+      "occurredAt": "2027-03-14T13:00:04.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "started_at_ms": 1805029205000
+      }
+    },
+    {
+      "clientEventId": "evt-0005",
+      "deviceSeq": 5,
+      "occurredAt": "2027-03-14T13:00:05.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "c-s1-r1-h2",
+        "started_at_ms": 1805029206000
+      }
+    },
+    {
+      "clientEventId": "evt-0006",
+      "deviceSeq": 6,
+      "occurredAt": "2027-03-14T13:00:06.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 30000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0007",
+      "deviceSeq": 7,
+      "occurredAt": "2027-03-14T13:00:07.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 30000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0008",
+      "deviceSeq": 8,
+      "occurredAt": "2027-03-14T13:00:08.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 0,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0009",
+      "deviceSeq": 9,
+      "occurredAt": "2027-03-14T13:00:09.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 30500,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0010",
+      "deviceSeq": 10,
+      "occurredAt": "2027-03-14T13:00:10.000Z",
+      "type": "HEAT_REVIEWED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1",
+        "note": "  ",
+        "swap_arrivals": false
+      }
+    },
+    {
+      "clientEventId": "evt-0011",
+      "deviceSeq": 11,
+      "occurredAt": "2027-03-14T13:00:11.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "c-s1-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0012",
+      "deviceSeq": 12,
+      "occurredAt": "2027-03-14T13:00:12.000Z",
+      "type": "PAIRING_SET",
+      "payload": {
+        "stage_id": "c-s1",
+        "run_number": 2,
+        "source": "manual",
+        "heats": [
+          {
+            "heat_id": "bad-1",
+            "heat_number": 1,
+            "left": "c-a01",
+            "right": "c-a01"
+          },
+          {
+            "heat_id": "bad-2",
+            "heat_number": 2,
+            "left": "c-a02",
+            "right": "c-a03"
+          },
+          {
+            "heat_id": "bad-3",
+            "heat_number": 3,
+            "left": "c-a04",
+            "right": "c-a05"
+          }
+        ]
+      }
+    },
+    {
+      "clientEventId": "evt-0013",
+      "deviceSeq": 13,
+      "occurredAt": "2027-03-14T13:00:13.000Z",
+      "type": "RUN_SKIPPED",
+      "payload": {
+        "heat_id": "c-s1-r1-h2",
+        "registration_id": "c-a03",
+        "skipped": true
+      }
+    },
+    {
+      "clientEventId": "evt-0014",
+      "deviceSeq": 14,
+      "occurredAt": "2027-03-14T13:00:14.000Z",
+      "type": "RUN_SKIPPED",
+      "payload": {
+        "heat_id": "c-s1-r1-h2",
+        "registration_id": "c-a04",
+        "skipped": true
+      }
+    },
+    {
+      "clientEventId": "evt-0015",
+      "deviceSeq": 15,
+      "occurredAt": "2027-03-14T13:00:15.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "c-s1-r1-h2",
+        "started_at_ms": 1805029209000
+      }
+    },
+    {
+      "clientEventId": "evt-0016",
+      "deviceSeq": 16,
+      "occurredAt": "2027-03-14T13:00:16.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "c-s1-r1-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0017",
+      "deviceSeq": 17,
+      "occurredAt": "2027-03-14T13:00:17.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "c-s1"
+      }
+    }
+  ],
+  "expected": {
+    "rejected": [
+      {
+        "clientEventId": "evt-0001",
+        "code": "RACE_NOT_STARTED"
+      },
+      {
+        "clientEventId": "evt-0003",
+        "code": "RACE_ALREADY_STARTED"
+      },
+      {
+        "clientEventId": "evt-0005",
+        "code": "SECOND_ACTIVE_HEAT"
+      },
+      {
+        "clientEventId": "evt-0006",
+        "code": "ARRIVAL_ORDER_MISMATCH"
+      },
+      {
+        "clientEventId": "evt-0008",
+        "code": "INVALID_TIME"
+      },
+      {
+        "clientEventId": "evt-0010",
+        "code": "NOTE_REQUIRED"
+      },
+      {
+        "clientEventId": "evt-0012",
+        "code": "INVALID_PAIRING"
+      },
+      {
+        "clientEventId": "evt-0015",
+        "code": "NO_RUNNERS"
+      },
+      {
+        "clientEventId": "evt-0017",
+        "code": "RUNS_NOT_FINISHED"
+      }
+    ],
+    "started": true,
+    "finished": false,
+    "activeHeatId": null,
+    "heats": [
+      {
+        "id": "c-s1-r1-h1",
+        "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "c-a01",
+          "outcome": "time",
+          "elapsedMs": 30000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "c-a02",
+          "outcome": "time",
+          "elapsedMs": 30500,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "c-s1-r1-h2",
+        "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "c-a03",
+          "outcome": "did_not_run",
+          "elapsedMs": null,
+          "arrivalOrder": null
+        },
+        "right": {
+          "registrationId": "c-a04",
+          "outcome": "did_not_run",
+          "elapsedMs": null,
+          "arrivalOrder": null
+        },
+        "notes": []
+      },
+      {
+        "id": "c-s1-r1-h3",
+        "stageId": "c-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 3,
+        "status": "pending",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "c-a05",
+          "outcome": "pending",
+          "elapsedMs": null,
+          "arrivalOrder": null
+        },
+        "right": null,
+        "notes": []
+      }
+    ],
+    "stages": [
+      {
+        "id": "c-s1",
+        "status": "open",
+        "currentRun": 1,
+        "entries": [
+          "c-a01",
+          "c-a02",
+          "c-a03",
+          "c-a04",
+          "c-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "c-a01",
+            "position": 1,
+            "bestMs": 30000,
+            "sortedCentis": [
+              3000
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "c-a02",
+            "position": 2,
+            "bestMs": 30500,
+            "sortedCentis": [
+              3050
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "c-a03",
+            "position": null,
+            "bestMs": null,
+            "sortedCentis": [],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "c-a04",
+            "position": null,
+            "bestMs": null,
+            "sortedCentis": [],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          },
+          {
+            "registrationId": "c-a05",
+            "position": null,
+            "bestMs": null,
+            "sortedCentis": [],
+            "withdrawn": false,
+            "tiedWithPrevious": false
+          }
+        ]
+      },
+      {
+        "id": "c-s2",
+        "status": "pending",
+        "currentRun": 2,
+        "entries": [],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": null,
+        "qualified": null,
+        "promotions": [],
+        "ranking": []
+      }
+    ],
+    "withdrawals": [],
+    "warnings": []
+  }
+}
