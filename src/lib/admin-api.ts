@@ -309,6 +309,13 @@ export async function getClubMembership(clubId: string, season: number): Promise
   return data ? toMembership(data) : null;
 }
 
+// ------------------------ Enlace público de resultados ------------------------
+export interface ResultsLink { token: string; url: string; available: boolean; valid_until: string; visibility: "public" | "private" }
+/** El administrador de la liga (o la federación) obtiene el enlace público de resultados de la carrera; lo crea la primera vez. */
+export async function getResultsLink(eventId: string, regenerate = false): Promise<ResultsLink> {
+  return (await authFetch("/api/admin/results-link", { event_id: eventId, regenerate })) as ResultsLink;
+}
+
 // ------------------------ Afiliación del atleta (por temporada) ------------------------
 export interface AthleteMembership {
   id: string; athlete_id: string; tenant_id: string; season: number; amount: number;

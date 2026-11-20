@@ -2578,3 +2578,128 @@ alter table public.events
   add constraint events_race_format_check check (race_format in ('standard', 'track'));
 
 create index if not exists idx_events_race_format on public.events(race_format);
+
+-- =====================================================================
+-- 0044 — Resultados públicos por enlace único y cierre de la lectura abierta.
+-- Idempotente.
+--
+-- Hasta ahora la privacidad de una carrera solo se respetaba en la pantalla: la tabla
+-- results se podía leer sin sesión aunque la carrera fuera privada, y la vista
+-- registrations_public listaba nombre, dorsal y categoría de los inscritos. Ahora:
+--
+-- * results ya no es de lectura pública: la leen el administrador de la liga y la
+--   federación (política results_admin_manage), los jueces asignados, los gestores
+--   asignados y el propio atleta. El público ve los resultados de una carrera pública
+--   SOLO por el enlace único (/resultados/<código>), que sirve el servidor con los
+--   datos mínimos y solo hasta el final del día de la carrera.
+-- * event_results_links: código secreto por carrera; solo el servidor lo escribe y lo
+--   leen el administrador de la liga y la federación.
+-- * registrations_public (con nombres) se cierra; lo público son solo CONTEOS por
+--   carrera y categoría (registration_counts_public) para mostrar los cupos.
+-- =====================================================================
+
+create table if not exists public.event_results_links (
+  event_id   uuid primary key references public.events(id) on delete cascade,
+  token      text not null unique,
+  created_at timestamptz not null default now(),
+  rotated_at timestamptz
+);
+
+grant select on public.event_results_links to authenticated;
+grant all on public.event_results_links to service_role;
+alter table public.event_results_links enable row level security;
+
+drop policy if exists "event_results_links_read" on public.event_results_links;
+create policy "event_results_links_read" on public.event_results_links for select to authenticated
+  using (public.is_event_admin(event_id));
+
+-- ---------- results: fuera la lectura abierta ----------
+drop policy if exists "results_public_read" on public.results;
+revoke select on public.results from anon;
+
+drop policy if exists "results_read_scoped" on public.results;
+create policy "results_read_scoped" on public.results for select to authenticated
+  using (
+    public.is_event_judge(event_id)
+    or public.is_event_manager(event_id)
+    or athlete_id = auth.uid()
+  );
+
+-- ---------- inscritos: solo conteos públicos ----------
+create or replace view public.registration_counts_public as
+select r.event_id, r.category_id, count(*)::int as registered
+from public.registrations r
+where r.status <> 'cancelled'
+group by r.event_id, r.category_id;
+
+grant select on public.registration_counts_public to anon, authenticated;
+grant all on public.registration_counts_public to service_role;
+
+revoke select on public.registrations_public from anon, authenticated;
+
+-- =====================================================================
+-- 0045 — Un resultado corregido a mano (source = 'manual') no lo pisa el recálculo.
+-- Idempotente.
+--
+-- recalculate_result() ya respetaba los resultados enviados por el Timer
+-- (source = 'timer', ver 0006). Un resultado marcado 'manual' -- una corrección
+-- de un administrador -- también debe quedar intacto: de lo contrario, la
+-- siguiente lectura de un checkpoint lo recalcula y se pierde la corrección.
+-- Misma función que 0008, solo cambia la condición de la guarda.
+-- =====================================================================
+
+create or replace function public.recalculate_result(p_registration_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_reg        public.registrations%rowtype;
+  v_start_ts   timestamptz;
+  v_finish_ts  timestamptz;
+  v_athlete    uuid;
+begin
+  if exists (select 1 from public.results
+             where registration_id = p_registration_id and source in ('timer', 'manual')) then
+    return;
+  end if;
+
+  select * into v_reg from public.registrations where id = p_registration_id;
+  if not found then return; end if;
+
+  select min(tr.read_at) into v_start_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_start;
+
+  if v_start_ts is null then
+    select w.started_at into v_start_ts from public.waves w where w.id = v_reg.wave_id;
+  end if;
+
+  select max(tr.read_at) into v_finish_ts
+  from public.timing_reads tr
+  join public.checkpoints c on c.id = tr.checkpoint_id
+  where tr.registration_id = p_registration_id and c.is_finish;
+
+  v_athlete := v_reg.athlete_id;
+
+  insert into public.results (event_id, tenant_id, registration_id, athlete_id,
+                              start_time, finish_at, duration_ms, finish_time, status, source)
+  values (
+    v_reg.event_id, v_reg.tenant_id, p_registration_id, v_athlete,
+    v_start_ts, v_finish_ts,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (extract(epoch from (v_finish_ts - v_start_ts)) * 1000)::bigint end,
+    case when v_start_ts is not null and v_finish_ts is not null
+         then (v_finish_ts - v_start_ts) end,
+    case when v_finish_ts is not null then 'finished'::public.result_status
+         else 'dnf'::public.result_status end,
+    'computed'
+  )
+  on conflict (registration_id) where registration_id is not null do update set
+    start_time  = excluded.start_time,
+    finish_at   = excluded.finish_at,
+    duration_ms = excluded.duration_ms,
+    finish_time = excluded.finish_time,
+    status      = excluded.status;
+end; $$;
+
+revoke execute on function public.recalculate_result(uuid) from anon, authenticated;
+grant execute on function public.recalculate_result(uuid) to service_role;
