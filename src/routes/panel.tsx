@@ -318,6 +318,102 @@ const PROFILE_DOCUMENT_TYPES = [
 const PROFILE_BLOOD_TYPES = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
 const PROFILE_SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 
+/** Afiliación del atleta a SU liga en la temporada actual (pago por Bold). No es requisito para inscribirse a carreras. */
+function AfiliacionCard({ profile }: { profile: Profile }) {
+  const tenantId = profile.tenant_id;
+  const [state, setState] = useState<"loading" | "no_league" | "ready">("loading");
+  const [league, setLeague] = useState("");
+  const [season, setSeason] = useState<api.LeagueSeason | null>(null);
+  const [membership, setMembership] = useState<api.AthleteMembership | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!tenantId) { setState("no_league"); return; }
+    try {
+      const [{ data: t }, seasons] = await Promise.all([
+        supabase ? supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle() : Promise.resolve({ data: null }),
+        api.listLeagueSeasons(tenantId),
+      ]);
+      setLeague((t?.name as string | undefined) ?? "tu liga");
+      const current = seasons.find((s) => s.is_current) ?? null;
+      setSeason(current);
+      setMembership(current ? await api.getAthleteMembership(profile.id, tenantId, current.season) : null);
+    } catch { /* se muestra el estado sin datos */ }
+    setState("ready");
+  }, [tenantId, profile.id]);
+  useEffect(() => { load(); }, [load]);
+
+  const affiliated = membership?.status === "paid" || membership?.status === "exempt";
+
+  // Bold devuelve al atleta a este panel al terminar de pagar: con un pago pendiente se pregunta a Bold cada 10 s.
+  useEffect(() => {
+    if (!membership || membership.status !== "awaiting_payment") return;
+    let stopped = false;
+    async function poll() {
+      try {
+        const r = await api.checkAthleteMembership();
+        if (!stopped && (r.status === "paid" || r.status === "exempt")) { toast.success("¡Pago confirmado! Ya estás afiliado a tu liga."); load(); }
+      } catch { /* sin red: se reintenta */ }
+    }
+    const timer = setInterval(poll, 10_000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [membership, load]);
+
+  async function pay() {
+    setPaying(true);
+    try {
+      const r = await api.payAthleteMembership();
+      if (r.already_current) { toast.success("Ya estás afiliado"); load(); return; }
+      if (r.payment_url) window.open(r.payment_url, "_blank", "noopener,noreferrer");
+      load();
+    } catch (e) { toast.error((e as Error).message); } finally { setPaying(false); }
+  }
+  async function check() {
+    setChecking(true);
+    try {
+      const r = await api.checkAthleteMembership();
+      if (r.status === "paid" || r.status === "exempt") { toast.success("¡Pago confirmado! Ya estás afiliado a tu liga."); load(); }
+      else toast.info("Todavía no vemos el pago. Si ya pagaste, espera unos minutos y vuelve a verificar.");
+    } catch (e) { toast.error((e as Error).message); } finally { setChecking(false); }
+  }
+
+  if (state === "loading") return null;
+  if (state === "no_league") return <div className="mb-6"><Note>Aún no perteneces a ninguna liga.</Note></div>;
+  if (!season) return <div className="mb-6"><Note>Tu liga <strong>{league}</strong> aún no definió la temporada actual, por eso todavía no puedes afiliarte.</Note></div>;
+
+  const fee = membership?.amount || season.athlete_fee;
+  return (
+    <div className="mb-6">
+      <Note>
+        <p className="mb-1 font-medium text-foreground">Afiliación a la Liga {league} · temporada {season.season}</p>
+        {affiliated ? (
+          <>
+            <p><Badge variant="default"><CheckCircle2 className="mr-1 size-3" />Afiliado</Badge></p>
+            <p className="mt-2 text-xs">
+              {membership?.status === "exempt"
+                ? "Tu liga te exoneró de la cuota de esta temporada."
+                : `Cuota pagada: ${formatCOP(membership?.amount ?? 0)}${membership?.paid_at ? ` el ${new Date(membership.paid_at).toLocaleDateString("es-CO")}` : ""}.`}
+            </p>
+          </>
+        ) : fee ? (
+          <>
+            <p className="mb-2">Para pertenecer a tu liga en esta temporada paga la cuota de afiliación:</p>
+            <p className="mb-3 font-display text-2xl">{formatCOP(fee)}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={pay} disabled={paying}>{paying ? "Generando link..." : "Pagar mi afiliación"}</Button>
+              <Button size="sm" variant="outline" onClick={check} disabled={checking || !membership}>{checking ? "Verificando..." : "Ya pagué, verificar"}</Button>
+            </div>
+            <p className="mt-3 text-xs">La afiliación es independiente de la inscripción a carreras: puedes inscribirte a cualquier carrera.</p>
+          </>
+        ) : (
+          <p>Tu liga aún no definió la cuota de afiliación de esta temporada.</p>
+        )}
+      </Note>
+    </div>
+  );
+}
+
 function AthleteProfilePanel({ profile, email, onSignOut }: { profile: Profile; email: string | null; onSignOut: () => void }) {
   const [form, setForm] = useState({
     full_name: profile.full_name ?? "",
@@ -386,6 +482,7 @@ function AthleteProfilePanel({ profile, email, onSignOut }: { profile: Profile; 
         </div>
         <Button variant="outline" onClick={onSignOut}>Salir</Button>
       </div>
+      <AfiliacionCard profile={profile} />
       <Card className="border-border/70">
         <CardContent className="grid gap-5 p-6 sm:grid-cols-2">
           <Field label="Nombre completo"><Input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} /></Field>
@@ -539,6 +636,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
         <TabsTrigger value="clubes"><Users className="mr-1 size-4" />Clubes</TabsTrigger>
         {isSuper ? <TabsTrigger value="aprobaciones"><ClipboardCheck className="mr-1 size-4" />Aprobaciones</TabsTrigger> : null}
         {isSuper ? <TabsTrigger value="cobros"><Banknote className="mr-1 size-4" />Cobros</TabsTrigger> : null}
+        {!isSuper && fixedTenant ? <TabsTrigger value="atletas"><Users className="mr-1 size-4" />Atletas</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="solicitudes"><ClipboardCheck className="mr-1 size-4" />Solicitudes</TabsTrigger> : null}
         {!isSuper && fixedTenant ? <TabsTrigger value="mi-liga"><Palette className="mr-1 size-4" />Mi liga</TabsTrigger> : null}
       </TabsList>
@@ -575,6 +673,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
 
       {isSuper ? <TabsContent value="aprobaciones" className="mt-6"><Aprobaciones tenants={tenants} /></TabsContent> : null}
       {isSuper ? <TabsContent value="cobros" className="mt-6"><ReporteCobros /></TabsContent> : null}
+      {!isSuper && fixedTenant ? <TabsContent value="atletas" className="mt-6"><AtletasSection tenantId={fixedTenant} canExempt /></TabsContent> : null}
       {!isSuper && fixedTenant ? <TabsContent value="solicitudes" className="mt-6"><SolicitudesClub tenantId={fixedTenant} /></TabsContent> : null}
       {!isSuper && fixedTenant ? <TabsContent value="mi-liga" className="mt-6"><MiLigaSection tenantId={fixedTenant} /></TabsContent> : null}
     </Tabs>
@@ -763,6 +862,145 @@ function MiLigaSection({ tenantId }: { tenantId: string }) {
 }
 
 // ------------------- Solicitudes de club (admin de liga) --------------
+/** Atletas de la liga y su afiliación de la temporada actual: quiénes pagaron y a quiénes contactar. */
+function AtletasSection({ tenantId, canExempt }: { tenantId: string; canExempt: boolean }) {
+  const [rows, setRows] = useState<api.LeagueAthlete[] | null>(null);
+  const [season, setSeason] = useState<api.LeagueSeason | null>(null);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [exempting, setExempting] = useState<api.LeagueAthlete | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const seasons = await api.listLeagueSeasons(tenantId);
+      const current = seasons.find((s) => s.is_current) ?? null;
+      setSeason(current);
+      setRows(await api.listLeagueAthletes(tenantId, current?.season ?? null));
+    } catch (e) { toast.error((e as Error).message); setRows([]); }
+  }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+
+  if (rows === null) return <Note>Cargando…</Note>;
+
+  const isAffiliated = (a: api.LeagueAthlete) => a.membership?.status === "paid" || a.membership?.status === "exempt";
+  const affiliated = rows.filter(isAffiliated);
+  const needle = search.trim().toLowerCase();
+  const shown = rows.filter((a) =>
+    (filter === "all" || (filter === "yes" ? isAffiliated(a) : !isAffiliated(a))) &&
+    (!needle || [a.full_name, a.document_id, a.email, a.club_name].some((v) => (v ?? "").toLowerCase().includes(needle))));
+  const fee = season?.athlete_fee ?? null;
+  const collected = affiliated.filter((a) => a.membership?.status === "paid").reduce((s, a) => s + (a.membership?.amount ?? 0), 0);
+
+  function exportRows() {
+    const cols: Column[] = [
+      { header: "Atleta", key: "name" }, { header: "Documento", key: "doc" }, { header: "Correo", key: "email" }, { header: "Celular", key: "phone" },
+      { header: "Club", key: "club" }, { header: "Afiliación", key: "state" }, { header: "Valor (COP)", key: "amount" },
+    ];
+    const data = shown.map((a) => ({
+      name: a.full_name ?? "", doc: a.document_id ?? "", email: a.email ?? "", phone: a.phone ?? "", club: a.club_name ?? "Independiente",
+      state: a.membership?.status === "paid" ? "Pagada" : a.membership?.status === "exempt" ? "Exonerada" : "Sin afiliar", amount: a.membership?.status === "paid" ? a.membership.amount : 0,
+    }));
+    exportExcel(`atletas-temporada-${season?.season ?? "sin-temporada"}`, [{ name: "Atletas", columns: cols, rows: data }]);
+  }
+
+  async function confirmExempt() {
+    if (!exempting) return;
+    if (reason.trim().length < 3) { toast.error("Escribe el motivo de la exoneración"); return; }
+    setBusy(true);
+    try {
+      await api.exemptAthlete(exempting.id, reason.trim());
+      toast.success("Atleta afiliado sin cobro");
+      setExempting(null); setReason("");
+      await load();
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="grid gap-6">
+      {season ? (
+        <p className="text-sm text-muted-foreground">
+          Temporada actual: <strong>{season.season}</strong>{fee ? <> · cuota de afiliación <strong>{formatCOP(fee)}</strong></> : <> · <strong>sin cuota de atleta definida</strong> (se define en Mi liga)</>}.
+          El atleta paga su afiliación desde su perfil; no es requisito para inscribirse a carreras.
+        </p>
+      ) : (
+        <Note>Esta liga aún no tiene una temporada actual definida (se define en Mi liga).</Note>
+      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">Atletas de la liga</p><p className="font-display text-3xl">{rows.length}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">Afiliados en la temporada</p><p className="font-display text-3xl">{affiliated.length}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">Recaudado en afiliaciones</p><p className="font-display text-3xl">{formatCOP(collected)}</p></CardContent></Card>
+      </div>
+      <Card><CardContent className="grid gap-4 p-6 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        <Field label="Buscar"><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre, documento, correo o club" /></Field>
+        <Field label="Afiliación">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="yes">Afiliados</SelectItem>
+              <SelectItem value="no">Sin afiliar</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Button size="sm" variant="outline" onClick={exportRows}><FileSpreadsheet className="mr-1 size-4" />Excel</Button>
+      </CardContent></Card>
+      <SimpleTable head={["Atleta", "Contacto", "Club", "Afiliación", ""]}>
+        {shown.map((a) => {
+          const wa = whatsappNumber(a.phone);
+          const m = a.membership;
+          return (
+            <TableRow key={a.id}>
+              <TableCell className="font-medium">{a.full_name ?? "—"}<div className="text-xs font-normal text-muted-foreground">{a.document_id ?? ""}</div></TableCell>
+              <TableCell>
+                <div className="flex flex-col items-start gap-1 text-sm">
+                  {a.phone ? <span>{a.phone}</span> : <span className="text-muted-foreground">Sin celular</span>}
+                  {a.email ? <span className="text-muted-foreground">{a.email}</span> : null}
+                  <div className="flex gap-2">
+                    {wa ? <a className="text-xs text-primary underline" target="_blank" rel="noopener noreferrer" href={`https://wa.me/${wa}`}>WhatsApp</a> : null}
+                    {a.email ? <a className="text-xs text-primary underline" href={`mailto:${a.email}`}>Correo</a> : null}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{a.club_name ?? "Independiente"}</TableCell>
+              <TableCell>
+                {m?.status === "paid" ? <Badge variant="default">Afiliado</Badge>
+                  : m?.status === "exempt" ? <Badge variant="secondary">Exonerado</Badge>
+                  : m?.status === "awaiting_payment" ? <Badge variant="outline">Falta el pago</Badge>
+                  : <Badge variant="outline">Sin afiliar</Badge>}
+              </TableCell>
+              <TableCell className="text-right">
+                {canExempt && !isAffiliated(a) && season ? <Button size="sm" variant="outline" onClick={() => { setExempting(a); setReason(""); }}>Exonerar</Button> : null}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+        {shown.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{rows.length === 0 ? "Esta liga aún no tiene atletas." : "Ningún atleta coincide con los filtros."}</TableCell></TableRow> : null}
+      </SimpleTable>
+
+      <Dialog open={exempting !== null} onOpenChange={(open) => { if (!open) setExempting(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exonerar afiliación</DialogTitle>
+            <DialogDescription>
+              <strong>{exempting?.full_name}</strong> queda afiliado a la liga en la temporada {season?.season} sin pagar. El motivo queda registrado y se le avisa por correo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="athlete-exempt-reason">Motivo *</Label>
+            <Input id="athlete-exempt-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej.: deportista de la selección" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExempting(null)}>Cancelar</Button>
+            <Button onClick={confirmExempt} disabled={busy}>{busy ? "Guardando..." : "Exonerar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function SolicitudesClub({ tenantId }: { tenantId: string }) {
   const [rows, setRows] = useState<api.AdminClub[]>([]);
   const [season, setSeason] = useState<api.LeagueSeason | null | "loading">("loading");
@@ -1097,7 +1335,20 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [filters, setFilters] = useState({ name: "", department: "", status: "all", enabled: "all" });
+  const [pcts, setPcts] = useState<Record<string, number | null>>({});
   const geo = useColombiaLocation();
+  useEffect(() => { api.listLeagueAgreements().then(setPcts).catch(() => undefined); }, []);
+
+  async function savePct(tenantId: string, value: string) {
+    const clean = value.trim().replace(",", ".");
+    const pct = clean === "" ? null : Number(clean);
+    if (pct != null && (!Number.isFinite(pct) || pct < 0 || pct > 100)) { toast.error("El porcentaje debe estar entre 0 y 100"); return; }
+    try {
+      await api.setLeagueAthleteFeePct(tenantId, pct);
+      setPcts((cur) => ({ ...cur, [tenantId]: pct }));
+      toast.success(pct == null ? "Porcentaje borrado" : `La liga recibirá el ${pct}% de las afiliaciones de atletas`);
+    } catch (e) { toast.error((e as Error).message); }
+  }
 
   async function create() {
     const payload = { ...form, department: geo.departmentName, city: geo.cityName };
@@ -1165,18 +1416,25 @@ function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () =
           </Select>
         </Field>
       </CardContent></Card>
-      <SimpleTable head={["Liga", "Depto", "Estado", "Habilitada"]}>
+      <SimpleTable head={["Liga", "Depto", "Estado", "% afiliación de atletas para la liga", "Habilitada"]}>
         {filtered.map((t) => (
           <TableRow key={t.id}>
             <TableCell className="font-medium">{t.name}</TableCell>
             <TableCell className="text-muted-foreground">{t.department}</TableCell>
             <TableCell><Badge variant={TENANT_STATUS_LABEL[t.status].variant}>{TENANT_STATUS_LABEL[t.status].label}</Badge></TableCell>
+            <TableCell>
+              <div className="flex items-center gap-1">
+                <Input className="h-8 w-20" inputMode="decimal" placeholder="Sin definir" key={`${t.id}-${pcts[t.id] ?? ""}`} defaultValue={pcts[t.id] ?? ""}
+                  onBlur={(e) => { const prev = pcts[t.id] == null ? "" : String(pcts[t.id]); if (e.target.value.trim() !== prev) savePct(t.id, e.target.value); }} />
+                <span className="text-muted-foreground">%</span>
+              </div>
+            </TableCell>
             <TableCell className="text-right"><Switch checked={t.status === "active"} onCheckedChange={async (v) => {
               try { await api.setTenantStatus(t.id, v ? "active" : "suspended"); toast.success("Actualizada"); onChange(); } catch (e) { toast.error((e as Error).message); }
             }} /></TableCell>
           </TableRow>
         ))}
-        {filtered.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">{tenants.length === 0 ? "Aún no hay ligas." : "Ninguna liga coincide con los filtros."}</TableCell></TableRow> : null}
+        {filtered.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{tenants.length === 0 ? "Aún no hay ligas." : "Ninguna liga coincide con los filtros."}</TableCell></TableRow> : null}
       </SimpleTable>
     </div>
   );
@@ -1399,37 +1657,39 @@ function CobrosPorConcepto() {
 
   const byConcept = (Object.keys(api.CHARGE_CONCEPT_LABEL) as api.ChargeConcept[]).map((c) => {
     const list = shown.filter((r) => r.concept === c);
-    return { concept: c, label: api.CHARGE_CONCEPT_LABEL[c], count: list.length, exempt: list.filter((r) => r.exempt).length, total: list.reduce((s, r) => s + r.amount, 0) };
+    return { concept: c, label: api.CHARGE_CONCEPT_LABEL[c], count: list.length, exempt: list.filter((r) => r.exempt).length, total: list.reduce((s, r) => s + r.amount, 0), payout: list.reduce((s, r) => s + r.payout, 0) };
   });
   const benef = new Map<string, { name: string; kind: "federacion" | "liga" | "club"; count: number; total: number }>();
   shown.forEach((r) => {
     const key = `${r.beneficiary_kind}:${r.beneficiary}`;
     const cur = benef.get(key) ?? { name: r.beneficiary, kind: r.beneficiary_kind, count: 0, total: 0 };
-    cur.count += 1; cur.total += r.amount;
+    cur.count += 1; cur.total += r.payout;
     benef.set(key, cur);
   });
   const byBeneficiary = [...benef.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   const total = shown.reduce((s, r) => s + r.amount, 0);
+  const totalPayout = shown.reduce((s, r) => s + r.payout, 0);
+  const missingPct = shown.some((r) => r.concept === "atleta" && !r.exempt && r.share_pct == null);
   const kindLabel = (k: "federacion" | "liga" | "club") => (k === "federacion" ? "Federación" : k === "liga" ? "Liga" : "Club");
   const dateLabel = (iso: string) => (iso ? new Date(iso).toLocaleDateString("es-CO") : "—");
 
   function exportReport(kind: "excel" | "pdf") {
     const detCols: Column[] = [
       { header: "Fecha", key: "date" }, { header: "Concepto", key: "concept" }, { header: "Pagó", key: "payer" }, { header: "Liga", key: "league" },
-      { header: "Detalle", key: "detail" }, { header: "Valor (COP)", key: "amount" }, { header: "Corresponde a", key: "beneficiary" }, { header: "Tipo", key: "kind" },
+      { header: "Detalle", key: "detail" }, { header: "Valor (COP)", key: "amount" }, { header: "A liquidar (COP)", key: "payout" }, { header: "Corresponde a", key: "beneficiary" }, { header: "Tipo", key: "kind" },
     ];
     const detRows = shown.map((r) => ({
       date: dateLabel(r.date), concept: api.CHARGE_CONCEPT_LABEL[r.concept], payer: r.payer, league: r.league, detail: r.detail,
-      amount: r.amount, beneficiary: r.beneficiary, kind: kindLabel(r.beneficiary_kind),
+      amount: r.amount, payout: r.payout, beneficiary: r.beneficiary, kind: kindLabel(r.beneficiary_kind),
     }));
     if (kind === "pdf") {
-      exportPDF("cobros-por-concepto", "Cobros por concepto", detCols, [...detRows, { date: "", concept: "TOTAL", payer: "", league: "", detail: "", amount: total, beneficiary: "", kind: "" }]);
+      exportPDF("cobros-por-concepto", "Cobros por concepto", detCols, [...detRows, { date: "", concept: "TOTAL", payer: "", league: "", detail: "", amount: total, payout: totalPayout, beneficiary: "", kind: "" }]);
       return;
     }
-    const conceptCols: Column[] = [{ header: "Concepto", key: "label" }, { header: "Cobros", key: "count" }, { header: "Exonerados", key: "exempt" }, { header: "Total (COP)", key: "total" }];
+    const conceptCols: Column[] = [{ header: "Concepto", key: "label" }, { header: "Cobros", key: "count" }, { header: "Exonerados", key: "exempt" }, { header: "Total cobrado (COP)", key: "total" }, { header: "A liquidar (COP)", key: "payout" }];
     const benefCols: Column[] = [{ header: "Corresponde a", key: "name" }, { header: "Tipo", key: "kind" }, { header: "Cobros", key: "count" }, { header: "Total (COP)", key: "total" }];
     exportExcel("cobros-por-concepto", [
-      { name: "Por concepto", columns: conceptCols, rows: byConcept.map((c) => ({ label: c.label, count: c.count, exempt: c.exempt, total: c.total })) },
+      { name: "Por concepto", columns: conceptCols, rows: byConcept.map((c) => ({ label: c.label, count: c.count, exempt: c.exempt, total: c.total, payout: c.payout })) },
       { name: "Por beneficiario", columns: benefCols, rows: byBeneficiary.map((b) => ({ name: b.name, kind: kindLabel(b.kind), count: b.count, total: b.total })) },
       { name: "Detalle", columns: detCols, rows: detRows },
     ]);
@@ -1468,29 +1728,35 @@ function CobrosPorConcepto() {
           la <strong>inscripción</strong>, del club responsable (carrera oficial con club) o, si no, de la liga. Suma solo pagos aprobados por Bold; las exoneraciones salen en $0.
           La liquidación la haces tú por fuera del sistema.
         </p>
+        <p className="text-xs text-muted-foreground sm:col-span-5">
+          La <strong>afiliación de atleta</strong> la recauda la federación y a la liga le corresponde el porcentaje acordado (se define por liga en la pestaña Ligas).
+          {missingPct ? <strong className="text-foreground"> Hay afiliaciones de ligas sin porcentaje definido: su "a liquidar" aparece en $0 hasta que lo definas.</strong> : null}
+        </p>
       </CardContent></Card>
 
       <div>
         <h3 className="mb-2 font-display text-2xl">Por concepto</h3>
-        <SimpleTable head={["Concepto", "Cobros", "Exonerados", "Total"]}>
+        <SimpleTable head={["Concepto", "Cobros", "Exonerados", "Total cobrado", "A liquidar"]}>
           {byConcept.map((c) => (
             <TableRow key={c.concept}>
               <TableCell className="font-medium">{c.label}</TableCell>
               <TableCell>{c.count}</TableCell>
               <TableCell>{c.exempt}</TableCell>
-              <TableCell className="text-right font-medium">{formatCOP(c.total)}</TableCell>
+              <TableCell className="text-right">{formatCOP(c.total)}</TableCell>
+              <TableCell className="text-right font-medium">{formatCOP(c.payout)}</TableCell>
             </TableRow>
           ))}
           <TableRow>
-            <TableCell colSpan={3} className="text-right font-semibold">Total cobrado</TableCell>
+            <TableCell colSpan={3} className="text-right font-semibold">Totales</TableCell>
             <TableCell className="text-right font-semibold">{formatCOP(total)}</TableCell>
+            <TableCell className="text-right font-semibold">{formatCOP(totalPayout)}</TableCell>
           </TableRow>
         </SimpleTable>
       </div>
 
       <div>
         <h3 className="mb-2 font-display text-2xl">Por beneficiario (a quién liquidar)</h3>
-        <SimpleTable head={["Corresponde a", "Tipo", "Cobros", "Total"]}>
+        <SimpleTable head={["Corresponde a", "Tipo", "Cobros", "A liquidar"]}>
           {byBeneficiary.map((b) => (
             <TableRow key={`${b.kind}:${b.name}`}>
               <TableCell className="font-medium">{b.name}</TableCell>
@@ -1505,7 +1771,7 @@ function CobrosPorConcepto() {
 
       <div>
         <h3 className="mb-2 font-display text-2xl">Detalle</h3>
-        <SimpleTable head={["Fecha", "Concepto", "Pagó", "Liga", "Detalle", "Valor", "Corresponde a"]}>
+        <SimpleTable head={["Fecha", "Concepto", "Pagó", "Liga", "Detalle", "Valor", "A liquidar", "Corresponde a"]}>
           {shown.map((r) => (
             <TableRow key={r.key}>
               <TableCell className="text-muted-foreground">{dateLabel(r.date)}</TableCell>
@@ -1514,10 +1780,14 @@ function CobrosPorConcepto() {
               <TableCell className="text-muted-foreground">{r.league}</TableCell>
               <TableCell className="text-muted-foreground">{r.detail}</TableCell>
               <TableCell className="text-right">{r.exempt ? <Badge variant="secondary">Exonerado</Badge> : formatCOP(r.amount)}</TableCell>
+              <TableCell className="text-right">
+                {r.exempt ? "—" : formatCOP(r.payout)}
+                {r.concept === "atleta" && !r.exempt ? <div className="text-xs text-muted-foreground">{r.share_pct == null ? "% sin definir" : `${r.share_pct}% para la liga`}</div> : null}
+              </TableCell>
               <TableCell>{r.beneficiary}<div className="text-xs text-muted-foreground">{kindLabel(r.beneficiary_kind)}</div></TableCell>
             </TableRow>
           ))}
-          {shown.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin cobros para mostrar.</TableCell></TableRow> : null}
+          {shown.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sin cobros para mostrar.</TableCell></TableRow> : null}
         </SimpleTable>
       </div>
     </div>

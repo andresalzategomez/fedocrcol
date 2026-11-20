@@ -5,6 +5,7 @@ import { isBoldConfigured, verifyBoldSignature } from "../../../lib/server/bold"
 import { activateLeagueIfPaid, activatePendingLeagues, tenantIdFromLeagueReference } from "../../../lib/server/league-affiliation";
 import { activateRegistrationIfPaid, qrCodeFromReference } from "../../../lib/server/registration-payment";
 import { activateClubMembershipIfPaid, activatePendingClubMemberships, membershipIdFromClubReference } from "../../../lib/server/club-membership";
+import { activateAthleteMembershipIfPaid, activatePendingAthleteMemberships, membershipIdFromAthleteReference } from "../../../lib/server/athlete-membership";
 
 /**
  * Webhook de Bold. Configúralo en el panel de Bold (Integraciones ->
@@ -24,6 +25,7 @@ import { activateClubMembershipIfPaid, activatePendingClubMemberships, membershi
  * pago (data.metadata.reference):
  *   - "liga-<uuid>-..."  cuota de afiliación de una liga -> la activa
  *   - "club-<uuid>-..."  cuota anual de un club           -> la marca pagada y activa al club
+ *   - "atl-<uuid>-..."   afiliación anual de un atleta    -> la marca pagada
  *   - cualquier otra     el qr_code de una inscripción  -> la marca pagada (si Bold confirma el link)
  *
  * Payload (CloudEvents): { id, type, subject, source, data: {
@@ -112,7 +114,8 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
   if (!reference) {
     console.warn("Webhook de Bold sin metadata.reference:", type, Object.keys(payload.data ?? {}).join(","));
     if (type === "SALE_APPROVED") {
-      const activated = (await activatePendingLeagues(admin, panelUrl)) + (await activatePendingClubMemberships(admin, panelUrl));
+      const activated = (await activatePendingLeagues(admin, panelUrl)) + (await activatePendingClubMemberships(admin, panelUrl)) +
+        (await activatePendingAthleteMemberships(admin, panelUrl));
       return reply(log, activated > 0 ? "sin_referencia:cobros_activados" : "sin_referencia:nada_que_hacer", 200, "ignorado");
     }
     return reply(log, "sin_referencia:ignorado", 200, "ignorado");
@@ -159,6 +162,25 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
     return reply(log, `club:${result.state}`, 200, "ok");
   }
 
+  const athleteMembershipId = membershipIdFromAthleteReference(reference);
+  if (athleteMembershipId) {
+    if (type !== "SALE_APPROVED") return reply(log, "afiliacion_atleta:evento_ignorado", 200, "ignorado");
+    let result = await activateAthleteMembershipIfPaid(admin, athleteMembershipId, panelUrl);
+    if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      result = await activateAthleteMembershipIfPaid(admin, athleteMembershipId, panelUrl);
+    }
+    if (result.state === "error") {
+      console.error("Webhook de afiliación de atleta:", result.error);
+      log.summary = { ...log.summary, error: result.error };
+      return reply(log, "afiliacion_atleta:error", 500, "Error confirmando la afiliación");
+    }
+    if (result.state === "not_paid" && (result.boldStatus === "PROCESSING" || result.boldStatus === "ACTIVE")) {
+      return reply(log, `afiliacion_atleta:pendiente_bold_${result.boldStatus}`, 503, "Pago aún no confirmado en Bold");
+    }
+    return reply(log, `afiliacion_atleta:${result.state}`, 200, "ok");
+  }
+
   // Un rechazo no cancela nada: con el mismo link el atleta puede volver a intentar el pago.
   if (type !== "SALE_APPROVED") return reply(log, "inscripcion:evento_ignorado", 200, "ignorado");
 
@@ -176,6 +198,7 @@ async function handleBoldWebhook(request: Request, raw: string, log: WebhookLog)
       console.warn("Webhook de Bold: sin inscripción para la referencia", reference);
       await activatePendingLeagues(admin, panelUrl);
       await activatePendingClubMemberships(admin, panelUrl);
+      await activatePendingAthleteMemberships(admin, panelUrl);
       return reply(log, "inscripcion:no_encontrada", 200, "ignorado");
     case "no_link":
       return reply(log, "inscripcion:sin_link_de_pago", 200, "ignorado");
