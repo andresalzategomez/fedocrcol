@@ -422,7 +422,7 @@ export async function listChargesReport(): Promise<Charge[]> {
       .select("id, amount, created_at, registration:registrations(athlete_name, event:events(title, is_official, club:clubs(name), league:tenants(name)))")
       .eq("status", "approved").range(f, t) as unknown as PromiseLike<{ data: PayRaw[] | null; error: unknown }>),
     fetchAllRows<AthleteRaw>((f, t) => db().from("athlete_season_memberships")
-      .select("id, tenant_id, season, amount, status, paid_at, athlete:profiles(full_name), tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: AthleteRaw[] | null; error: unknown }>),
+      .select("id, tenant_id, season, amount, status, paid_at, athlete:profiles!athlete_id(full_name), tenant:tenants(name)").in("status", ["paid", "exempt"]).range(f, t) as unknown as PromiseLike<{ data: AthleteRaw[] | null; error: unknown }>),
     listLeagueAgreements(),
   ]);
 
