@@ -38,14 +38,22 @@ import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
 import { Route as ApiPublicResultsTokenRouteImport } from './routes/api/public/results.$token'
+import { Route as ApiTrackV1HealthRouteImport } from './routes/api/track/v1/health'
+import { Route as ApiTrackV1RacesRouteImport } from './routes/api/track/v1/races'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth.login'
 import { Route as ApiV1TimeRecordsBatchRouteImport } from './routes/api/v1/time-records.batch'
+import { Route as ApiTrackV1AuthLoginRouteImport } from './routes/api/track/v1/auth.login'
+import { Route as ApiTrackV1AuthRefreshRouteImport } from './routes/api/track/v1/auth.refresh'
 import { Route as ApiV1RacesRaceIdAthletesRouteImport } from './routes/api/v1/races.$raceId.athletes'
 import { Route as ApiV1RacesRaceIdFinishRouteImport } from './routes/api/v1/races.$raceId.finish'
 import { Route as ApiV1RacesRaceIdSplitsRouteImport } from './routes/api/v1/races.$raceId.splits'
 import { Route as ApiV1RacesRaceIdStartRouteImport } from './routes/api/v1/races.$raceId.start'
 import { Route as ApiV1RacesRaceIdWavesRouteImport } from './routes/api/v1/races.$raceId.waves'
 import { Route as ApiV1WavesWaveIdStartRouteImport } from './routes/api/v1/waves.$waveId.start'
+import { Route as ApiTrackV1RacesRaceIdPackageRouteImport } from './routes/api/track/v1/races.$raceId.package'
+import { Route as ApiTrackV1RacesRaceIdStateRouteImport } from './routes/api/track/v1/races.$raceId.state'
+import { Route as ApiTrackV1RacesRaceIdSyncRouteImport } from './routes/api/track/v1/races.$raceId.sync'
+import { Route as ApiTrackV1RacesRaceIdDeviceActivateRouteImport } from './routes/api/track/v1/races.$raceId.device.activate'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -197,6 +205,16 @@ const ApiPublicResultsTokenRoute = ApiPublicResultsTokenRouteImport.update({
   path: '/api/public/results/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrackV1HealthRoute = ApiTrackV1HealthRouteImport.update({
+  id: '/api/track/v1/health',
+  path: '/api/track/v1/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackV1RacesRoute = ApiTrackV1RacesRouteImport.update({
+  id: '/api/track/v1/races',
+  path: '/api/track/v1/races',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
   id: '/api/v1/auth/login',
   path: '/api/v1/auth/login',
@@ -205,6 +223,16 @@ const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
 const ApiV1TimeRecordsBatchRoute = ApiV1TimeRecordsBatchRouteImport.update({
   id: '/api/v1/time-records/batch',
   path: '/api/v1/time-records/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackV1AuthLoginRoute = ApiTrackV1AuthLoginRouteImport.update({
+  id: '/api/track/v1/auth/login',
+  path: '/api/track/v1/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackV1AuthRefreshRoute = ApiTrackV1AuthRefreshRouteImport.update({
+  id: '/api/track/v1/auth/refresh',
+  path: '/api/track/v1/auth/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1RacesRaceIdAthletesRoute =
@@ -238,6 +266,30 @@ const ApiV1WavesWaveIdStartRoute = ApiV1WavesWaveIdStartRouteImport.update({
   path: '/api/v1/waves/$waveId/start',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrackV1RacesRaceIdPackageRoute =
+  ApiTrackV1RacesRaceIdPackageRouteImport.update({
+    id: '/$raceId/package',
+    path: '/$raceId/package',
+    getParentRoute: () => ApiTrackV1RacesRoute,
+  } as any)
+const ApiTrackV1RacesRaceIdStateRoute =
+  ApiTrackV1RacesRaceIdStateRouteImport.update({
+    id: '/$raceId/state',
+    path: '/$raceId/state',
+    getParentRoute: () => ApiTrackV1RacesRoute,
+  } as any)
+const ApiTrackV1RacesRaceIdSyncRoute =
+  ApiTrackV1RacesRaceIdSyncRouteImport.update({
+    id: '/$raceId/sync',
+    path: '/$raceId/sync',
+    getParentRoute: () => ApiTrackV1RacesRoute,
+  } as any)
+const ApiTrackV1RacesRaceIdDeviceActivateRoute =
+  ApiTrackV1RacesRaceIdDeviceActivateRouteImport.update({
+    id: '/$raceId/device/activate',
+    path: '/$raceId/device/activate',
+    getParentRoute: () => ApiTrackV1RacesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -269,14 +321,22 @@ export interface FileRoutesByFullPath {
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
   '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
+  '/api/track/v1/health': typeof ApiTrackV1HealthRoute
+  '/api/track/v1/races': typeof ApiTrackV1RacesRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/track/v1/auth/login': typeof ApiTrackV1AuthLoginRoute
+  '/api/track/v1/auth/refresh': typeof ApiTrackV1AuthRefreshRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
   '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
   '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
+  '/api/track/v1/races/$raceId/package': typeof ApiTrackV1RacesRaceIdPackageRoute
+  '/api/track/v1/races/$raceId/state': typeof ApiTrackV1RacesRaceIdStateRoute
+  '/api/track/v1/races/$raceId/sync': typeof ApiTrackV1RacesRaceIdSyncRoute
+  '/api/track/v1/races/$raceId/device/activate': typeof ApiTrackV1RacesRaceIdDeviceActivateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -308,14 +368,22 @@ export interface FileRoutesByTo {
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
   '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
+  '/api/track/v1/health': typeof ApiTrackV1HealthRoute
+  '/api/track/v1/races': typeof ApiTrackV1RacesRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/track/v1/auth/login': typeof ApiTrackV1AuthLoginRoute
+  '/api/track/v1/auth/refresh': typeof ApiTrackV1AuthRefreshRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
   '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
   '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
+  '/api/track/v1/races/$raceId/package': typeof ApiTrackV1RacesRaceIdPackageRoute
+  '/api/track/v1/races/$raceId/state': typeof ApiTrackV1RacesRaceIdStateRoute
+  '/api/track/v1/races/$raceId/sync': typeof ApiTrackV1RacesRaceIdSyncRoute
+  '/api/track/v1/races/$raceId/device/activate': typeof ApiTrackV1RacesRaceIdDeviceActivateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -348,14 +416,22 @@ export interface FileRoutesById {
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
   '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
+  '/api/track/v1/health': typeof ApiTrackV1HealthRoute
+  '/api/track/v1/races': typeof ApiTrackV1RacesRouteWithChildren
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
+  '/api/track/v1/auth/login': typeof ApiTrackV1AuthLoginRoute
+  '/api/track/v1/auth/refresh': typeof ApiTrackV1AuthRefreshRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
   '/api/v1/races/$raceId/finish': typeof ApiV1RacesRaceIdFinishRoute
   '/api/v1/races/$raceId/splits': typeof ApiV1RacesRaceIdSplitsRoute
   '/api/v1/races/$raceId/start': typeof ApiV1RacesRaceIdStartRoute
   '/api/v1/races/$raceId/waves': typeof ApiV1RacesRaceIdWavesRoute
   '/api/v1/waves/$waveId/start': typeof ApiV1WavesWaveIdStartRoute
+  '/api/track/v1/races/$raceId/package': typeof ApiTrackV1RacesRaceIdPackageRoute
+  '/api/track/v1/races/$raceId/state': typeof ApiTrackV1RacesRaceIdStateRoute
+  '/api/track/v1/races/$raceId/sync': typeof ApiTrackV1RacesRaceIdSyncRoute
+  '/api/track/v1/races/$raceId/device/activate': typeof ApiTrackV1RacesRaceIdDeviceActivateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -389,14 +465,22 @@ export interface FileRouteTypes {
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
     | '/api/public/results/$token'
+    | '/api/track/v1/health'
+    | '/api/track/v1/races'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
+    | '/api/track/v1/auth/login'
+    | '/api/track/v1/auth/refresh'
     | '/api/v1/races/$raceId/athletes'
     | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
     | '/api/v1/waves/$waveId/start'
+    | '/api/track/v1/races/$raceId/package'
+    | '/api/track/v1/races/$raceId/state'
+    | '/api/track/v1/races/$raceId/sync'
+    | '/api/track/v1/races/$raceId/device/activate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -428,14 +512,22 @@ export interface FileRouteTypes {
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
     | '/api/public/results/$token'
+    | '/api/track/v1/health'
+    | '/api/track/v1/races'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
+    | '/api/track/v1/auth/login'
+    | '/api/track/v1/auth/refresh'
     | '/api/v1/races/$raceId/athletes'
     | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
     | '/api/v1/waves/$waveId/start'
+    | '/api/track/v1/races/$raceId/package'
+    | '/api/track/v1/races/$raceId/state'
+    | '/api/track/v1/races/$raceId/sync'
+    | '/api/track/v1/races/$raceId/device/activate'
   id:
     | '__root__'
     | '/'
@@ -467,14 +559,22 @@ export interface FileRouteTypes {
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
     | '/api/public/results/$token'
+    | '/api/track/v1/health'
+    | '/api/track/v1/races'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
+    | '/api/track/v1/auth/login'
+    | '/api/track/v1/auth/refresh'
     | '/api/v1/races/$raceId/athletes'
     | '/api/v1/races/$raceId/finish'
     | '/api/v1/races/$raceId/splits'
     | '/api/v1/races/$raceId/start'
     | '/api/v1/races/$raceId/waves'
     | '/api/v1/waves/$waveId/start'
+    | '/api/track/v1/races/$raceId/package'
+    | '/api/track/v1/races/$raceId/state'
+    | '/api/track/v1/races/$raceId/sync'
+    | '/api/track/v1/races/$raceId/device/activate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -507,8 +607,12 @@ export interface RootRouteChildren {
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
   ApiPublicResultsTokenRoute: typeof ApiPublicResultsTokenRoute
+  ApiTrackV1HealthRoute: typeof ApiTrackV1HealthRoute
+  ApiTrackV1RacesRoute: typeof ApiTrackV1RacesRouteWithChildren
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1TimeRecordsBatchRoute: typeof ApiV1TimeRecordsBatchRoute
+  ApiTrackV1AuthLoginRoute: typeof ApiTrackV1AuthLoginRoute
+  ApiTrackV1AuthRefreshRoute: typeof ApiTrackV1AuthRefreshRoute
   ApiV1WavesWaveIdStartRoute: typeof ApiV1WavesWaveIdStartRoute
 }
 
@@ -717,6 +821,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicResultsTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/track/v1/health': {
+      id: '/api/track/v1/health'
+      path: '/api/track/v1/health'
+      fullPath: '/api/track/v1/health'
+      preLoaderRoute: typeof ApiTrackV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track/v1/races': {
+      id: '/api/track/v1/races'
+      path: '/api/track/v1/races'
+      fullPath: '/api/track/v1/races'
+      preLoaderRoute: typeof ApiTrackV1RacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/login': {
       id: '/api/v1/auth/login'
       path: '/api/v1/auth/login'
@@ -729,6 +847,20 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/time-records/batch'
       fullPath: '/api/v1/time-records/batch'
       preLoaderRoute: typeof ApiV1TimeRecordsBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track/v1/auth/login': {
+      id: '/api/track/v1/auth/login'
+      path: '/api/track/v1/auth/login'
+      fullPath: '/api/track/v1/auth/login'
+      preLoaderRoute: typeof ApiTrackV1AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track/v1/auth/refresh': {
+      id: '/api/track/v1/auth/refresh'
+      path: '/api/track/v1/auth/refresh'
+      fullPath: '/api/track/v1/auth/refresh'
+      preLoaderRoute: typeof ApiTrackV1AuthRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/races/$raceId/athletes': {
@@ -773,6 +905,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1WavesWaveIdStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/track/v1/races/$raceId/package': {
+      id: '/api/track/v1/races/$raceId/package'
+      path: '/$raceId/package'
+      fullPath: '/api/track/v1/races/$raceId/package'
+      preLoaderRoute: typeof ApiTrackV1RacesRaceIdPackageRouteImport
+      parentRoute: typeof ApiTrackV1RacesRoute
+    }
+    '/api/track/v1/races/$raceId/state': {
+      id: '/api/track/v1/races/$raceId/state'
+      path: '/$raceId/state'
+      fullPath: '/api/track/v1/races/$raceId/state'
+      preLoaderRoute: typeof ApiTrackV1RacesRaceIdStateRouteImport
+      parentRoute: typeof ApiTrackV1RacesRoute
+    }
+    '/api/track/v1/races/$raceId/sync': {
+      id: '/api/track/v1/races/$raceId/sync'
+      path: '/$raceId/sync'
+      fullPath: '/api/track/v1/races/$raceId/sync'
+      preLoaderRoute: typeof ApiTrackV1RacesRaceIdSyncRouteImport
+      parentRoute: typeof ApiTrackV1RacesRoute
+    }
+    '/api/track/v1/races/$raceId/device/activate': {
+      id: '/api/track/v1/races/$raceId/device/activate'
+      path: '/$raceId/device/activate'
+      fullPath: '/api/track/v1/races/$raceId/device/activate'
+      preLoaderRoute: typeof ApiTrackV1RacesRaceIdDeviceActivateRouteImport
+      parentRoute: typeof ApiTrackV1RacesRoute
+    }
   }
 }
 
@@ -794,6 +954,25 @@ const ApiV1RacesRouteChildren: ApiV1RacesRouteChildren = {
 
 const ApiV1RacesRouteWithChildren = ApiV1RacesRoute._addFileChildren(
   ApiV1RacesRouteChildren,
+)
+
+interface ApiTrackV1RacesRouteChildren {
+  ApiTrackV1RacesRaceIdPackageRoute: typeof ApiTrackV1RacesRaceIdPackageRoute
+  ApiTrackV1RacesRaceIdStateRoute: typeof ApiTrackV1RacesRaceIdStateRoute
+  ApiTrackV1RacesRaceIdSyncRoute: typeof ApiTrackV1RacesRaceIdSyncRoute
+  ApiTrackV1RacesRaceIdDeviceActivateRoute: typeof ApiTrackV1RacesRaceIdDeviceActivateRoute
+}
+
+const ApiTrackV1RacesRouteChildren: ApiTrackV1RacesRouteChildren = {
+  ApiTrackV1RacesRaceIdPackageRoute: ApiTrackV1RacesRaceIdPackageRoute,
+  ApiTrackV1RacesRaceIdStateRoute: ApiTrackV1RacesRaceIdStateRoute,
+  ApiTrackV1RacesRaceIdSyncRoute: ApiTrackV1RacesRaceIdSyncRoute,
+  ApiTrackV1RacesRaceIdDeviceActivateRoute:
+    ApiTrackV1RacesRaceIdDeviceActivateRoute,
+}
+
+const ApiTrackV1RacesRouteWithChildren = ApiTrackV1RacesRoute._addFileChildren(
+  ApiTrackV1RacesRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -827,8 +1006,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
   ApiPublicResultsTokenRoute: ApiPublicResultsTokenRoute,
+  ApiTrackV1HealthRoute: ApiTrackV1HealthRoute,
+  ApiTrackV1RacesRoute: ApiTrackV1RacesRouteWithChildren,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1TimeRecordsBatchRoute: ApiV1TimeRecordsBatchRoute,
+  ApiTrackV1AuthLoginRoute: ApiTrackV1AuthLoginRoute,
+  ApiTrackV1AuthRefreshRoute: ApiTrackV1AuthRefreshRoute,
   ApiV1WavesWaveIdStartRoute: ApiV1WavesWaveIdStartRoute,
 }
 export const routeTree = rootRouteImport

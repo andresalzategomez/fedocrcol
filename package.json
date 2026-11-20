@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "test:track-engine": "npx tsx scripts/track-golden.ts src/lib/track-engine/golden",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
