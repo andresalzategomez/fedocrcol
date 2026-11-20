@@ -36,13 +36,21 @@ export const Route = createFileRoute("/api/admin/results-link")({
         const allowed = role === "superadmin" || (role === "admin" && tenantId === event.tenant_id);
         if (!allowed) return apiError("FORBIDDEN", "No tienes permiso sobre esta carrera", 403);
 
-        const { data: existing } = await admin.from("event_results_links").select("token").eq("event_id", event_id).maybeSingle();
+        let { data: existing } = await admin.from("event_results_links").select("token").eq("event_id", event_id).maybeSingle();
+        if (!existing) {
+          // Dos peticiones a la vez (doble clic, dos administradores) no deben chocar: el que llega segundo
+          // no inserta, solo lee el código que creó el primero.
+          const { error } = await admin
+            .from("event_results_links")
+            .upsert({ event_id, token: newResultsToken() }, { onConflict: "event_id", ignoreDuplicates: true });
+          if (error) return apiError("DB_ERROR", error.message, 500);
+          ({ data: existing } = await admin.from("event_results_links").select("token").eq("event_id", event_id).maybeSingle());
+        }
         let token = existing?.token as string | undefined;
-        if (!token || regenerate) {
+        if (!token) return apiError("DB_ERROR", "No se pudo crear el enlace", 500);
+        if (regenerate) {
           token = newResultsToken();
-          const { error } = existing
-            ? await admin.from("event_results_links").update({ token, rotated_at: new Date().toISOString() }).eq("event_id", event_id)
-            : await admin.from("event_results_links").insert({ event_id, token });
+          const { error } = await admin.from("event_results_links").update({ token, rotated_at: new Date().toISOString() }).eq("event_id", event_id);
           if (error) return apiError("DB_ERROR", error.message, 500);
         }
 
