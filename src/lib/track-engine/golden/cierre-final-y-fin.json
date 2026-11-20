@@ -1,7 +1,7 @@
 {
   "name": "cierre-final-y-fin",
   "description": "Instancia 1 completa (clasifican 2): cierre, clasificados c-a03 y c-a01, apertura de la final con primero contra último (oleada c-s2-r1-h1). Se corre la final, se cierra y la competencia finaliza. Un evento posterior se rechaza.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -595,6 +595,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "closed",
         "currentRun": 3,
         "entries": [
@@ -629,7 +630,8 @@
               3400
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -640,7 +642,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -651,7 +654,8 @@
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -662,7 +666,8 @@
               3700
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -673,12 +678,14 @@
               4100
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "closed",
         "currentRun": 2,
         "entries": [
@@ -703,7 +710,8 @@
               2800
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -713,7 +721,8 @@
               2900
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       }

@@ -4,6 +4,8 @@ import {
   allRunsDone,
   currentRun,
   cutTie,
+  duelResults,
+  duelWinners,
   heatsOfRun,
   lanesOf,
   nextStage,
@@ -111,6 +113,7 @@ export function createInitialState(config: RaceConfig): RaceState {
           name: s.name,
           runsPerAthlete: s.runsPerAthlete,
           qualifiersCount: s.qualifiersCount,
+          mode: s.mode === 'duel' && s.runsPerAthlete === 1 ? 'duel' : 'time',
           // Solo la instancia 1 empieza abierta, con todos los inscritos.
           status: i === 0 ? 'open' : 'pending',
           entries: i === 0 ? cat.athletes.map((a) => a.registrationId) : [],
@@ -136,6 +139,11 @@ export function createInitialState(config: RaceConfig): RaceState {
     tiebreaks: {},
     warnings: [],
   };
+
+  for (const cat of config.categories)
+    for (const st of cat.stages)
+      if (st.mode === 'duel' && st.runsPerAthlete !== 1)
+        state.warnings.push(`${st.name}: la muerte súbita exige 1 salida por atleta; se clasifica por tiempo.`);
 
   for (const h of config.initialHeats) {
     const stage = stages[h.stageId];
@@ -440,9 +448,15 @@ const handlers: { [T in TrackEvent['type']]: Handler<T> } = {
             .filter((r) => r.position !== null)
             .map((r) => r.registrationId),
         );
-        const promoted = prev.finalOrder.find(
-          (r) => eligible.has(r) && !stage.entries.includes(r) && !s.withdrawals[r],
-        );
+        const available = (r: string) => eligible.has(r) && !stage.entries.includes(r) && !s.withdrawals[r];
+        // Muerte súbita: sube su rival de duelo. Si no puede, el siguiente mejor de la instancia anterior.
+        const rival =
+          prev.mode === 'duel'
+            ? duelResults(s, prev.id)
+                .find((d) => d.winner === p.registration_id)
+                ?.athletes.find((r) => r !== p.registration_id && available(r))
+            : undefined;
+        const promoted = rival ?? prev.finalOrder.find(available);
         if (promoted) {
           stage.entries.push(promoted);
           prev.qualified = [...(prev.qualified ?? []), promoted];
@@ -524,7 +538,11 @@ const handlers: { [T in TrackEvent['type']]: Handler<T> } = {
         .map((r) => r.registrationId),
     );
     const finalOrder = stageFinalOrder(s, stage.id);
-    const qualified = stage.qualifiersCount ? finalOrder.filter((r) => eligible.has(r)).slice(0, stage.qualifiersCount) : [];
+    const qualified = !stage.qualifiersCount
+      ? []
+      : stage.mode === 'duel'
+        ? duelWinners(s, stage.id)
+        : finalOrder.filter((r) => eligible.has(r)).slice(0, stage.qualifiersCount);
     const next = nextStage(s, stage.id);
     if (next && qualified.length === 0) fail('NO_QUALIFIERS', 'Ningún atleta tiene tiempo válido para clasificar.');
 

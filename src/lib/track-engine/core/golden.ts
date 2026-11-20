@@ -38,6 +38,7 @@ export interface GoldenOutcome {
   }[];
   stages: {
     id: string;
+    mode: string;
     status: string;
     currentRun: number;
     entries: string[];
@@ -54,6 +55,7 @@ export interface GoldenOutcome {
       sortedCentis: number[];
       withdrawn: boolean;
       tiedWithPrevious: boolean;
+      eliminated: boolean;
     }[];
   }[];
   withdrawals: { registrationId: string; stageId: string; reason: string; note: string }[];
@@ -100,6 +102,7 @@ export function summarizeOutcome(config: RaceConfig, events: readonly TrackEvent
       .sort((a, b) => a.categoryId.localeCompare(b.categoryId) || a.stageNumber - b.stageNumber)
       .map((s) => ({
         id: s.id,
+        mode: s.mode,
         status: s.status,
         currentRun: currentRun(state, s.id),
         entries: s.entries,
@@ -121,6 +124,7 @@ export function summarizeOutcome(config: RaceConfig, events: readonly TrackEvent
           sortedCentis: r.sortedCentis,
           withdrawn: r.withdrawn,
           tiedWithPrevious: r.tiedWithPrevious,
+          eliminated: r.eliminated,
         })),
       })),
     withdrawals: Object.values(state.withdrawals).map((w) => ({

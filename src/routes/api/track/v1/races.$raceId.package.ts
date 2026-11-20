@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/track/v1/races/$raceId/package")({
             id: c.id,
             name: c.name,
             athletes: c.athletes.map((a) => ({ registration_id: a.registrationId, bib: a.bib, name: a.name })),
-            stages: c.stages.map((s) => ({ id: s.id, stage_number: s.stageNumber, name: s.name, runs_per_athlete: s.runsPerAthlete, qualifiers_count: s.qualifiersCount })),
+            stages: c.stages.map((s) => ({ id: s.id, stage_number: s.stageNumber, name: s.name, runs_per_athlete: s.runsPerAthlete, qualifiers_count: s.qualifiersCount, mode: s.mode ?? "time" })),
           })),
           initial_heats: config.initialHeats.map((h) => ({
             id: h.id, stage_id: h.stageId, run_number: h.runNumber, heat_number: h.heatNumber, left: h.left, right: h.right,

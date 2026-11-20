@@ -15,6 +15,8 @@ export interface RankingRow extends RankingInput {
   position: number | null;
   /** Empate total con el anterior después de comparar todos los tiempos (lo resuelve el juez). */
   tiedWithPrevious: boolean;
+  /** Muerte súbita: perdió su oleada. Conserva su tiempo y su posición, pero no clasifica. */
+  eliminated: boolean;
 }
 
 const timesOf = (runs: RunResult[]) =>
@@ -57,6 +59,7 @@ export function rankRows(inputs: RankingInput[]): RankingRow[] {
       sortedCentis: times.map(toCentis),
       position: null,
       tiedWithPrevious: false,
+      eliminated: false,
     };
   });
 

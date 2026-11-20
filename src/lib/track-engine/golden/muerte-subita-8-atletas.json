@@ -1,0 +1,1422 @@
+{
+  "name": "muerte-subita-8-atletas",
+  "description": "Clasificación por tiempo (1 salida, pasan los 8) y luego muerte súbita: instancia de 8 (pasan 4), de 4 (pasan 2) y final. En la de 8 pasan los ganadores aunque m-a01 (32.00, perdió con m-a08) sea más rápido que el ganador m-a05 (34.00); m-a06 no termina y pasa m-a03. Siembra de la de 4 por tiempo del duelo: m-a02-m-a05 y m-a08-m-a03. En la de 4, m-a02 y m-a05 empatan (31.00): el cierre se rechaza con TIE_UNRESOLVED, repiten y pasa m-a05; su tiempo del duelo se conserva. Final: m-a08 1º y m-a05 2º (eliminado). Se conservan todos los tiempos.",
+  "engineVersion": "0.3.0",
+  "config": {
+    "raceId": "golden-race",
+    "categories": [
+      {
+        "id": "m",
+        "name": "Categoría m",
+        "athletes": [
+          {
+            "registrationId": "m-a01",
+            "bib": "0101",
+            "name": "Atleta 01"
+          },
+          {
+            "registrationId": "m-a02",
+            "bib": "0102",
+            "name": "Atleta 02"
+          },
+          {
+            "registrationId": "m-a03",
+            "bib": "0103",
+            "name": "Atleta 03"
+          },
+          {
+            "registrationId": "m-a04",
+            "bib": "0104",
+            "name": "Atleta 04"
+          },
+          {
+            "registrationId": "m-a05",
+            "bib": "0105",
+            "name": "Atleta 05"
+          },
+          {
+            "registrationId": "m-a06",
+            "bib": "0106",
+            "name": "Atleta 06"
+          },
+          {
+            "registrationId": "m-a07",
+            "bib": "0107",
+            "name": "Atleta 07"
+          },
+          {
+            "registrationId": "m-a08",
+            "bib": "0108",
+            "name": "Atleta 08"
+          }
+        ],
+        "stages": [
+          {
+            "id": "m-s1",
+            "stageNumber": 1,
+            "name": "Instancia 1",
+            "runsPerAthlete": 1,
+            "qualifiersCount": 8
+          },
+          {
+            "id": "m-s2",
+            "stageNumber": 2,
+            "name": "Instancia 2",
+            "runsPerAthlete": 1,
+            "qualifiersCount": 4,
+            "mode": "duel"
+          },
+          {
+            "id": "m-s3",
+            "stageNumber": 3,
+            "name": "Instancia 3",
+            "runsPerAthlete": 1,
+            "qualifiersCount": 2,
+            "mode": "duel"
+          },
+          {
+            "id": "m-s4",
+            "stageNumber": 4,
+            "name": "Final",
+            "runsPerAthlete": 1,
+            "qualifiersCount": null,
+            "mode": "duel"
+          }
+        ]
+      }
+    ],
+    "initialHeats": [
+      {
+        "id": "m-s1-r1-h1",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 1,
+        "left": "m-a01",
+        "right": "m-a02"
+      },
+      {
+        "id": "m-s1-r1-h2",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 2,
+        "left": "m-a03",
+        "right": "m-a04"
+      },
+      {
+        "id": "m-s1-r1-h3",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 3,
+        "left": "m-a05",
+        "right": "m-a06"
+      },
+      {
+        "id": "m-s1-r1-h4",
+        "stageId": "m-s1",
+        "runNumber": 1,
+        "heatNumber": 4,
+        "left": "m-a07",
+        "right": "m-a08"
+      }
+    ]
+  },
+  "events": [
+    {
+      "clientEventId": "evt-0001",
+      "deviceSeq": 1,
+      "occurredAt": "2027-03-14T13:00:01.000Z",
+      "type": "RACE_STARTED",
+      "payload": {}
+    },
+    {
+      "clientEventId": "evt-0002",
+      "deviceSeq": 2,
+      "occurredAt": "2027-03-14T13:00:02.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "started_at_ms": 1805029202000
+      }
+    },
+    {
+      "clientEventId": "evt-0003",
+      "deviceSeq": 3,
+      "occurredAt": "2027-03-14T13:00:03.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 30000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0004",
+      "deviceSeq": 4,
+      "occurredAt": "2027-03-14T13:00:04.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 31000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0005",
+      "deviceSeq": 5,
+      "occurredAt": "2027-03-14T13:00:05.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0006",
+      "deviceSeq": 6,
+      "occurredAt": "2027-03-14T13:00:06.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "started_at_ms": 1805029206000
+      }
+    },
+    {
+      "clientEventId": "evt-0007",
+      "deviceSeq": 7,
+      "occurredAt": "2027-03-14T13:00:07.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "lane": "left",
+        "elapsed_ms": 32000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0008",
+      "deviceSeq": 8,
+      "occurredAt": "2027-03-14T13:00:08.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2",
+        "lane": "right",
+        "elapsed_ms": 33000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0009",
+      "deviceSeq": 9,
+      "occurredAt": "2027-03-14T13:00:09.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0010",
+      "deviceSeq": 10,
+      "occurredAt": "2027-03-14T13:00:10.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "started_at_ms": 1805029210000
+      }
+    },
+    {
+      "clientEventId": "evt-0011",
+      "deviceSeq": 11,
+      "occurredAt": "2027-03-14T13:00:11.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "lane": "left",
+        "elapsed_ms": 34000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0012",
+      "deviceSeq": 12,
+      "occurredAt": "2027-03-14T13:00:12.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3",
+        "lane": "right",
+        "elapsed_ms": 35000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0013",
+      "deviceSeq": 13,
+      "occurredAt": "2027-03-14T13:00:13.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h3"
+      }
+    },
+    {
+      "clientEventId": "evt-0014",
+      "deviceSeq": 14,
+      "occurredAt": "2027-03-14T13:00:14.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "started_at_ms": 1805029214000
+      }
+    },
+    {
+      "clientEventId": "evt-0015",
+      "deviceSeq": 15,
+      "occurredAt": "2027-03-14T13:00:15.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "lane": "left",
+        "elapsed_ms": 36000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0016",
+      "deviceSeq": 16,
+      "occurredAt": "2027-03-14T13:00:16.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4",
+        "lane": "right",
+        "elapsed_ms": 37000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0017",
+      "deviceSeq": 17,
+      "occurredAt": "2027-03-14T13:00:17.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s1-r1-h4"
+      }
+    },
+    {
+      "clientEventId": "evt-0018",
+      "deviceSeq": 18,
+      "occurredAt": "2027-03-14T13:00:18.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "m-s1"
+      }
+    },
+    {
+      "clientEventId": "evt-0019",
+      "deviceSeq": 19,
+      "occurredAt": "2027-03-14T13:00:19.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s2-r1-h1",
+        "started_at_ms": 1805029219000
+      }
+    },
+    {
+      "clientEventId": "evt-0020",
+      "deviceSeq": 20,
+      "occurredAt": "2027-03-14T13:00:20.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 31500,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0021",
+      "deviceSeq": 21,
+      "occurredAt": "2027-03-14T13:00:21.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 32000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0022",
+      "deviceSeq": 22,
+      "occurredAt": "2027-03-14T13:00:22.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s2-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0023",
+      "deviceSeq": 23,
+      "occurredAt": "2027-03-14T13:00:23.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s2-r1-h2",
+        "started_at_ms": 1805029223000
+      }
+    },
+    {
+      "clientEventId": "evt-0024",
+      "deviceSeq": 24,
+      "occurredAt": "2027-03-14T13:00:24.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h2",
+        "lane": "left",
+        "elapsed_ms": 30000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0025",
+      "deviceSeq": 25,
+      "occurredAt": "2027-03-14T13:00:25.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h2",
+        "lane": "right",
+        "elapsed_ms": 35000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0026",
+      "deviceSeq": 26,
+      "occurredAt": "2027-03-14T13:00:26.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s2-r1-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0027",
+      "deviceSeq": 27,
+      "occurredAt": "2027-03-14T13:00:27.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s2-r1-h3",
+        "started_at_ms": 1805030100000
+      }
+    },
+    {
+      "clientEventId": "evt-0028",
+      "deviceSeq": 28,
+      "occurredAt": "2027-03-14T13:00:28.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h3",
+        "lane": "left",
+        "elapsed_ms": 33000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0029",
+      "deviceSeq": 29,
+      "occurredAt": "2027-03-14T13:00:29.000Z",
+      "type": "RUN_NOT_FINISHED",
+      "payload": {
+        "heat_id": "m-s2-r1-h3",
+        "registration_id": "m-a06",
+        "note": "Se cayó en el obstáculo 3"
+      }
+    },
+    {
+      "clientEventId": "evt-0030",
+      "deviceSeq": 30,
+      "occurredAt": "2027-03-14T13:00:30.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s2-r1-h3"
+      }
+    },
+    {
+      "clientEventId": "evt-0031",
+      "deviceSeq": 31,
+      "occurredAt": "2027-03-14T13:00:31.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s2-r1-h4",
+        "started_at_ms": 1805029231000
+      }
+    },
+    {
+      "clientEventId": "evt-0032",
+      "deviceSeq": 32,
+      "occurredAt": "2027-03-14T13:00:32.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h4",
+        "lane": "right",
+        "elapsed_ms": 34000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0033",
+      "deviceSeq": 33,
+      "occurredAt": "2027-03-14T13:00:33.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s2-r1-h4",
+        "lane": "left",
+        "elapsed_ms": 36000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0034",
+      "deviceSeq": 34,
+      "occurredAt": "2027-03-14T13:00:34.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s2-r1-h4"
+      }
+    },
+    {
+      "clientEventId": "evt-0035",
+      "deviceSeq": 35,
+      "occurredAt": "2027-03-14T13:00:35.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "m-s2"
+      }
+    },
+    {
+      "clientEventId": "evt-0036",
+      "deviceSeq": 36,
+      "occurredAt": "2027-03-14T13:00:36.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s3-r1-h1",
+        "started_at_ms": 1805029236000
+      }
+    },
+    {
+      "clientEventId": "evt-0037",
+      "deviceSeq": 37,
+      "occurredAt": "2027-03-14T13:00:37.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s3-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 31000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0038",
+      "deviceSeq": 38,
+      "occurredAt": "2027-03-14T13:00:38.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s3-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 31009,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0039",
+      "deviceSeq": 39,
+      "occurredAt": "2027-03-14T13:00:39.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s3-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0040",
+      "deviceSeq": 40,
+      "occurredAt": "2027-03-14T13:00:40.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s3-r1-h2",
+        "started_at_ms": 1805029240000
+      }
+    },
+    {
+      "clientEventId": "evt-0041",
+      "deviceSeq": 41,
+      "occurredAt": "2027-03-14T13:00:41.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s3-r1-h2",
+        "lane": "left",
+        "elapsed_ms": 30000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0042",
+      "deviceSeq": 42,
+      "occurredAt": "2027-03-14T13:00:42.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s3-r1-h2",
+        "lane": "right",
+        "elapsed_ms": 30500,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0043",
+      "deviceSeq": 43,
+      "occurredAt": "2027-03-14T13:00:43.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s3-r1-h2"
+      }
+    },
+    {
+      "clientEventId": "evt-0044",
+      "deviceSeq": 44,
+      "occurredAt": "2027-03-14T13:00:44.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "m-s3"
+      }
+    },
+    {
+      "clientEventId": "evt-0045",
+      "deviceSeq": 45,
+      "occurredAt": "2027-03-14T13:00:45.000Z",
+      "type": "TIEBREAK_STARTED",
+      "payload": {
+        "tiebreak_id": "m-tb1",
+        "stage_id": "m-s3",
+        "registration_ids": [
+          "m-a02",
+          "m-a05"
+        ],
+        "note": "Empate exacto en el duelo: se repite",
+        "heats": [
+          {
+            "heat_id": "m-tb1-h1",
+            "heat_number": 1,
+            "left": "m-a02",
+            "right": "m-a05"
+          }
+        ]
+      }
+    },
+    {
+      "clientEventId": "evt-0046",
+      "deviceSeq": 46,
+      "occurredAt": "2027-03-14T13:00:46.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-tb1-h1",
+        "started_at_ms": 1805029246000
+      }
+    },
+    {
+      "clientEventId": "evt-0047",
+      "deviceSeq": 47,
+      "occurredAt": "2027-03-14T13:00:47.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-tb1-h1",
+        "lane": "right",
+        "elapsed_ms": 31500,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0048",
+      "deviceSeq": 48,
+      "occurredAt": "2027-03-14T13:00:48.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-tb1-h1",
+        "lane": "left",
+        "elapsed_ms": 32000,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0049",
+      "deviceSeq": 49,
+      "occurredAt": "2027-03-14T13:00:49.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-tb1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0050",
+      "deviceSeq": 50,
+      "occurredAt": "2027-03-14T13:00:50.000Z",
+      "type": "TIEBREAK_DECIDED",
+      "payload": {
+        "stage_id": "m-s3",
+        "tiebreak_id": "m-tb1",
+        "resolution": "runoff",
+        "registration_ids": [
+          "m-a02",
+          "m-a05"
+        ],
+        "order": [
+          "m-a05",
+          "m-a02"
+        ],
+        "note": "Repitieron: 0105 31.50 y 0102 32.00. Pasa el dorsal 0105"
+      }
+    },
+    {
+      "clientEventId": "evt-0051",
+      "deviceSeq": 51,
+      "occurredAt": "2027-03-14T13:00:51.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "m-s3"
+      }
+    },
+    {
+      "clientEventId": "evt-0052",
+      "deviceSeq": 52,
+      "occurredAt": "2027-03-14T13:00:52.000Z",
+      "type": "HEAT_STARTED",
+      "payload": {
+        "heat_id": "m-s4-r1-h1",
+        "started_at_ms": 1805029252000
+      }
+    },
+    {
+      "clientEventId": "evt-0053",
+      "deviceSeq": 53,
+      "occurredAt": "2027-03-14T13:00:53.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s4-r1-h1",
+        "lane": "left",
+        "elapsed_ms": 29000,
+        "arrival_order": 1
+      }
+    },
+    {
+      "clientEventId": "evt-0054",
+      "deviceSeq": 54,
+      "occurredAt": "2027-03-14T13:00:54.000Z",
+      "type": "ARRIVAL_MARKED",
+      "payload": {
+        "heat_id": "m-s4-r1-h1",
+        "lane": "right",
+        "elapsed_ms": 29500,
+        "arrival_order": 2
+      }
+    },
+    {
+      "clientEventId": "evt-0055",
+      "deviceSeq": 55,
+      "occurredAt": "2027-03-14T13:00:55.000Z",
+      "type": "HEAT_CONFIRMED",
+      "payload": {
+        "heat_id": "m-s4-r1-h1"
+      }
+    },
+    {
+      "clientEventId": "evt-0056",
+      "deviceSeq": 56,
+      "occurredAt": "2027-03-14T13:00:56.000Z",
+      "type": "STAGE_CLOSED",
+      "payload": {
+        "stage_id": "m-s4"
+      }
+    },
+    {
+      "clientEventId": "evt-0057",
+      "deviceSeq": 57,
+      "occurredAt": "2027-03-14T13:00:57.000Z",
+      "type": "RACE_FINISHED",
+      "payload": {}
+    }
+  ],
+  "expected": {
+    "rejected": [
+      {
+        "clientEventId": "evt-0044",
+        "code": "TIE_UNRESOLVED"
+      }
+    ],
+    "started": true,
+    "finished": true,
+    "activeHeatId": null,
+    "heats": [
+      {
+        "id": "m-s1-r1-h1",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a01",
+          "outcome": "time",
+          "elapsedMs": 30000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 31000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h2",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 32000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a04",
+          "outcome": "time",
+          "elapsedMs": 33000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h3",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 3,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 34000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a06",
+          "outcome": "time",
+          "elapsedMs": 35000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s1-r1-h4",
+        "stageId": "m-s1",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 4,
+        "status": "confirmed",
+        "pairingSource": "fedocr",
+        "left": {
+          "registrationId": "m-a07",
+          "outcome": "time",
+          "elapsedMs": 36000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 37000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s2-r1-h1",
+        "stageId": "m-s2",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a01",
+          "outcome": "time",
+          "elapsedMs": 32000,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 31500,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s2-r1-h2",
+        "stageId": "m-s2",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 30000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a07",
+          "outcome": "time",
+          "elapsedMs": 35000,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s2-r1-h3",
+        "stageId": "m-s2",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 3,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 33000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a06",
+          "outcome": "did_not_finish",
+          "elapsedMs": null,
+          "arrivalOrder": null
+        },
+        "notes": [
+          {
+            "kind": "not_finished",
+            "text": "Se cayó en el obstáculo 3"
+          }
+        ]
+      },
+      {
+        "id": "m-s2-r1-h4",
+        "stageId": "m-s2",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 4,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a04",
+          "outcome": "time",
+          "elapsedMs": 36000,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 34000,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s3-r1-h1",
+        "stageId": "m-s3",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 31000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 31009,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s3-r1-h2",
+        "stageId": "m-s3",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 2,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 30000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a03",
+          "outcome": "time",
+          "elapsedMs": 30500,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      },
+      {
+        "id": "m-tb1-h1",
+        "stageId": "m-s3",
+        "kind": "tiebreak",
+        "tiebreakId": "m-tb1",
+        "runNumber": 0,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "manual",
+        "left": {
+          "registrationId": "m-a02",
+          "outcome": "time",
+          "elapsedMs": 32000,
+          "arrivalOrder": 2
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 31500,
+          "arrivalOrder": 1
+        },
+        "notes": []
+      },
+      {
+        "id": "m-s4-r1-h1",
+        "stageId": "m-s4",
+        "kind": "regular",
+        "tiebreakId": null,
+        "runNumber": 1,
+        "heatNumber": 1,
+        "status": "confirmed",
+        "pairingSource": "seeded",
+        "left": {
+          "registrationId": "m-a08",
+          "outcome": "time",
+          "elapsedMs": 29000,
+          "arrivalOrder": 1
+        },
+        "right": {
+          "registrationId": "m-a05",
+          "outcome": "time",
+          "elapsedMs": 29500,
+          "arrivalOrder": 2
+        },
+        "notes": []
+      }
+    ],
+    "stages": [
+      {
+        "id": "m-s1",
+        "mode": "time",
+        "status": "closed",
+        "currentRun": 2,
+        "entries": [
+          "m-a01",
+          "m-a02",
+          "m-a03",
+          "m-a04",
+          "m-a05",
+          "m-a06",
+          "m-a07",
+          "m-a08"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": [
+          "m-a01",
+          "m-a02",
+          "m-a03",
+          "m-a04",
+          "m-a05",
+          "m-a06",
+          "m-a07",
+          "m-a08"
+        ],
+        "qualified": [
+          "m-a01",
+          "m-a02",
+          "m-a03",
+          "m-a04",
+          "m-a05",
+          "m-a06",
+          "m-a07",
+          "m-a08"
+        ],
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "m-a01",
+            "position": 1,
+            "bestMs": 30000,
+            "sortedCentis": [
+              3000
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a02",
+            "position": 2,
+            "bestMs": 31000,
+            "sortedCentis": [
+              3100
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a03",
+            "position": 3,
+            "bestMs": 32000,
+            "sortedCentis": [
+              3200
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a04",
+            "position": 4,
+            "bestMs": 33000,
+            "sortedCentis": [
+              3300
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a05",
+            "position": 5,
+            "bestMs": 34000,
+            "sortedCentis": [
+              3400
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a06",
+            "position": 6,
+            "bestMs": 35000,
+            "sortedCentis": [
+              3500
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a07",
+            "position": 7,
+            "bestMs": 36000,
+            "sortedCentis": [
+              3600
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a08",
+            "position": 8,
+            "bestMs": 37000,
+            "sortedCentis": [
+              3700
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          }
+        ]
+      },
+      {
+        "id": "m-s2",
+        "mode": "duel",
+        "status": "closed",
+        "currentRun": 2,
+        "entries": [
+          "m-a01",
+          "m-a02",
+          "m-a03",
+          "m-a04",
+          "m-a05",
+          "m-a06",
+          "m-a07",
+          "m-a08"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": [
+          "m-a02",
+          "m-a08",
+          "m-a03",
+          "m-a05",
+          "m-a01",
+          "m-a07",
+          "m-a04",
+          "m-a06"
+        ],
+        "qualified": [
+          "m-a02",
+          "m-a08",
+          "m-a03",
+          "m-a05"
+        ],
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "m-a02",
+            "position": 1,
+            "bestMs": 30000,
+            "sortedCentis": [
+              3000
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a08",
+            "position": 2,
+            "bestMs": 31500,
+            "sortedCentis": [
+              3150
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a03",
+            "position": 3,
+            "bestMs": 33000,
+            "sortedCentis": [
+              3300
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a05",
+            "position": 4,
+            "bestMs": 34000,
+            "sortedCentis": [
+              3400
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a01",
+            "position": 5,
+            "bestMs": 32000,
+            "sortedCentis": [
+              3200
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          },
+          {
+            "registrationId": "m-a07",
+            "position": 6,
+            "bestMs": 35000,
+            "sortedCentis": [
+              3500
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          },
+          {
+            "registrationId": "m-a04",
+            "position": 7,
+            "bestMs": 36000,
+            "sortedCentis": [
+              3600
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          },
+          {
+            "registrationId": "m-a06",
+            "position": 8,
+            "bestMs": null,
+            "sortedCentis": [],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          }
+        ]
+      },
+      {
+        "id": "m-s3",
+        "mode": "duel",
+        "status": "closed",
+        "currentRun": 2,
+        "entries": [
+          "m-a02",
+          "m-a08",
+          "m-a03",
+          "m-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [
+          {
+            "registrationIds": [
+              "m-a02",
+              "m-a05"
+            ],
+            "order": [
+              "m-a05",
+              "m-a02"
+            ],
+            "resolution": "runoff",
+            "note": "Repitieron: 0105 31.50 y 0102 32.00. Pasa el dorsal 0105"
+          }
+        ],
+        "finalOrder": [
+          "m-a08",
+          "m-a05",
+          "m-a03",
+          "m-a02"
+        ],
+        "qualified": [
+          "m-a08",
+          "m-a05"
+        ],
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "m-a08",
+            "position": 1,
+            "bestMs": 30000,
+            "sortedCentis": [
+              3000
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a05",
+            "position": 2,
+            "bestMs": 31009,
+            "sortedCentis": [
+              3100
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a03",
+            "position": 3,
+            "bestMs": 30500,
+            "sortedCentis": [
+              3050
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          },
+          {
+            "registrationId": "m-a02",
+            "position": 4,
+            "bestMs": 31000,
+            "sortedCentis": [
+              3100
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          }
+        ]
+      },
+      {
+        "id": "m-s4",
+        "mode": "duel",
+        "status": "closed",
+        "currentRun": 2,
+        "entries": [
+          "m-a08",
+          "m-a05"
+        ],
+        "voidedRuns": [],
+        "rainActions": [],
+        "tieDecisions": [],
+        "finalOrder": [
+          "m-a08",
+          "m-a05"
+        ],
+        "qualified": [],
+        "promotions": [],
+        "ranking": [
+          {
+            "registrationId": "m-a08",
+            "position": 1,
+            "bestMs": 29000,
+            "sortedCentis": [
+              2900
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "m-a05",
+            "position": 2,
+            "bestMs": 29500,
+            "sortedCentis": [
+              2950
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": true
+          }
+        ]
+      }
+    ],
+    "withdrawals": [],
+    "warnings": []
+  }
+}

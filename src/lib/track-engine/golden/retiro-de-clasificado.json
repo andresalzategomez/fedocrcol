@@ -1,7 +1,7 @@
 {
   "name": "retiro-de-clasificado",
   "description": "Tras cerrar la instancia 1 (clasifican c-a03 y c-a01), c-a01 se retira antes de que empiece la final: sube c-a02 (siguiente mejor tiempo) y la final se vuelve a armar. Luego, ya iniciada la final, c-a03 se retira y su pareja corre sola (no sube nadie).",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -581,6 +581,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "closed",
         "currentRun": 3,
         "entries": [
@@ -608,64 +609,70 @@
         "promotions": [],
         "ranking": [
           {
-            "registrationId": "c-a02",
+            "registrationId": "c-a03",
             "position": 1,
+            "bestMs": 29000,
+            "sortedCentis": [
+              2900,
+              3400
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "c-a01",
+            "position": 2,
+            "bestMs": 30000,
+            "sortedCentis": [
+              3000,
+              3500
+            ],
+            "withdrawn": false,
+            "tiedWithPrevious": false,
+            "eliminated": false
+          },
+          {
+            "registrationId": "c-a02",
+            "position": 3,
             "bestMs": 31000,
             "sortedCentis": [
               3100,
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
-            "position": 2,
+            "position": 4,
             "bestMs": 33000,
             "sortedCentis": [
               3300,
               3700
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
-            "position": 3,
+            "position": 5,
             "bestMs": 40000,
             "sortedCentis": [
               4000,
               4100
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
-          },
-          {
-            "registrationId": "c-a03",
-            "position": null,
-            "bestMs": 29000,
-            "sortedCentis": [
-              2900,
-              3400
-            ],
-            "withdrawn": true,
-            "tiedWithPrevious": false
-          },
-          {
-            "registrationId": "c-a01",
-            "position": null,
-            "bestMs": 30000,
-            "sortedCentis": [
-              3000,
-              3500
-            ],
-            "withdrawn": true,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "open",
         "currentRun": 2,
         "entries": [
@@ -693,7 +700,8 @@
               3150
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -701,7 +709,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": true,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -709,7 +718,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": true,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       }

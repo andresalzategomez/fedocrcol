@@ -1,7 +1,7 @@
 {
   "name": "empates-por-tiempos",
   "description": "Clasificación con empates: (1) c-a01 y c-a02 empatan el mejor tiempo en centésimas (32.481 y 32.489 = 32.48) y decide el segundo tiempo: c-a02 (35.00) queda antes que c-a01 (36.00); (2) c-a03 y c-a04 empatan en todos sus tiempos: empate total para el juez; (3) c-a05 no tiene segundo tiempo y queda después de quien sí lo tiene.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -481,6 +481,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "open",
         "currentRun": 3,
         "entries": [
@@ -506,7 +507,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -517,7 +519,8 @@
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -528,7 +531,8 @@
               3400
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -539,7 +543,8 @@
               3400
             ],
             "withdrawn": false,
-            "tiedWithPrevious": true
+            "tiedWithPrevious": true,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -549,12 +554,14 @@
               3300
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "pending",
         "currentRun": 2,
         "entries": [],

@@ -142,7 +142,7 @@ export function TrackLiveResults({ data }: { data: PublicTrackPayload }) {
                 <div>
                   <span className="font-display text-xl">{s.number}. {s.name}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
-                    {s.runs_per_athlete} salida{s.runs_per_athlete > 1 ? "s" : ""} por atleta{isFinal ? "" : ` · clasifican ${s.qualifiers_count}`}
+                    {s.mode === "duel" ? "Muerte súbita · " : ""}{s.runs_per_athlete} salida{s.runs_per_athlete > 1 ? "s" : ""} por atleta{isFinal ? "" : ` · clasifican ${s.qualifiers_count}`}
                   </span>
                 </div>
                 <Badge variant={st.variant}>{st.label}</Badge>
@@ -151,7 +151,7 @@ export function TrackLiveResults({ data }: { data: PublicTrackPayload }) {
                 {s.entries.length > 0 ? (
                   <SimpleTable head={["Pos.", "Dorsal", "Atleta", ...Array.from({ length: s.runs_per_athlete }, (_, i) => `Salida ${i + 1}`), "Mejor", ""]}>
                     {s.entries.map((e, i) => {
-                      const es = ENTRY_STATE[e.state];
+                      const es = e.state === "eliminated" && s.mode === "duel" ? { label: "Eliminado en duelo", variant: "outline" as const } : ENTRY_STATE[e.state];
                       return (
                         <TableRow key={`${e.bib}-${i}`}>
                           <TableCell className="font-medium">{e.position ?? "—"}</TableCell>

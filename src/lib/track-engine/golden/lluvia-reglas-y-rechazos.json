@@ -1,7 +1,7 @@
 {
   "name": "lluvia-reglas-y-rechazos",
   "description": "Protocolo de lluvia: sin observación se rechaza; no se puede anular la última salida si nadie tendría tiempo válido; no aplica en instancias de 1 salida (la final).",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -522,6 +522,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "closed",
         "currentRun": 3,
         "entries": [
@@ -563,7 +564,8 @@
               3300
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -573,7 +575,8 @@
               3400
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -583,7 +586,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -593,7 +597,8 @@
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -603,12 +608,14 @@
               3700
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -628,7 +635,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -636,7 +644,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       }

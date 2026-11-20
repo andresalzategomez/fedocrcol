@@ -1,7 +1,7 @@
 {
   "name": "empate-en-corte-decision-directa",
   "description": "c-a01 y c-a02 empatan en todos sus tiempos y atraviesan el corte (clasifican 2). El cierre se rechaza con TIE_UNRESOLVED; el juez pasa directamente a c-a02 con observación y la instancia cierra con c-a03 y c-a02.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -558,6 +558,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "closed",
         "currentRun": 3,
         "entries": [
@@ -605,7 +606,8 @@
               3400
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -616,7 +618,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -627,7 +630,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": true
+            "tiedWithPrevious": true,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -638,7 +642,8 @@
               3700
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -649,12 +654,14 @@
               4100
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -674,7 +681,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -682,7 +690,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       }

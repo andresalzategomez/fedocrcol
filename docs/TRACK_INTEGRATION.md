@@ -10,8 +10,8 @@ Las carreras track **no** existen para FedOCR Timer (`/api/v1`): no las lista ni
 - **Versión del documento:** 2 (2026-11-20). Describe la API **tal como está implementada y publicada**, con respuestas reales en
   [`docs/track-examples/`](track-examples/) (ver sección 12). Si algo de este texto difiere de esos ejemplos, mandan los ejemplos.
 - **Versión de la API:** `1.0.0` (`api_version` en las respuestas)
-- **Versión del motor de reglas:** `0.2.0` (`engine_version`). El servidor usa **el mismo motor** que la app
-  (`src/lib/track-engine`, copia sin modificar de `engine-v0.2.0`) para validar y aplicar cada evento.
+- **Versión del motor de reglas:** `0.3.0` (`engine_version`). El servidor usa **el mismo motor** que la app
+  (`src/lib/track-engine`, copia sin modificar de `engine-v0.3.0`) para validar y aplicar cada evento.
 - **Base URL (por ahora):** `https://fedocrcol.lovable.app/api/track/v1`
 
 ## 1. Convenciones
@@ -79,14 +79,14 @@ Todo lo necesario para operar sin conexión. **Solo entran inscritos con pago co
 `registration_id`, `bib` y `name` (nunca documento ni datos médicos).
 ```jsonc
 {
-  "api_version": "1.0.0", "engine_version": "0.2.0",
+  "api_version": "1.0.0", "engine_version": "0.3.0",
   "supported_event_types": ["RACE_STARTED", "PAIRING_SET", "..."],
   "race": { "id": "uuid", "name": "...", "date": "2026-11-21", "location": "...", "status": "approved" },
   "categories": [
     {
       "id": "uuid", "name": "Elite Masculino",
       "athletes": [ { "registration_id": "uuid", "bib": "0001", "name": "Julián Ospina" } ],
-      "stages": [ { "id": "uuid", "stage_number": 1, "name": "Clasificación", "runs_per_athlete": 3, "qualifiers_count": 8 } ]
+      "stages": [ { "id": "uuid", "stage_number": 1, "name": "Clasificación", "runs_per_athlete": 3, "qualifiers_count": 8, "mode": "time" } ]
     }
   ],
   "initial_heats": [ { "id": "uuid", "stage_id": "uuid", "run_number": 1, "heat_number": 1, "left": "registration_id", "right": "registration_id | null" } ],
@@ -95,7 +95,7 @@ Todo lo necesario para operar sin conexión. **Solo entran inscritos con pago co
 }
 ```
 `initial_heats` son las parejas de la **instancia 1, salida 1** (máximo 2 atletas por oleada; si el total es impar, uno sale solo;
-cada atleta una sola vez). `qualifiers_count` es `null` en la final. `supported_event_types` es la lista de **nombres de tipo** de
+cada atleta una sola vez). `qualifiers_count` es `null` en la final. `mode` es `"time"` (clasifican los N mejores tiempos) o `"duel"` (muerte súbita: pasa el ganador de cada oleada, aunque un perdedor tenga mejor tiempo que el ganador de otra; solo en instancias de 1 salida). `supported_event_types` es la lista de **nombres de tipo** de
 evento que el servidor acepta hoy: **no envíes un tipo que no esté ahí**.
 
 ### `GET /races/:raceId/state`
@@ -108,7 +108,7 @@ Estado consolidado que calcula el servidor reprocesando los eventos aceptados co
     "started": true, "finished": false, "active_heat_id": "uuid | null", "warnings": [],
     "stages": [ { "id": "uuid", "category_id": "uuid", "stage_number": 1, "name": "...", "runs_per_athlete": 3, "qualifiers_count": 8, "status": "open",
                   "ranking": [ { "registration_id": "uuid", "bib": "0001", "name": "...", "position": 1, "best_time_ms": 32489,
-                                 "withdrawn": false, "tied_with_previous": false, "runs": [ { "kind": "time", "ms": 32489 } ] } ] } ],
+                                 "withdrawn": false, "tied_with_previous": false, "eliminated": false, "runs": [ { "kind": "time", "ms": 32489 } ] } ] } ],
     "heats": [ { "id": "uuid", "stage_id": "uuid", "run_number": 1, "heat_number": 1, "status": "confirmed", "pairing_source": "fedocr", "started_at_ms": 1795068152000,
                  "left":  { "registration_id": "uuid", "bib": "0001", "name": "...", "outcome": "time", "elapsed_ms": 32489, "arrival_order": 1 },
                  "right": { "...": "..." }, "notes": [ { "kind": "review", "text": "...", "at": "..." } ] } ],
@@ -118,7 +118,8 @@ Estado consolidado que calcula el servidor reprocesando los eventos aceptados co
   "last_device_seq": { "tablet-A": 13 }
 }
 ```
-Estados de oleada: `pending`, `started`, `awaiting_confirmation`, `confirmed`. Estados de instancia: `pending`, `open`, `closed`.
+`stages[].mode` repite el modo de la instancia y `ranking[].eliminated = true` indica que el atleta **perdió su duelo** (muerte súbita): conserva su posición y su tiempo; la vista pública lo muestra como "Eliminado en duelo".
+Estados de oleada: `pending`, `started`, `awaiting_confirmation`, `confirmed`, `voided`. Estados de instancia: `pending`, `open`, `closed`.
 Resultado de un atleta en una salida: `time`, `did_not_run`, `did_not_finish`, `withdrawn`, `pending`.
 
 ## 5. Dispositivo activo
@@ -154,7 +155,7 @@ Los eventos del dispositivo reemplazado se rechazan con `DEVICE_NOT_ACTIVE`; sol
   "duplicates": ["client_event_id"],
   "rejected": [ { "client_event_id": "uuid", "code": "SECOND_ACTIVE_HEAT", "message": "Ya hay una oleada en la pista. Confírmala primero." } ],
   "next_expected_seq": 14,
-  "engine_version": "0.2.0", "supported_event_types": ["..."], "server_time": "...", "api_version": "1.0.0"
+  "engine_version": "0.3.0", "supported_event_types": ["..."], "server_time": "...", "api_version": "1.0.0"
 }
 ```
 Reglas:
@@ -173,7 +174,7 @@ Reglas:
 - **Identificadores de oleada y de desempate (`heat_id`, `tiebreak_id`):** texto libre de hasta 120 caracteres, **únicos en toda la plataforma**
   (usa UUID, o derívalos de un `stage_id`, como hace el motor: `<stage_id>-r1-h<n>`). Los `stage_id`, `registration_id` y `client_event_id` sí son UUID.
 
-### Eventos soportados en `engine-v0.2.0` (19)
+### Eventos soportados en `engine-v0.3.0` (19, sin eventos nuevos respecto a 0.2.0)
 
 | Tipo | Payload |
 |---|---|
@@ -189,7 +190,7 @@ Reglas:
 | `HEAT_CONFIRMED` | `{ heat_id }` — también para una oleada pendiente donde nadie corre (todos "no corre" o retirados) |
 | `ATHLETE_WITHDRAWN` | `{ registration_id, stage_id, heat_id\|null, reason: "rule_violation\|voluntary\|injury\|other", note }` — observación obligatoria. Conserva los tiempos ya registrados; los carriles pendientes pasan a `withdrawn` y la pareja corre sola. |
 
-Eventos agregados en `engine-v0.2.0`:
+`engine-v0.2.1` corrigió que un retiro solo cuenta en la instancia donde ocurrió, y `engine-v0.3.0` agrega la muerte súbita por instancia (`mode: "duel"`) sin eventos nuevos. Eventos agregados en `engine-v0.2.0`:
 
 | Tipo | Payload |
 |---|---|
@@ -221,6 +222,7 @@ Eventos agregados en `engine-v0.2.0`:
   le falte el tiempo comparado queda después; si persiste el empate, `tied_with_previous = true` (lo decide el juez con `TIEBREAK_*`).
 - Los retirados y los atletas sin tiempo van al final, **sin posición**. Un atleta puede no correr una salida y conservar sus tiempos.
 - Si un atleta sale y no llega queda `did_not_finish`, sin tiempo en esa salida.
+- **Muerte súbita (`mode: "duel"`):** el servidor entrega el modo de cada instancia al motor; si no coincidiera con el de la app, calcularía otros clasificados y rechazaría las rondas siguientes. Por eso el modo viaja en el paquete y no se cambia con la carrera en curso.
 - **Empate en el corte:** un empate total que cruza el número de clasificados impide cerrar la instancia (`TIE_UNRESOLVED`) hasta que el juez lo decida,
   directamente o haciendo correr a los empatados. Los empates que no afectan el corte comparten posición.
 - **Lluvia:** solo sobre la salida actual de una instancia abierta con más de 1 salida y con observación. Anular la última salida exige que quede algún tiempo válido.

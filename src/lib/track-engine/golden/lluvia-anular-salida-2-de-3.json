@@ -1,7 +1,7 @@
 {
   "name": "lluvia-anular-salida-2-de-3",
   "description": "Ejemplo de la federación: instancia con 3 salidas. La salida 1 se corre completa; a mitad de la salida 2 llueve y el juez la anula. La salida 2 queda anulada (incluidas las oleadas que faltaban), todos corren la salida 3 y cada atleta clasifica con su mejor tiempo entre las salidas 1 y 3. Anular una salida que no es la actual se rechaza.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -558,6 +558,7 @@
     "stages": [
       {
         "id": "l-s1",
+        "mode": "time",
         "status": "closed",
         "currentRun": 4,
         "entries": [
@@ -598,7 +599,8 @@
               3200
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "l-a01",
@@ -609,7 +611,8 @@
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "l-a02",
@@ -620,7 +623,8 @@
               3700
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "l-a04",
@@ -631,12 +635,14 @@
               3800
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "l-s2",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -656,7 +662,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "l-a01",
@@ -664,7 +671,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       }
