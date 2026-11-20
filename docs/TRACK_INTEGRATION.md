@@ -322,9 +322,9 @@ Un `sync` con un dispositivo no activo también es `200` con todos los eventos e
 Copiados de la API (los tokens se reemplazaron por `<jwt>` y `<refresh_token>`):
 
 - [`track-examples/package-carrera-prueba.json`](track-examples/package-carrera-prueba.json): paquete completo de la carrera de prueba
-  `548f61b9-e8d7-42ac-8433-8940fc45bbfc` (producción, sin tokens ni documentos).
-- [`track-examples/respuestas-reales.json`](track-examples/respuestas-reales.json): 31 pares petición/respuesta (`request`, `status`, `response`), de una carrera
-  temporal equivalente:
+  `c52454b9-f86e-45eb-96ec-a48e4e41356c` (producción, motor 0.3.0, sin tokens ni documentos).
+- [`track-examples/respuestas-reales.json`](track-examples/respuestas-reales.json): 34 pares petición/respuesta (`request`, `status`, `response`), tomados de **producción** con motor 0.3.0 en una carrera
+  temporal con muerte súbita:
 
 | Clave | Qué muestra |
 |---|---|
@@ -338,6 +338,8 @@ Copiados de la API (los tokens se reemplazaron por `<jwt>` y `<refresh_token>`):
 | `sync_lote_aceptado` | 5 eventos aceptados |
 | `sync_reintento_duplicados` | El mismo lote otra vez: todo en `duplicates` |
 | `sync_hueco_de_secuencia` | `SEQUENCE_GAP` |
+| `sync_cierre_instancia_1`, `sync_instancia_muerte_subita` | Cierre de la instancia 1 (por tiempo) y una instancia de muerte súbita completa: 16 eventos aceptados cada uno |
+| `state_muerte_subita_con_eliminados` | Estado con `stages[].mode = "duel"` y `ranking[].eliminated = true` (los eliminados conservan posición y tiempo) |
 | `sync_lote_mixto_aceptado_y_rechazados` | 1 aceptado y rechazados por `SECOND_ACTIVE_HEAT`, `INVALID_PAYLOAD`, `UNSUPPORTED_EVENT_TYPE` y `ARRIVAL_ORDER_MISMATCH` |
 | `sync_dispositivo_no_activo` | `DEVICE_NOT_ACTIVE` |
 | `sync_carrera_no_abierta`, `sync_mas_de_200`, `sync_cuerpo_invalido` | Errores HTTP de sync |
