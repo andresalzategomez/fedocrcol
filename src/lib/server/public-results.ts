@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
 import { bogotaToday } from "../payment-window";
 import { competitionRanks, ranksByGroup } from "../results-ranking";
+import { loadPublicTrack, type PublicTrackPayload } from "./track/public-track";
 
 /** Código secreto del enlace público de resultados de una carrera (96 bits, URL-safe). */
 export function newResultsToken(): string {
@@ -25,6 +26,7 @@ export interface PublicResultEntry {
 }
 
 export interface PublicResultsPayload {
+  format: "standard";
   event: { title: string; date: string; location: string; league: string | null; status: PublicRaceStatus; status_label: string };
   categories: { id: string; name: string }[];
   waves: { id: string; name: string }[];
@@ -41,7 +43,6 @@ export function isPubliclyViewable(
   now: Date = new Date(),
 ): boolean {
   if (event.visibility !== "public" || !event.published) return false;
-  if (event.race_format === "track") return false; // la vista pública de track llega en una fase posterior
   if (!["approved", "in_progress", "finished"].includes(event.status)) return false;
   return bogotaToday(now) <= event.date;
 }
@@ -50,7 +51,7 @@ export function isPubliclyViewable(
  * Arma los resultados públicos de una carrera estándar a partir de su código. Devuelve null si el código no existe
  * o la carrera no se puede ver. Entrega solo lo mínimo: dorsal, nombre, categoría, oleada, tiempo, estado y posiciones.
  */
-export async function loadPublicResults(admin: SupabaseClient, token: string, now: Date = new Date()): Promise<PublicResultsPayload | null> {
+export async function loadPublicResults(admin: SupabaseClient, token: string, now: Date = new Date()): Promise<PublicResultsPayload | PublicTrackPayload | null> {
   if (!/^[0-9a-f]{24}$/i.test(token)) return null;
   const { data: link } = await admin.from("event_results_links").select("event_id").eq("token", token).maybeSingle();
   if (!link) return null;
@@ -69,6 +70,11 @@ export async function loadPublicResults(admin: SupabaseClient, token: string, no
     admin.from("event_categories").select("id, name").eq("event_id", event.id as string).order("name"),
     admin.from("waves").select("id, name, wave_number").eq("event_id", event.id as string).order("wave_number"),
   ]);
+
+  // Carrera TRACK: vista informativa por instancia y oleada, alimentada por lo que informa Timer_track.
+  if (event.race_format === "track") {
+    return loadPublicTrack(admin, event as never, (tenant?.name as string | undefined) ?? null, status, STATUS_LABEL[status]);
+  }
 
   let entries: PublicResultEntry[] = [];
   if (status !== "upcoming") {
@@ -104,6 +110,7 @@ export async function loadPublicResults(admin: SupabaseClient, token: string, no
   }
 
   return {
+    format: "standard",
     event: {
       title: event.title as string,
       date: event.date as string,

@@ -9,12 +9,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { RESULT_STATUS_LABEL, formatDuration } from "@/lib/results";
+import { TrackLiveResults } from "@/components/track-live-results";
+import type { PublicTrackPayload } from "@/lib/server/track/public-track";
 
 interface Entry {
   bib: string | null; name: string | null; gender: string | null; category_id: string | null; wave_id: string | null;
   duration_ms: number | null; status: string; rank_overall: number | null; rank_category: number | null; rank_wave: number | null;
 }
 interface Payload {
+  format?: "standard";
   event: { title: string; date: string; location: string; league: string | null; status: "upcoming" | "in_progress" | "finished"; status_label: string };
   categories: { id: string; name: string }[];
   waves: { id: string; name: string }[];
@@ -38,7 +41,7 @@ const STATUS_VARIANT: Record<Payload["event"]["status"], "default" | "secondary"
 
 function ResultadosPage() {
   const { token } = Route.useParams();
-  const [data, setData] = useState<Payload | null>(null);
+  const [data, setData] = useState<Payload | PublicTrackPayload | null>(null);
   const [category, setCategory] = useState("all");
   const [wave, setWave] = useState("all");
 
@@ -47,7 +50,7 @@ function ResultadosPage() {
       const res = await fetch(`/api/public/results/${encodeURIComponent(token)}`, { cache: "no-store" });
       // Código inexistente, carrera privada, aún sin aprobar o día de la carrera ya pasado: al inicio de fedocr.
       if (res.status === 404) { window.location.replace("/"); return; }
-      if (res.ok) setData((await res.json()) as Payload);
+      if (res.ok) setData((await res.json()) as Payload | PublicTrackPayload);
     } catch { /* sin red: se mantiene lo último que se vio */ }
   }, [token]);
 
@@ -66,6 +69,9 @@ function ResultadosPage() {
       </div>
     );
   }
+
+  // Carrera tipo TRACK: vista informativa por instancia y oleada.
+  if (data.format === "track") return <TrackLiveResults data={data} />;
 
   const { event } = data;
   const catName = (id: string | null) => data.categories.find((c) => c.id === id)?.name ?? "—";
@@ -89,7 +95,7 @@ function ResultadosPage() {
             ) : null}
           </div>
           <h1 className="mt-3 font-display text-4xl sm:text-5xl">{event.title}</h1>
-          <p className="mt-2 text-muted-foreground">{dateLabel} · {event.location}{event.league ? ` · Liga ${event.league}` : ""}</p>
+          <p className="mt-2 text-muted-foreground">{dateLabel} · {event.location}{event.league ? ` · ${/^liga(?:\s|$)/i.test(event.league) ? event.league : `Liga ${event.league}`}` : ""}</p>
         </div>
       </div>
 
