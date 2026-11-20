@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticate, json, preflight, handler } from "../../../lib/server/api";
+import { rejectIfTrackRace } from "../../../lib/server/race-format";
 
 /** GET /api/v1/races/:raceId/athletes — inscritos (dorsal, oleada, categoría de la carrera). */
 export const Route = createFileRoute("/api/v1/races/$raceId/athletes")({
@@ -8,6 +9,8 @@ export const Route = createFileRoute("/api/v1/races/$raceId/athletes")({
       OPTIONS: () => preflight(),
       GET: handler(async ({ request, params }) => {
         const { supa, leagueId } = await authenticate(request);
+        const trackRace = await rejectIfTrackRace(supa, params["raceId"]!);
+        if (trackRace) return trackRace;
 
         const { data, error } = await supa
           .from("registrations")

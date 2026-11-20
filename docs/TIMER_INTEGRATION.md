@@ -182,3 +182,44 @@ si falta `started_at`.
 - `waves` con `wave_number` (y `status`, `started_at` al dar la salida).
 - Inscripciones con `bib_number` y `wave_id` asignados.
 - Un usuario (juez) de la liga con credenciales de Supabase Auth.
+
+## 6. Cambios de noviembre de 2026 (compatibles hacia atrás)
+
+Ninguno de estos cambios modifica la forma de las peticiones ni de las respuestas existentes: solo
+agrega validaciones y un campo informativo en la respuesta del envío de tiempos.
+
+### Carreras tipo TRACK no existen para esta API
+`events.race_format` distingue las carreras estándar (`standard`, las de FedOCR Timer) de las carreras
+tipo TRACK (`track`, las de Timer_track, que usan `/api/track/v1`).
+- `GET /races` **solo lista carreras estándar**.
+- `waves`, `splits`, `athletes`, `start`, `finish`, `waves/:id/start` y `time-records/batch` responden
+  `404 NOT_FOUND` ("Carrera no encontrada") si la carrera es track, igual que si no existiera.
+
+### `POST /time-records/batch`
+- **Roles:** solo `admin` y `superadmin` (de la liga del token) y `judge`. Cualquier otro rol → `403 FORBIDDEN`.
+- **Jueces:** solo pueden enviar lecturas de los checkpoints que tienen asignados; la meta directa
+  (`split_id = null`) solo si tienen asignado un checkpoint de meta. El resto de lecturas del lote fallan con
+  `CHECKPOINT_NOT_ASSIGNED`. Además, un juez solo puede escribir mientras la carrera está `in_progress`.
+- **`id` del registro:** debe ser un UUID (`client_record_id`). Si no → falla ese registro con `INVALID_RECORD_ID`.
+- **Un registro solo cuenta como sincronizado si realmente quedó guardado.** Antes, un fallo al guardar el
+  resultado se ignoraba y el id volvía en `synced_ids`; ahora vuelve en `failed_ids` con `RESULT_SAVE_FAILED`
+  (o `RESULT_READ_FAILED`).
+- **Idempotencia del resultado:** un registro **más viejo** (`exact_timestamp` anterior al `finish_at` ya guardado) o
+  un resultado corregido a mano (`source = 'manual'`) **no se sobrescriben**: el id vuelve en `synced_ids` (no hay
+  nada que reintentar) y además en `ignored_ids` con `OLDER_THAN_SAVED_RESULT` o `MANUAL_RESULT_KEPT`.
+- Nuevos motivos en `failed_ids`: `INVALID_RECORD_ID`, `SPLIT_NOT_FOUND`, `CHECKPOINT_NOT_ASSIGNED`,
+  `RESULT_SAVE_FAILED`, `RESULT_READ_FAILED` (más los de antes: `ATHLETE_NOT_FOUND` y códigos de base de datos).
+
+Respuesta (el campo nuevo `ignored_ids` es informativo; un cliente que lo ignore sigue funcionando):
+```json
+{
+  "synced_ids": ["..."],
+  "failed_ids": [ { "id": "...", "reason": "CHECKPOINT_NOT_ASSIGNED" } ],
+  "ignored_ids": [ { "id": "...", "reason": "OLDER_THAN_SAVED_RESULT" } ]
+}
+```
+
+### Sesión
+`POST /auth/login` devuelve `token` (JWT de 1 hora) y `refresh_token` (rota en cada uso). Para renovar la sesión
+se usa el endpoint de refresh de Supabase Auth con ese `refresh_token`; no hay `/auth/refresh` en `/api/v1`
+(la API de Timer_track, `/api/track/v1`, sí lo trae).
