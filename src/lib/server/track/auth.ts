@@ -71,3 +71,20 @@ export async function authenticateTrackRace(request: Request, raceId: string): P
 
   return { ...user, admin, race: race as TrackRace };
 }
+
+/** Datos del usuario y de su liga para las respuestas de login y refresh. `league` es null si no tiene liga (p. ej. superadmin). */
+export async function trackUserInfo(userId: string) {
+  const { data: profile } = await serviceClient().from("profiles").select("role, tenant_id, full_name").eq("id", userId).maybeSingle();
+  const role = (profile?.role as string | undefined) ?? "athlete";
+  const tenantId = (profile?.tenant_id as string | null) ?? null;
+  let league: { id: string; name: string } | null = null;
+  if (tenantId) {
+    const { data: t } = await serviceClient().from("tenants").select("name").eq("id", tenantId).maybeSingle();
+    league = { id: tenantId, name: (t?.name as string | undefined) ?? "" };
+  }
+  return {
+    role,
+    user: { id: userId, name: (profile?.full_name as string | null) ?? null, role, league_id: tenantId, league_name: league?.name ?? null },
+    league,
+  };
+}
