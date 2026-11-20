@@ -11,6 +11,13 @@ export interface AthleteInfo {
   name: string;
 }
 
+/**
+ * time: clasifican los N mejores tiempos de la instancia.
+ * duel: muerte súbita. Pasa el ganador de cada oleada (menor tiempo), aunque un perdedor tenga mejor tiempo
+ * que el ganador de otra oleada. Solo en instancias de 1 salida.
+ */
+export type StageMode = 'time' | 'duel';
+
 export interface StageConfig {
   id: string;
   stageNumber: number;
@@ -18,6 +25,8 @@ export interface StageConfig {
   runsPerAthlete: number;
   /** null en la final. */
   qualifiersCount: number | null;
+  /** Por defecto 'time'. */
+  mode?: StageMode;
 }
 
 export interface CategoryConfig {
@@ -129,6 +138,7 @@ export interface StageState {
   name: string;
   runsPerAthlete: number;
   qualifiersCount: number | null;
+  mode: StageMode;
   status: StageStatus;
   /** Atletas (registration_id) que compiten en esta instancia, en orden de siembra. */
   entries: string[];

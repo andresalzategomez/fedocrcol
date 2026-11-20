@@ -1,7 +1,7 @@
 {
   "name": "sale-y-no-llega",
   "description": "c-a02 sale y no llega: queda sin tiempo en esa salida. La oleada se confirma con el tiempo de c-a01.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -210,6 +210,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -234,7 +235,8 @@
               3000
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -242,7 +244,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -250,7 +253,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -258,7 +262,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -266,12 +271,14 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "pending",
         "currentRun": 2,
         "entries": [],

@@ -1,7 +1,7 @@
 {
   "name": "no-corre-una-salida",
   "description": "c-a01 corre la salida 1 (30.00) y no corre la salida 2. Su pareja c-a02 sale sola. c-a01 compite con su tiempo de la salida 1.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -491,6 +491,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "open",
         "currentRun": 3,
         "entries": [
@@ -516,7 +517,8 @@
               3100
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -527,7 +529,8 @@
               3500
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a01",
@@ -537,7 +540,8 @@
               3000
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -548,7 +552,8 @@
               3600
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -559,12 +564,14 @@
               4100
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "pending",
         "currentRun": 2,
         "entries": [],

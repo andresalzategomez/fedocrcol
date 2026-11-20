@@ -1,7 +1,7 @@
 {
   "name": "revision-y-reapertura",
   "description": "El juez marca primero al atleta equivocado, revisa la oleada e intercambia las llegadas (se conservan ambos tiempos). Después confirma, reabre con observación y vuelve a confirmar.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -254,6 +254,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -278,7 +279,8 @@
               3117
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -288,7 +290,8 @@
               3120
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -296,7 +299,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -304,7 +308,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -312,12 +317,14 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "pending",
         "currentRun": 2,
         "entries": [],

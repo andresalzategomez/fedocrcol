@@ -19,7 +19,7 @@ export interface PublicTrackEntry {
   name: string | null;
   position: number | null;
   best_time_ms: number | null;
-  /** active: compite · qualified: clasificó (instancia cerrada) · eliminated: no pasó (instancia cerrada) · withdrawn: retirado */
+  /** active: compite · qualified: clasificó (instancia cerrada) · eliminated: no pasó (por tiempo, con la instancia cerrada, o perdió su duelo) · withdrawn: retirado */
   state: "active" | "qualified" | "eliminated" | "withdrawn";
   runs: PublicRunCell[];
 }
@@ -34,6 +34,8 @@ export interface PublicTrackHeat {
 export interface PublicTrackStage {
   id: string; number: number; name: string; status: "pending" | "open" | "closed";
   runs_per_athlete: number; qualifiers_count: number | null; is_current: boolean;
+  /** time: clasifican los mejores tiempos · duel: muerte súbita (pasa el ganador de cada oleada) */
+  mode: "time" | "duel";
   entries: PublicTrackEntry[]; heats: PublicTrackHeat[];
 }
 export interface PublicTrackPayload {
@@ -63,7 +65,7 @@ export async function loadPublicTrack(
   const eid = event.id;
   const [{ data: cats }, { data: stages }, { data: entries }, { data: regs }, { data: heats }, { data: lanes }, { data: initial }] = await Promise.all([
     admin.from("event_categories").select("id, name").eq("event_id", eid).order("name"),
-    admin.from("track_stages").select("id, category_id, stage_number, name, runs_per_athlete, qualifiers_count, status").eq("event_id", eid).order("stage_number"),
+    admin.from("track_stages").select("id, category_id, stage_number, name, runs_per_athlete, qualifiers_count, status, mode").eq("event_id", eid).order("stage_number"),
     admin.from("track_stage_entries").select("stage_id, registration_id, rank, best_time_ms, status, qualified").eq("event_id", eid),
     admin.from("registrations").select("id, bib_number, athlete_name, category_id").eq("event_id", eid).eq("status", "paid").not("bib_number", "is", null),
     admin.from("track_heats").select("id, stage_id, run_number, heat_number, heat_type, status").eq("event_id", eid),
@@ -140,6 +142,7 @@ export async function loadPublicTrack(
               const reg = e.registration_id as string;
               const withdrawn = (e.status as string) === "withdrawn";
               const state: PublicTrackEntry["state"] = withdrawn ? "withdrawn"
+                : (e.status as string) === "eliminated" ? "eliminated" // perdió su duelo: conserva posición y tiempo
                 : stageStatus === "closed" && (e.qualified as boolean) ? "qualified"
                 : stageStatus === "closed" && qualifiersCount != null ? "eliminated" : "active";
               return { bib: who.get(reg)?.bib ?? null, name: who.get(reg)?.name ?? null, position: (e.rank as number | null) ?? null, best_time_ms: (e.best_time_ms as number | null) ?? null, state, runs: runsOf(reg) };
@@ -149,6 +152,7 @@ export async function loadPublicTrack(
         return {
           id: sid, number: s.stage_number as number, name: s.name as string, status: stageStatus,
           runs_per_athlete: s.runs_per_athlete as number, qualifiers_count: qualifiersCount, is_current: s.id === firstOpen?.id,
+          mode: (s.mode as string) === "duel" ? "duel" : "time",
           entries: entryList,
           heats: hs.map((h) => ({
             id: h.id, run_number: h.run, heat_number: h.num, kind: h.kind, status: h.status,

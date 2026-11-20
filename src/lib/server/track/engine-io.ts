@@ -15,7 +15,7 @@ export interface AthleteName { bib: string; name: string; categoryId: string }
 export async function loadRaceConfig(admin: SupabaseClient, eventId: string): Promise<{ config: RaceConfig; names: Map<string, AthleteName> }> {
   const [{ data: cats }, { data: stages }, { data: regs }, { data: initial }] = await Promise.all([
     admin.from("event_categories").select("id, name").eq("event_id", eventId).order("name"),
-    admin.from("track_stages").select("id, category_id, stage_number, name, runs_per_athlete, qualifiers_count").eq("event_id", eventId).order("stage_number"),
+    admin.from("track_stages").select("id, category_id, stage_number, name, runs_per_athlete, qualifiers_count, mode").eq("event_id", eventId).order("stage_number"),
     admin.from("registrations").select("id, bib_number, athlete_name, category_id").eq("event_id", eventId).eq("status", "paid").not("bib_number", "is", null).order("bib_number"),
     admin.from("track_initial_heats").select("id, stage_id, heat_number, left_registration_id, right_registration_id").eq("event_id", eventId).order("heat_number"),
   ]);
@@ -35,6 +35,8 @@ export async function loadRaceConfig(admin: SupabaseClient, eventId: string): Pr
           name: s.name as string,
           runsPerAthlete: s.runs_per_athlete as number,
           qualifiersCount: (s.qualifiers_count as number | null) ?? null,
+          // IMPRESCINDIBLE: sin el modo el servidor calcularía otros clasificados que la app y rechazaría las rondas siguientes.
+          mode: (s.mode as string) === "duel" ? ("duel" as const) : ("time" as const),
         })),
       athletes: (regs ?? [])
         .filter((r) => r.category_id === c.id)
@@ -97,6 +99,7 @@ export function stateToJson(state: RaceState, names: Map<string, AthleteName>) {
       name: s.name,
       runs_per_athlete: s.runsPerAthlete,
       qualifiers_count: s.qualifiersCount,
+      mode: s.mode,
       status: s.status,
       // Oficiales solo con la instancia cerrada; mientras esté abierta, la posición del ranking es provisional.
       final_order: s.finalOrder ? s.finalOrder.map(who) : null,
@@ -114,6 +117,8 @@ export function stateToJson(state: RaceState, names: Map<string, AthleteName>) {
         best_time_ms: r.bestMs,
         withdrawn: r.withdrawn,
         tied_with_previous: r.tiedWithPrevious,
+        // true: perdió su duelo (muerte súbita). Conserva posición y tiempo.
+        eliminated: r.eliminated,
         runs: r.runs,
       })),
     })),
@@ -172,7 +177,7 @@ export async function materializeState(
       const official = stage.status === "closed";
       entryRows.push({
         ...base, stage_id: stage.id, registration_id: r.registrationId, seed: stage.entries.indexOf(r.registrationId) + 1,
-        status: r.withdrawn ? "withdrawn" : official && qualified.has(r.registrationId) ? "qualified" : "active",
+        status: r.withdrawn ? "withdrawn" : r.eliminated ? "eliminated" : official && qualified.has(r.registrationId) ? "qualified" : "active",
         best_time_ms: r.bestMs,
         rank: official && !r.withdrawn && r.position !== null ? (finalPos.get(r.registrationId) ?? r.position) : r.position,
         qualified: official && qualified.has(r.registrationId),

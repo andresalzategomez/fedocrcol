@@ -1,6 +1,6 @@
 # Motor de reglas de Timer_track — guía de integración
 
-**Versión del núcleo: 0.2.0** (`ENGINE_VERSION`).
+**Versión del núcleo: 0.3.0** (`ENGINE_VERSION`).
 Fuente en Timer_track: `src/lib/engine/core/`. Casos dorados: `docs/golden/`.
 
 ## 1. Qué es
@@ -61,7 +61,7 @@ const { finalOrder, qualified } = state.stages[stageId];
 | `raceId` | `events.id` |
 | `categories[].id`, `name` | `event_categories` |
 | `categories[].athletes[]` | `registrations` con pago confirmado y dorsal: `registrationId` = `id`, `bib`, `name` |
-| `categories[].stages[]` | `track_stages`: `id`, `stageNumber`, `name`, `runsPerAthlete`, `qualifiersCount` |
+| `categories[].stages[]` | `track_stages`: `id`, `stageNumber`, `name`, `runsPerAthlete`, `qualifiersCount`, `mode` (`'time'` o `'duel'`; por defecto `'time'`) |
 | `initialHeats[]` | Oleadas de instancia 1, salida 1 (`track_heats` + `track_heat_lanes` con `pairing_source = 'fedocr'`) |
 
 Las instancias 2 en adelante no necesitan oleadas iniciales: el motor las arma al cerrar la anterior.
@@ -107,10 +107,25 @@ El sobre del evento usa camelCase en el núcleo y snake_case en la API. Los payl
 - Un tiempo cuenta solo cuando su oleada está confirmada. `HEAT_REOPENED` lo deja de contar hasta confirmarse de nuevo.
 - Clasificación: mejor tiempo; si empatan, los siguientes tiempos de mejor a peor; a quien le falte el tiempo comparado, queda después; si persiste, `tiedWithPrevious = true`.
 - **Empate en el corte** (`cutTie`): un empate total que atraviesa el número de clasificados. La instancia no cierra hasta que el juez lo decide, de forma directa o corriendo. Los empates que no afectan el corte comparten posición.
-- Retirados y atletas sin tiempo van al final, sin posición.
+- Retirados y atletas sin tiempo van al final, sin posición. Un retiro solo cuenta en la instancia donde ocurrió (`withdrawal.stageId`): en las instancias anteriores, ya cerradas, el atleta conserva su posición.
 - Una sola oleada activa por carrera, incluidas las de desempate. La siguiente salida se habilita al terminar toda la salida actual.
 - **Protocolo de lluvia:** solo sobre la salida actual de una instancia abierta con más de 1 salida, con observación. Anular la última salida exige que quede algún tiempo válido. Los tiempos anulados se conservan (`RunResult.kind = 'voided'`, con su `ms`) y no cuentan.
 - Una salida anulada se considera resuelta: la salida actual pasa a la siguiente.
+
+### Muerte súbita (`mode: 'duel'`, desde 0.3.0)
+
+Solo en instancias de **1 salida** (con más salidas, el motor clasifica por tiempo y deja un aviso en `warnings`).
+
+- Pasa el **ganador de cada oleada**: el menor tiempo en centésimas truncadas, aunque un perdedor tenga mejor tiempo que el ganador de otra oleada.
+- Atleta solo en la oleada (sin rival, o con el rival retirado con la instancia en curso): pasa.
+- Si solo uno tiene tiempo (el otro no corre o no termina): pasa el que tiene tiempo.
+- Empate exacto, o ninguno con tiempo: `cutTie` devuelve la pareja y la instancia no cierra (`TIE_UNRESOLVED`) hasta que el juez decide con `TIEBREAK_DECIDED` (directo) o `TIEBREAK_STARTED` + `TIEBREAK_DECIDED` (repitiendo el duelo). De cada duelo empatado pasa uno. Los tiempos del desempate no reemplazan los del duelo.
+- `qualified` = ganadores, ordenados por su tiempo de duelo (a igual tiempo, por su posición en la instancia anterior). `qualifiersCount` no limita: pasan todos los ganadores.
+- `finalOrder` y `stageRanking`: ganadores, luego eliminados (`eliminated = true`, con posición y su tiempo), luego retirados (sin posición). **Todos los tiempos se conservan** para los reportes.
+- La siguiente instancia se siembra igual que siempre: primero contra último sobre `qualified`.
+- Retiro de un clasificado antes de empezar la instancia siguiente: sube su **rival de duelo**; si no puede, el siguiente de `finalOrder`.
+- En la final (`qualifiersCount = null`) con `mode: 'duel'`: 1º el ganador, 2º el otro.
+- No hay eventos nuevos: el contrato de eventos no cambia. Solo se agrega `mode` a la configuración de cada instancia.
 
 ## 8. Casos dorados
 
@@ -136,6 +151,8 @@ npx tsx run-golden.ts golden
 | `lluvia-reiniciar-salida` | Salida reiniciada con la oleada en pista anulada |
 | `lluvia-anular-salida-2-de-3` | Ejemplo de la federación: salida 2 anulada y clasificación con las salidas 1 y 3 |
 | `lluvia-reglas-y-rechazos` | Sin observación, sin tiempos válidos y final de 1 salida |
+| `muerte-subita-8-atletas` | Clasificación por tiempo y muerte súbita 8 → 4 → 2 → final: perdedor más rápido que un ganador, rival que no termina, empate exacto repetido y final |
+| `muerte-subita-casos-limite` | Atleta solo, rival retirado en curso, ninguno termina (decisión directa) y sube el rival de duelo del retirado |
 
 ## 9. Versiones
 
@@ -143,5 +160,7 @@ npx tsx run-golden.ts golden
 |---|---|
 | 0.1.0 | Oleadas, salidas, parejas, llegadas, revisión, reapertura, no corre, no terminó, retiro y clasificación provisional |
 | 0.2.0 | Cierre de instancia, clasificados, siembra de la siguiente instancia, desempates del juez, retiro de clasificados, protocolo de lluvia y fin de la competencia |
+| 0.2.1 | Corrección: un retiro solo marca "Retirado" en la instancia donde ocurrió. Un retiro en la instancia siguiente ya no cambia la posición del atleta en la instancia cerrada (`withdrawnIn`) |
+| 0.3.0 | Muerte súbita por instancia (`StageConfig.mode = 'duel'`): pasa el ganador de cada oleada. Nuevos: `duelResults`, `duelWinners`, `RankingRow.eliminated`; en el resumen dorado, `stages[].mode` y `ranking[].eliminated`. Sin eventos nuevos. Las instancias sin `mode` funcionan igual que en 0.2.1 |
 
 Cada entrega lleva etiqueta Git `engine-vX.Y.Z`. Al actualizar, se copia el núcleo completo y se corren los casos dorados nuevos. Los casos de 0.1.0 cambian de formato en 0.2.0 (el resumen incluye más campos); se reemplazan todos.

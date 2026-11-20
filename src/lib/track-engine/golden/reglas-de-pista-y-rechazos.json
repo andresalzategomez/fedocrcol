@@ -1,7 +1,7 @@
 {
   "name": "reglas-de-pista-y-rechazos",
   "description": "Rechazos: salida antes de iniciar, segunda oleada activa, salida de una salida no habilitada, orden de llegada incorrecto, revisión sin observación, parejas con atleta repetido. Además, una oleada donde nadie corre se confirma sin salir.",
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "config": {
     "raceId": "golden-race",
     "categories": [
@@ -386,6 +386,7 @@
     "stages": [
       {
         "id": "c-s1",
+        "mode": "time",
         "status": "open",
         "currentRun": 1,
         "entries": [
@@ -410,7 +411,8 @@
               3000
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a02",
@@ -420,7 +422,8 @@
               3050
             ],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a03",
@@ -428,7 +431,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a04",
@@ -436,7 +440,8 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           },
           {
             "registrationId": "c-a05",
@@ -444,12 +449,14 @@
             "bestMs": null,
             "sortedCentis": [],
             "withdrawn": false,
-            "tiedWithPrevious": false
+            "tiedWithPrevious": false,
+            "eliminated": false
           }
         ]
       },
       {
         "id": "c-s2",
+        "mode": "time",
         "status": "pending",
         "currentRun": 2,
         "entries": [],
