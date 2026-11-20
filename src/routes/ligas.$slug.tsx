@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { SimpleTable } from "@/components/simple-table";
 import { formatDate } from "@/data/demo";
-import { fetchEvents, fetchLeagues, fetchPublicRegistrations, fetchRanking } from "@/lib/ocr-data";
+import { fetchEvents, fetchLeagues, fetchRegistrationCounts, fetchRanking } from "@/lib/ocr-data";
 import { useTenantTheme } from "@/lib/tenant-theme";
 
 export const Route = createFileRoute("/ligas/$slug")({
@@ -18,8 +18,8 @@ export const Route = createFileRoute("/ligas/$slug")({
     if (!league) throw notFound();
     const leagueEvents = events.filter((e) => e.tenant_id === league.id);
     const leagueRanking = ranking.filter((r) => r.tenant_id === league.id);
-    const registrations = await fetchPublicRegistrations(leagueEvents.map((e) => e.id));
-    return { league, events: leagueEvents, ranking: leagueRanking, registrations };
+    const counts = await fetchRegistrationCounts(leagueEvents.map((e) => e.id));
+    return { league, events: leagueEvents, ranking: leagueRanking, registrationsTotal: counts.total };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/ligas/$slug")({
 });
 
 function LeaguePage() {
-  const { league, events, ranking, registrations } = Route.useLoaderData();
+  const { league, events, ranking, registrationsTotal } = Route.useLoaderData();
   useTenantTheme({ primary_color: league.primary_color, secondary_color: league.secondary_color });
 
   return (
@@ -62,7 +62,7 @@ function LeaguePage() {
           <p className="mt-3 max-w-2xl text-muted-foreground">{league.description}</p>
           <div className="mt-6 flex flex-wrap gap-6 text-sm">
             <span className="flex items-center gap-2"><MapPin className="size-4 text-primary" /> {league.city}</span>
-            <span className="flex items-center gap-2"><Users className="size-4 text-primary" /> {registrations.length} inscritos</span>
+            <span className="flex items-center gap-2"><Users className="size-4 text-primary" /> {registrationsTotal} inscritos</span>
             <span className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" /> {events.length} carreras</span>
           </div>
         </div>

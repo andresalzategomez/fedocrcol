@@ -15,13 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
-import { countRegistrationsByCategory, dynamicPrice, fetchEvents, fetchLeagues, fetchPublicRegistrations, qrUrl } from "@/lib/ocr-data";
+import { dynamicPrice, fetchEvents, fetchLeagues, fetchRegistrationCounts, qrUrl } from "@/lib/ocr-data";
 import { createRegistration } from "@/lib/registrations";
 import { isDeadlinePassed, paymentWindow } from "@/lib/payment-window";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { useSession } from "@/lib/use-session";
 import { supabase } from "@/lib/supabase";
-import { LiveResults } from "@/components/live-results";
 
 const BLOOD_TYPES = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
 const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
@@ -100,17 +99,16 @@ export const Route = createFileRoute("/eventos/$eventId")({
     const rawEvent = events.find((e) => e.id === params.eventId);
     if (!rawEvent) throw notFound();
     const league = leagues.find((l) => l.id === rawEvent.tenant_id) ?? null;
-    const registrations = await fetchPublicRegistrations([rawEvent.id]);
-    const countByCategory = countRegistrationsByCategory(registrations);
+    const counts = await fetchRegistrationCounts([rawEvent.id]);
     const event = {
       ...rawEvent,
-      registered: registrations.length,
+      registered: counts.total,
       categories: rawEvent.categories.map((c) => ({
         ...c,
-        slots_available: Math.max(0, c.slots_available - (countByCategory.get(c.id) ?? 0)),
+        slots_available: Math.max(0, c.slots_available - (counts.byCategory.get(c.id) ?? 0)),
       })),
     };
-    return { event, league, registrations };
+    return { event, league };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Carrera no encontrada — FEDOCR" }, { name: "robots", content: "noindex" }] };
@@ -777,12 +775,6 @@ function EventDetail() {
 
       {!minimal ? (
         <>
-          {event.visibility === "public" && (event.status === "in_progress" || event.status === "finished") ? (
-            <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
-              <LiveResults eventId={event.id} />
-            </div>
-          ) : null}
-
           <SiteFooter />
         </>
       ) : null}

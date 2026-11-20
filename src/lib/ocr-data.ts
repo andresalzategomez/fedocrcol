@@ -37,35 +37,31 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   return data as unknown as RankingRow[];
 }
 
-export type PublicRegistration = {
-  id: string;
-  event_id: string;
-  tenant_id: string;
-  category_id: string;
-  category_name: string;
-  athlete_name: string | null;
-  bib_number: string | null;
-  status: "pending" | "paid" | "cancelled";
-  created_at: string;
+/** Conteo público de inscritos activos (sin nombres ni datos de nadie), por carrera y categoría. */
+export type RegistrationCounts = {
+  total: number;
+  byEvent: Map<string, number>;
+  byCategory: Map<string, number>;
 };
 
-/** Lista pública de inscritos (sin datos sensibles) para uno o varios eventos. */
-export async function fetchPublicRegistrations(eventIds: string[]): Promise<PublicRegistration[]> {
-  if (!supabase || eventIds.length === 0) return [];
+/**
+ * Cuántos inscritos hay en uno o varios eventos, vía registration_counts_public. La lista de inscritos con nombres
+ * NO es pública: los resultados se comparten por el enlace único de la carrera.
+ */
+export async function fetchRegistrationCounts(eventIds: string[]): Promise<RegistrationCounts> {
+  const counts: RegistrationCounts = { total: 0, byEvent: new Map(), byCategory: new Map() };
+  if (!supabase || eventIds.length === 0) return counts;
   const { data, error } = await supabase
-    .from("registrations_public")
-    .select("*")
-    .in("event_id", eventIds)
-    .order("created_at", { ascending: true });
-  if (error || !data) return [];
-  return data as unknown as PublicRegistration[];
-}
-
-/** Cuenta inscripciones activas por categoría, a partir de una lista ya cargada. */
-export function countRegistrationsByCategory(registrations: PublicRegistration[]): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const r of registrations) map.set(r.category_id, (map.get(r.category_id) ?? 0) + 1);
-  return map;
+    .from("registration_counts_public")
+    .select("event_id, category_id, registered")
+    .in("event_id", eventIds);
+  if (error || !data) return counts;
+  for (const r of data as { event_id: string; category_id: string; registered: number }[]) {
+    counts.total += r.registered;
+    counts.byEvent.set(r.event_id, (counts.byEvent.get(r.event_id) ?? 0) + r.registered);
+    counts.byCategory.set(r.category_id, (counts.byCategory.get(r.category_id) ?? 0) + r.registered);
+  }
+  return counts;
 }
 
 /** Conteo público de atletas por liga (sin datos personales), vía league_athlete_counts. */

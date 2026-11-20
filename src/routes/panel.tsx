@@ -2048,6 +2048,49 @@ function CarrerasSection({ tenantId, isSuper, userId }: { tenantId: string; isSu
   );
 }
 
+/** Enlace único para compartir los resultados de la carrera: copiar, abrir y regenerar. */
+function ResultsLinkCard({ eventId, isPublic }: { eventId: string; isPublic: boolean }) {
+  const [link, setLink] = useState<api.ResultsLink | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setLink(await api.getResultsLink(eventId)); } catch { setLink(null); }
+  }, [eventId]);
+  useEffect(() => { load(); }, [load, isPublic]);
+
+  async function regenerate() {
+    if (!confirm("¿Generar un enlace nuevo? El enlace anterior dejará de funcionar y tendrás que volver a compartirlo.")) return;
+    setBusy(true);
+    try { setLink(await api.getResultsLink(eventId, true)); toast.success("Enlace nuevo generado"); }
+    catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
+  async function copy() {
+    if (!link) return;
+    try { await navigator.clipboard.writeText(link.url); toast.success("Enlace copiado"); } catch { toast.error("No se pudo copiar el enlace"); }
+  }
+
+  if (!isPublic) {
+    return <p className="text-xs text-muted-foreground">La carrera es <strong>privada</strong>: los resultados solo los ven el administrador de tu liga y la federación. Activa "Resultados públicos" para compartirlos por enlace.</p>;
+  }
+  if (!link) return null;
+  return (
+    <div className="grid gap-2 rounded-lg border border-border bg-card p-4 text-sm">
+      <p className="font-medium">Enlace de resultados</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input readOnly value={link.url} className="max-w-xl font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+        <Button size="sm" variant="outline" onClick={copy}><Link2 className="mr-1 size-4" />Copiar</Button>
+        <Button size="sm" variant="outline" onClick={() => window.open(link.url, "_blank", "noopener,noreferrer")}>Abrir</Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={regenerate}><RefreshCw className="mr-1 size-4" />Regenerar</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {link.available
+          ? <>Funciona hasta el final del día de la carrera ({link.valid_until}); después redirige al inicio de FedOCR. Muestra el estado de la carrera y, cuando empiece, los resultados por categoría y oleada.</>
+          : <>Todavía no está activo: la carrera debe estar <strong>aprobada</strong> y ser pública, y el enlace deja de funcionar al terminar el día de la carrera ({link.valid_until}).</>}
+      </p>
+    </div>
+  );
+}
+
 // --------------------------- Detalle evento --------------------------
 function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChanged }: {
   tenantId: string; event: EventRow; isSuper: boolean; userId: string; onBack: () => void; onEventChanged: (e: EventRow) => void;
@@ -2056,6 +2099,16 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
   const canManage = canManageEvent(event, isSuper, userId);
   const locked = event.status === "in_progress" || event.status === "finished";
   const foreignEvent = isSuper && event.created_by !== userId && !locked;
+
+  async function togglePublicResults(value: boolean) {
+    setBusy(true);
+    try {
+      await api.updateEvent(event.id, { visibility: value ? "public" : "private" });
+      const fresh = (await api.listEvents(tenantId)).find((e) => e.id === event.id);
+      toast.success(value ? "Los resultados ahora se pueden compartir por enlace" : "Los resultados ahora son privados");
+      if (fresh) onEventChanged(fresh);
+    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+  }
 
   async function toggleShirt(value: boolean) {
     setBusy(true);
@@ -2097,6 +2150,11 @@ function EventoDetalle({ tenantId, event, isSuper, userId, onBack, onEventChange
         <Switch disabled={!canManage || busy} checked={Boolean(event.includes_shirt)} onCheckedChange={toggleShirt} />
         La carrera incluye camiseta (el formulario de inscripción pide nombre y talla)
       </label>
+      <label className="flex items-center gap-2 text-sm">
+        <Switch disabled={!canManage || busy} checked={event.visibility === "public"} onCheckedChange={togglePublicResults} />
+        Resultados públicos en vivo (se comparten con un enlace único)
+      </label>
+      <ResultsLinkCard eventId={event.id} isPublic={event.visibility === "public"} />
       {locked ? (
         <Note>
           Esta carrera ya está <strong>{event.status === "finished" ? "finalizada" : "en curso"}</strong>: no se

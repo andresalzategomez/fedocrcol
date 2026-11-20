@@ -18,11 +18,13 @@ import { Route as EventosIndexRouteImport } from './routes/eventos.index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as LigasIndexRouteImport } from './routes/ligas.index'
 import { Route as LigasSlugRouteImport } from './routes/ligas.$slug'
+import { Route as ResultadosTokenRouteImport } from './routes/resultados.$token'
 import { Route as ApiAdminJudgesRouteImport } from './routes/api/admin/judges'
 import { Route as ApiAdminLeagueApproveRouteImport } from './routes/api/admin/league-approve'
 import { Route as ApiAdminLeagueCheckPaymentRouteImport } from './routes/api/admin/league-check-payment'
 import { Route as ApiAdminRaceManagersRouteImport } from './routes/api/admin/race-managers'
 import { Route as ApiAdminRecalculatePositionsRouteImport } from './routes/api/admin/recalculate-positions'
+import { Route as ApiAdminResultsLinkRouteImport } from './routes/api/admin/results-link'
 import { Route as ApiAdminSeasonRouteImport } from './routes/api/admin/season'
 import { Route as ApiAthleteMembershipRouteImport } from './routes/api/athlete/membership'
 import { Route as ApiClubMembershipRouteImport } from './routes/api/club/membership'
@@ -35,6 +37,7 @@ import { Route as ApiPublicRegistrationPaymentRouteImport } from './routes/api/p
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1RacesRouteImport } from './routes/api/v1/races'
 import { Route as ApiPublicPagosWebhookRouteImport } from './routes/api/public/pagos.webhook'
+import { Route as ApiPublicResultsTokenRouteImport } from './routes/api/public/results.$token'
 import { Route as ApiV1AuthLoginRouteImport } from './routes/api/v1/auth.login'
 import { Route as ApiV1TimeRecordsBatchRouteImport } from './routes/api/v1/time-records.batch'
 import { Route as ApiV1RacesRaceIdAthletesRouteImport } from './routes/api/v1/races.$raceId.athletes'
@@ -89,6 +92,11 @@ const LigasSlugRoute = LigasSlugRouteImport.update({
   path: '/ligas/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResultadosTokenRoute = ResultadosTokenRouteImport.update({
+  id: '/resultados/$token',
+  path: '/resultados/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminJudgesRoute = ApiAdminJudgesRouteImport.update({
   id: '/api/admin/judges',
   path: '/api/admin/judges',
@@ -116,6 +124,11 @@ const ApiAdminRecalculatePositionsRoute =
     path: '/api/admin/recalculate-positions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminResultsLinkRoute = ApiAdminResultsLinkRouteImport.update({
+  id: '/api/admin/results-link',
+  path: '/api/admin/results-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSeasonRoute = ApiAdminSeasonRouteImport.update({
   id: '/api/admin/season',
   path: '/api/admin/season',
@@ -179,6 +192,11 @@ const ApiPublicPagosWebhookRoute = ApiPublicPagosWebhookRouteImport.update({
   path: '/api/public/pagos/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicResultsTokenRoute = ApiPublicResultsTokenRouteImport.update({
+  id: '/api/public/results/$token',
+  path: '/api/public/results/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthLoginRoute = ApiV1AuthLoginRouteImport.update({
   id: '/api/v1/auth/login',
   path: '/api/v1/auth/login',
@@ -229,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
+  '/resultados/$token': typeof ResultadosTokenRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
@@ -236,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/admin/results-link': typeof ApiAdminResultsLinkRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
   '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
@@ -248,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
@@ -265,6 +286,7 @@ export interface FileRoutesByTo {
   '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
+  '/resultados/$token': typeof ResultadosTokenRoute
   '/eventos': typeof EventosIndexRoute
   '/ligas': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
@@ -272,6 +294,7 @@ export interface FileRoutesByTo {
   '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/admin/results-link': typeof ApiAdminResultsLinkRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
   '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
@@ -284,6 +307,7 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
@@ -302,6 +326,7 @@ export interface FileRoutesById {
   '/set-password': typeof SetPasswordRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
   '/ligas/$slug': typeof LigasSlugRoute
+  '/resultados/$token': typeof ResultadosTokenRoute
   '/eventos/': typeof EventosIndexRoute
   '/ligas/': typeof LigasIndexRoute
   '/api/admin/judges': typeof ApiAdminJudgesRoute
@@ -309,6 +334,7 @@ export interface FileRoutesById {
   '/api/admin/league-check-payment': typeof ApiAdminLeagueCheckPaymentRoute
   '/api/admin/race-managers': typeof ApiAdminRaceManagersRoute
   '/api/admin/recalculate-positions': typeof ApiAdminRecalculatePositionsRoute
+  '/api/admin/results-link': typeof ApiAdminResultsLinkRoute
   '/api/admin/season': typeof ApiAdminSeasonRoute
   '/api/athlete/membership': typeof ApiAthleteMembershipRoute
   '/api/club/membership': typeof ApiClubMembershipRoute
@@ -321,6 +347,7 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/races': typeof ApiV1RacesRouteWithChildren
   '/api/public/pagos/webhook': typeof ApiPublicPagosWebhookRoute
+  '/api/public/results/$token': typeof ApiPublicResultsTokenRoute
   '/api/v1/auth/login': typeof ApiV1AuthLoginRoute
   '/api/v1/time-records/batch': typeof ApiV1TimeRecordsBatchRoute
   '/api/v1/races/$raceId/athletes': typeof ApiV1RacesRaceIdAthletesRoute
@@ -340,6 +367,7 @@ export interface FileRouteTypes {
     | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
+    | '/resultados/$token'
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
@@ -347,6 +375,7 @@ export interface FileRouteTypes {
     | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/admin/results-link'
     | '/api/admin/season'
     | '/api/athlete/membership'
     | '/api/club/membership'
@@ -359,6 +388,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/public/results/$token'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
@@ -376,6 +406,7 @@ export interface FileRouteTypes {
     | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
+    | '/resultados/$token'
     | '/eventos'
     | '/ligas'
     | '/api/admin/judges'
@@ -383,6 +414,7 @@ export interface FileRouteTypes {
     | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/admin/results-link'
     | '/api/admin/season'
     | '/api/athlete/membership'
     | '/api/club/membership'
@@ -395,6 +427,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/public/results/$token'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
@@ -412,6 +445,7 @@ export interface FileRouteTypes {
     | '/set-password'
     | '/eventos/$eventId'
     | '/ligas/$slug'
+    | '/resultados/$token'
     | '/eventos/'
     | '/ligas/'
     | '/api/admin/judges'
@@ -419,6 +453,7 @@ export interface FileRouteTypes {
     | '/api/admin/league-check-payment'
     | '/api/admin/race-managers'
     | '/api/admin/recalculate-positions'
+    | '/api/admin/results-link'
     | '/api/admin/season'
     | '/api/athlete/membership'
     | '/api/club/membership'
@@ -431,6 +466,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/races'
     | '/api/public/pagos/webhook'
+    | '/api/public/results/$token'
     | '/api/v1/auth/login'
     | '/api/v1/time-records/batch'
     | '/api/v1/races/$raceId/athletes'
@@ -449,6 +485,7 @@ export interface RootRouteChildren {
   SetPasswordRoute: typeof SetPasswordRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
   LigasSlugRoute: typeof LigasSlugRoute
+  ResultadosTokenRoute: typeof ResultadosTokenRoute
   EventosIndexRoute: typeof EventosIndexRoute
   LigasIndexRoute: typeof LigasIndexRoute
   ApiAdminJudgesRoute: typeof ApiAdminJudgesRoute
@@ -456,6 +493,7 @@ export interface RootRouteChildren {
   ApiAdminLeagueCheckPaymentRoute: typeof ApiAdminLeagueCheckPaymentRoute
   ApiAdminRaceManagersRoute: typeof ApiAdminRaceManagersRoute
   ApiAdminRecalculatePositionsRoute: typeof ApiAdminRecalculatePositionsRoute
+  ApiAdminResultsLinkRoute: typeof ApiAdminResultsLinkRoute
   ApiAdminSeasonRoute: typeof ApiAdminSeasonRoute
   ApiAthleteMembershipRoute: typeof ApiAthleteMembershipRoute
   ApiClubMembershipRoute: typeof ApiClubMembershipRoute
@@ -468,6 +506,7 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1RacesRoute: typeof ApiV1RacesRouteWithChildren
   ApiPublicPagosWebhookRoute: typeof ApiPublicPagosWebhookRoute
+  ApiPublicResultsTokenRoute: typeof ApiPublicResultsTokenRoute
   ApiV1AuthLoginRoute: typeof ApiV1AuthLoginRoute
   ApiV1TimeRecordsBatchRoute: typeof ApiV1TimeRecordsBatchRoute
   ApiV1WavesWaveIdStartRoute: typeof ApiV1WavesWaveIdStartRoute
@@ -538,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LigasSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/resultados/$token': {
+      id: '/resultados/$token'
+      path: '/resultados/$token'
+      fullPath: '/resultados/$token'
+      preLoaderRoute: typeof ResultadosTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/judges': {
       id: '/api/admin/judges'
       path: '/api/admin/judges'
@@ -571,6 +617,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/recalculate-positions'
       fullPath: '/api/admin/recalculate-positions'
       preLoaderRoute: typeof ApiAdminRecalculatePositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/results-link': {
+      id: '/api/admin/results-link'
+      path: '/api/admin/results-link'
+      fullPath: '/api/admin/results-link'
+      preLoaderRoute: typeof ApiAdminResultsLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/season': {
@@ -655,6 +708,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/pagos/webhook'
       fullPath: '/api/public/pagos/webhook'
       preLoaderRoute: typeof ApiPublicPagosWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/results/$token': {
+      id: '/api/public/results/$token'
+      path: '/api/public/results/$token'
+      fullPath: '/api/public/results/$token'
+      preLoaderRoute: typeof ApiPublicResultsTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/auth/login': {
@@ -744,6 +804,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetPasswordRoute: SetPasswordRoute,
   EventosEventIdRoute: EventosEventIdRoute,
   LigasSlugRoute: LigasSlugRoute,
+  ResultadosTokenRoute: ResultadosTokenRoute,
   EventosIndexRoute: EventosIndexRoute,
   LigasIndexRoute: LigasIndexRoute,
   ApiAdminJudgesRoute: ApiAdminJudgesRoute,
@@ -751,6 +812,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminLeagueCheckPaymentRoute: ApiAdminLeagueCheckPaymentRoute,
   ApiAdminRaceManagersRoute: ApiAdminRaceManagersRoute,
   ApiAdminRecalculatePositionsRoute: ApiAdminRecalculatePositionsRoute,
+  ApiAdminResultsLinkRoute: ApiAdminResultsLinkRoute,
   ApiAdminSeasonRoute: ApiAdminSeasonRoute,
   ApiAthleteMembershipRoute: ApiAthleteMembershipRoute,
   ApiClubMembershipRoute: ApiClubMembershipRoute,
@@ -764,6 +826,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1RacesRoute: ApiV1RacesRouteWithChildren,
   ApiPublicPagosWebhookRoute: ApiPublicPagosWebhookRoute,
+  ApiPublicResultsTokenRoute: ApiPublicResultsTokenRoute,
   ApiV1AuthLoginRoute: ApiV1AuthLoginRoute,
   ApiV1TimeRecordsBatchRoute: ApiV1TimeRecordsBatchRoute,
   ApiV1WavesWaveIdStartRoute: ApiV1WavesWaveIdStartRoute,
