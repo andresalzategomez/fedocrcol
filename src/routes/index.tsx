@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/data/demo";
-import { fetchAthleteCountsByTenant, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
+import { fetchAthleteCountsByTenant, fetchCatalogVisible, fetchEvents, fetchLeagues } from "@/lib/ocr-data";
+import { CatalogHiddenBanner } from "@/components/catalog-hidden-banner";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [leagues, events, athleteCounts] = await Promise.all([fetchLeagues(), fetchEvents(), fetchAthleteCountsByTenant()]);
+    const [leagues, events, athleteCounts, catalogVisible] = await Promise.all([fetchLeagues(), fetchEvents(), fetchAthleteCountsByTenant(), fetchCatalogVisible()]);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const upcoming = events.filter((e) => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+    // Catálogo oculto: se muestra la carrera de ejemplo aunque ya haya terminado.
+    const upcoming = catalogVisible
+      ? events.filter((e) => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3)
+      : [...events].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
     const active = leagues.filter((l) => l.status === "active");
-    return { leagues, upcoming, active, athleteCounts };
+    return { leagues, upcoming, active, athleteCounts, catalogVisible };
   },
   head: () => ({
     meta: [
@@ -35,7 +39,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { leagues, upcoming, active, athleteCounts } = Route.useLoaderData();
+  const { leagues, upcoming, active, athleteCounts, catalogVisible } = Route.useLoaderData();
   const leagueById = (id: string) => leagues.find((l) => l.id === id);
 
   return (
@@ -135,10 +139,14 @@ function Home() {
         </div>
       </section>
 
+      {!catalogVisible ? (
+        <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6"><CatalogHiddenBanner /></section>
+      ) : null}
+
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-4xl">Ligas departamentales</h2>
+            <h2 className="font-display text-4xl">{catalogVisible ? "Ligas departamentales" : "Una liga de ejemplo"}</h2>
             <p className="mt-2 text-muted-foreground">Elige tu sede: cada liga tiene su marca, sus carreras y su comunidad.</p>
           </div>
           <Button asChild variant="ghost">
@@ -168,7 +176,7 @@ function Home() {
 
       <section className="border-y border-border bg-card/40">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <h2 className="font-display text-4xl">Próximas carreras</h2>
+          <h2 className="font-display text-4xl">{catalogVisible ? "Próximas carreras" : "Una carrera de ejemplo"}</h2>
           {upcoming.length === 0 ? (
             <p className="mt-4 text-muted-foreground">No hay carreras próximas publicadas por el momento.</p>
           ) : (
@@ -178,7 +186,10 @@ function Home() {
               return (
                 <Card key={event.id} className="border-border/70">
                   <CardContent className="p-6">
-                    <Badge variant="outline" className="mb-3">{league?.department}</Badge>
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <Badge variant="outline">{league?.department}</Badge>
+                      {event.status === "finished" ? <Badge variant="secondary">Terminada</Badge> : null}
+                    </div>
                     <p className="font-display text-3xl leading-tight">{event.title}</p>
                     <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                       <CalendarDays className="size-4" /> {formatDate(event.date)}
@@ -190,7 +201,7 @@ function Home() {
                       {event.distance_km} km · {event.obstacles} obstáculos
                     </p>
                     <Button asChild className="mt-5 w-full">
-                      <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Inscribirme</Link>
+                      <Link to="/eventos/$eventId" params={{ eventId: event.id }}>{event.status === "finished" ? "Ver carrera" : "Inscribirme"}</Link>
                     </Button>
                   </CardContent>
                 </Card>

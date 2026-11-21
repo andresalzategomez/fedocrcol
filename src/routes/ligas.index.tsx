@@ -4,12 +4,13 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { fetchAthleteCountsByTenant, fetchLeagues } from "@/lib/ocr-data";
+import { fetchAthleteCountsByTenant, fetchCatalogVisible, fetchLeagues } from "@/lib/ocr-data";
+import { CatalogHiddenBanner } from "@/components/catalog-hidden-banner";
 
 export const Route = createFileRoute("/ligas/")({
   loader: async () => {
-    const [leagues, athleteCounts] = await Promise.all([fetchLeagues(), fetchAthleteCountsByTenant()]);
-    return { leagues, athleteCounts };
+    const [leagues, athleteCounts, catalogVisible] = await Promise.all([fetchLeagues(), fetchAthleteCountsByTenant(), fetchCatalogVisible()]);
+    return { leagues, athleteCounts, catalogVisible };
   },
   head: () => ({
     meta: [
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/ligas/")({
 });
 
 function LeaguesPage() {
-  const { leagues, athleteCounts } = Route.useLoaderData();
+  const { leagues, athleteCounts, catalogVisible } = Route.useLoaderData();
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -39,6 +40,8 @@ function LeaguesPage() {
           </p>
         </div>
       </div>
+
+      {!catalogVisible ? <div className="mx-auto max-w-7xl px-4 pt-14 sm:px-6"><CatalogHiddenBanner /></div> : null}
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-3">
         {leagues.length === 0 ? (

@@ -1,4 +1,6 @@
 export type League = {
+  /** Se sigue mostrando de ejemplo cuando el catálogo público está oculto. */
+  is_showcase?: boolean;
   id: string;
   name: string;
   slug: string;
@@ -22,6 +24,8 @@ export type EventCategory = {
 };
 
 export type OcrEvent = {
+  /** Se sigue mostrando de ejemplo cuando el catálogo público está oculto. */
+  is_showcase?: boolean;
   id: string;
   tenant_id: string;
   title: string;
