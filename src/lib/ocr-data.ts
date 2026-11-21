@@ -12,11 +12,36 @@ import {
  * Capa de datos. Si el Supabase externo está configurado se consulta ahí;
  * de lo contrario la app corre con datos de demostración.
  */
+/**
+ * ¿El sitio público muestra todas las ligas y carreras? Lo decide el superadmin con el interruptor del panel
+ * (site_settings.public_catalog). Sin ajuste, o si no se puede leer, se muestra todo (comportamiento anterior).
+ * Con el catálogo oculto solo se ven las ligas y carreras marcadas como muestra (is_showcase).
+ */
+let catalogCache: { at: number; promise: Promise<boolean> } | null = null;
+export function fetchCatalogVisible(): Promise<boolean> {
+  if (!supabase) return Promise.resolve(true);
+  if (catalogCache && Date.now() - catalogCache.at < 15_000) return catalogCache.promise;
+  const promise = (async () => {
+    try {
+      const { data, error } = await supabase!.from("site_settings").select("value").eq("key", "public_catalog").maybeSingle();
+      if (error || !data) return true;
+      return (data.value as { visible?: boolean } | null)?.visible !== false;
+    } catch { return true; }
+  })();
+  catalogCache = { at: Date.now(), promise };
+  return promise;
+}
+
 export async function fetchLeagues(): Promise<League[]> {
   if (!supabase) return DEMO_LEAGUES;
-  const { data, error } = await supabase.from("tenants").select("*").eq("status", "active").order("name");
+  const [{ data, error }, visible] = await Promise.all([
+    supabase.from("tenants").select("*").eq("status", "active").order("name"),
+    fetchCatalogVisible(),
+  ]);
   if (error || !data?.length) return DEMO_LEAGUES;
-  return data as unknown as League[];
+  const leagues = data as unknown as League[];
+  // Catálogo oculto: solo la muestra (sin caer a los datos de demostración).
+  return visible ? leagues : leagues.filter((l) => l.is_showcase);
 }
 
 export async function fetchEvents(): Promise<OcrEvent[]> {
@@ -26,8 +51,11 @@ export async function fetchEvents(): Promise<OcrEvent[]> {
     .select("*, categories:event_categories(*)")
     .order("date");
   if (error || !data?.length) return DEMO_EVENTS;
+  const visible = await fetchCatalogVisible();
   // Una categoría con precio 0 aún no está lista: no se muestra ni se puede elegir hasta que el director le ponga precio.
-  return (data as unknown as OcrEvent[]).map((e) => ({ ...e, categories: (e.categories ?? []).filter((c) => Number(c.price) > 0) }));
+  const events = (data as unknown as OcrEvent[]).map((e) => ({ ...e, categories: (e.categories ?? []).filter((c) => Number(c.price) > 0) }));
+  // Catálogo oculto: solo la muestra (sin caer a los datos de demostración).
+  return visible ? events : events.filter((e) => e.is_showcase);
 }
 
 export async function fetchRanking(): Promise<RankingRow[]> {

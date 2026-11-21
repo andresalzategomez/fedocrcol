@@ -141,6 +141,20 @@ export interface Registration {
   athlete_gender: string | null; ranking_category_id: string | null; category_id: string;
 }
 
+// --------------------------- Visibilidad pública del catálogo -------------------------
+/** ¿El sitio público muestra todas las ligas y carreras? Sin ajuste guardado = sí. */
+export async function getCatalogVisible(): Promise<boolean> {
+  const { data, error } = await db().from("site_settings").select("value").eq("key", "public_catalog").maybeSingle();
+  if (error) throw error;
+  return (data?.value as { visible?: boolean } | null)?.visible !== false;
+}
+
+/** Solo el superadmin puede cambiarlo (lo exige la política de la tabla). */
+export async function setCatalogVisible(visible: boolean): Promise<void> {
+  const { error } = await db().from("site_settings").upsert({ key: "public_catalog", value: { visible }, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) throw error;
+}
+
 // --------------------------- Ligas (tenants) -------------------------
 export async function listTenants(): Promise<Tenant[]> {
   const { data, error } = await db().from("tenants").select("*").order("name");

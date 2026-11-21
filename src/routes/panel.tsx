@@ -641,7 +641,7 @@ function AdminConsole({ role, userId, fixedTenant }: { role: string; userId: str
         {!isSuper && fixedTenant ? <TabsTrigger value="mi-liga"><Palette className="mr-1 size-4" />Mi liga</TabsTrigger> : null}
       </TabsList>
 
-      {isSuper ? <TabsContent value="ligas" className="mt-6"><LigasSection tenants={tenants} onChange={loadTenants} /></TabsContent> : null}
+      {isSuper ? <TabsContent value="ligas" className="mt-6"><CatalogoSwitch /><LigasSection tenants={tenants} onChange={loadTenants} /></TabsContent> : null}
 
       <TabsContent value="carreras" className="mt-6">
         {isSuper ? (
@@ -1330,6 +1330,43 @@ function ClubesSection({ tenantId }: { tenantId: string }) {
 }
 
 // ------------------------------- Ligas -------------------------------
+/** Interruptor del superadmin: muestra u oculta las ligas y carreras del sitio público (queda solo la muestra). */
+function CatalogoSwitch() {
+  const [visible, setVisible] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.getCatalogVisible().then(setVisible).catch(() => setVisible(true)); }, []);
+
+  async function change(next: boolean) {
+    setBusy(true);
+    try {
+      await api.setCatalogVisible(next);
+      setVisible(next);
+      toast.success(next ? "El sitio público muestra todas las ligas y carreras" : "El sitio público muestra solo la muestra y el aviso");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo guardar el cambio");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Card className="mb-6 border-border/70">
+      <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="max-w-2xl">
+          <p className="font-display text-xl">Mostrar ligas y carreras en el sitio público</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {visible === false
+              ? "Oculto: el sitio solo muestra de ejemplo las ligas y carreras marcadas como muestra, con un aviso que invita a sumar tu liga. Los enlaces de resultados en vivo siguen funcionando."
+              : "Visible: aparecen todas las ligas activas y sus carreras públicas. Al ocultarlo, el sitio muestra solo la muestra y un aviso."}
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <Switch checked={visible !== false} disabled={visible === null || busy} onCheckedChange={change} />
+          {visible === false ? "Oculto" : "Visible"}
+        </label>
+      </CardContent>
+    </Card>
+  );
+}
+
 function LigasSection({ tenants, onChange }: { tenants: Tenant[]; onChange: () => void }) {
   const [form, setForm] = useState({ name: "", slug: "", department: "", city: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});

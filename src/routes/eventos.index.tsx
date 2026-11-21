@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCOP, formatDate } from "@/data/demo";
-import { dynamicPrice, fetchEvents, fetchLeagues, fetchRegistrationCounts } from "@/lib/ocr-data";
+import { dynamicPrice, fetchCatalogVisible, fetchEvents, fetchLeagues, fetchRegistrationCounts } from "@/lib/ocr-data";
+import { CatalogHiddenBanner } from "@/components/catalog-hidden-banner";
 
 /** Normaliza para comparar "por semejanza": minúsculas y sin tildes. */
 function normalize(s: string): string {
@@ -19,10 +20,10 @@ function normalize(s: string): string {
 
 export const Route = createFileRoute("/eventos/")({
   loader: async () => {
-    const [events, leagues] = await Promise.all([fetchEvents(), fetchLeagues()]);
+    const [events, leagues, catalogVisible] = await Promise.all([fetchEvents(), fetchLeagues(), fetchCatalogVisible()]);
     const counts = await fetchRegistrationCounts(events.map((e) => e.id));
     const eventsWithCounts = events.map((e) => ({ ...e, registered: counts.byEvent.get(e.id) ?? 0 }));
-    return { events: eventsWithCounts, leagues };
+    return { events: eventsWithCounts, leagues, catalogVisible };
   },
   head: () => ({
     meta: [
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/eventos/")({
 });
 
 function EventsPage() {
-  const { events: allEvents, leagues } = Route.useLoaderData();
+  const { events: allEvents, leagues, catalogVisible } = Route.useLoaderData();
   const [tenant, setTenant] = useState("all");
   const [search, setSearch] = useState("");
   const leagueById = (id: string) => leagues.find((l) => l.id === id);
@@ -87,6 +88,8 @@ function EventsPage() {
           </div>
         </div>
       </div>
+
+      {!catalogVisible ? <div className="mx-auto max-w-7xl px-4 pt-14 sm:px-6"><CatalogHiddenBanner /></div> : null}
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-14 sm:px-6">
         {events.length === 0 ? (
