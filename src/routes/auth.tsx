@@ -16,6 +16,8 @@ import { listTenants, listClubsForTenant, type Tenant, type PublicClub } from "@
 import { useColombiaLocation } from "@/lib/use-colombia-location";
 
 export const Route = createFileRoute("/auth")({
+  // /auth?tab=signup abre directamente la pestaña "Registrarme" (la usa el banner de inicio).
+  validateSearch: (search: Record<string, unknown>): { tab?: "signup" } => (search["tab"] === "signup" ? { tab: "signup" } : {}),
   head: () => ({
     meta: [
       { title: "Ingresar o registrarte — FEDOCR Colombia" },
@@ -29,6 +31,7 @@ const INDEPENDIENTE = "__independiente__";
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { tab } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,7 +98,7 @@ function AuthPage() {
 
         <Card className="border-border/70">
           <CardContent className="p-6">
-            <Tabs defaultValue="login">
+            <Tabs defaultValue={tab === "signup" ? "signup" : "login"}>
               <TabsList className="w-full">
                 <TabsTrigger value="login" className="flex-1">Ingresar</TabsTrigger>
                 <TabsTrigger value="signup" className="flex-1">Registrarme</TabsTrigger>

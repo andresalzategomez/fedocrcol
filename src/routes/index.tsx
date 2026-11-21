@@ -42,12 +42,12 @@ function Home() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      {/* Banner promocional — OCR LATAM Colombia 2027 */}
+      {/* Banner promocional — OCR Colombia 2027 */}
       <section className="border-b border-border" style={{ background: "linear-gradient(120deg,#0a1732 0%,#102a5c 55%,#0a1732 100%)" }}>
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 py-10 sm:px-6 md:flex-row md:py-12">
           <img
-            src="/ocr-latam-colombia-2027.jpg"
-            alt="OCR LATAM Colombia 2027 — Campeonato Sudamericano de Carreras de Obstáculos"
+            src="/ocr-colombia-2027.webp"
+            alt="OCR Colombia 2027"
             width={240}
             height={240}
             loading="eager"
@@ -55,21 +55,21 @@ function Home() {
           />
           <div className="text-center md:text-left">
             <span className="inline-block rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-amber-300">
-              Evento continental · 2027
+              Temporada 2027
             </span>
             <h2 className="mt-3 font-display text-4xl leading-tight text-white sm:text-5xl">
-              OCR LATAM Colombia <span className="text-amber-400">2027</span>
+              Tu 2027 en el OCR <span className="text-amber-400">empieza aquí</span>
             </h2>
             <p className="mt-3 max-w-xl text-base text-white/70">
-              El Campeonato Sudamericano de Carreras de Obstáculos llega a Colombia.
-              Sé parte del evento de OCR más grande de la región.
+              Inscríbete a las carreras de tu liga, sigue tu posición en el ranking nacional y vive los
+              resultados en vivo, todo en un solo lugar. Crea tu cuenta y prepárate para la temporada 2027.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3 md:justify-start">
               <Button asChild size="lg" className="bg-amber-400 text-slate-900 hover:bg-amber-300">
-                <Link to="/eventos">Quiero participar <ArrowRight className="ml-2 size-4" /></Link>
+                <Link to="/auth" search={{ tab: "signup" }}>Quiero ser parte <ArrowRight className="ml-2 size-4" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white">
-                <Link to="/eventos">Más información</Link>
+                <Link to="/eventos">Ver calendario</Link>
               </Button>
             </div>
           </div>
